@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DILG Dashboard</title>
+  <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      <div class="menu-title">MENU</div>
+      <ul class="nav-menu">
+        <li><a href="/dashboard/">Dashboard</a></li>
+        <li><a href="/application_request/">Application Request</a></li>
+        <li><a href="/history/">History</a></li>
+        <li ><a href="/employees_profile/">Employees Profile</a></li>
+        <li><a href="/folder/">Folders</a></li>
+        <li><a href="/settings/">Settings</a></li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <h1>Dashboard</h1>
+        {% comment %} <a href="{% url 'landing-page' %}" class="back-button">← Back</a> {% endcomment %}
+      </div>
+
+      <div class="grid-container">
+        <div class="card large"></div>
+        <div class="card medium"></div>
+        <div class="card small"></div>
+        <div class="card small"></div>
+        <div class="card wide"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

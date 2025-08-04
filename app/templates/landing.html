@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DILG Landing Page</title>
+  <link rel="stylesheet" href="{% static 'CSS/landing.css' %}">
+</head>
+<body>
+    <div class="hero-section">
+        <div class="overlay">
+            <div class="content-block">
+                <div class="logos">
+                    <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo">
+                    <img src="{% static 'Pictures/logo2.png' %}" alt="Second Logo">
+                </div>
+                <h1>Department of the<br><span>Interior and Local Government</span></h1>
+                <div class="buttons">
+                    <a href="{% url 'login_page' %}" class="btn"><i class="fas fa-sign-in-alt"></i> Login</a>
+                    {% comment %} <a  class="btn"><i class="fas fa-user-plus"></i> Sign up</a> {% endcomment %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

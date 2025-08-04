@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Application Letter</title>
+  <link rel="stylesheet" href="{% static 'CSS/application_letter.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo-title">
+        <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+        <h1>Eligibility Certification</h1>
+      </div>
+    </header>
+
+    <nav class="breadcrumb">
+      <span>Request Letter</span>
+      <span>›</span>
+      <span class="active">Application Letter</span>
+      <span>›</span>
+      <span>Valid ID</span>
+      <span>›</span>
+      <span>Signature</span>
+      <span>›</span>
+      <span>Certificate</span>
+    </nav>
+
+    <div class="form-card">
+      <form method="POST" action="/valid_id/">  <!-- Update the action as needed -->
+        {% csrf_token %}
+
+        <h2 class="section-title">Certification from the following officials</h2>
+        <div class="radio-button-group">
+          <input type="radio" id="barangay" name="certifier" value="punong_barangay" required>
+          <label for="barangay">Punong Barangay</label>
+
+          <input type="radio" id="municipality" name="certifier" value="dilg_municipality">
+          <label for="municipality">DILG - Municipality</label>
+
+          <input type="radio" id="provincial" name="certifier" value="dilg_provincial">
+          <label for="provincial">DILG - Provincial</label>
+
+          <input type="radio" id="regional" name="certifier" value="dilg_regional">
+          <label for="regional">DILG - Regional</label>
+        </div>
+
+        <div class="btn-row">
+          <a href="/civil_service_certification/" class="prev-btn">← Back</a>
+          <a href="/valid_id/" class="next-btn">Next →</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

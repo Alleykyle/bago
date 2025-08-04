@@ -1,0 +1,160 @@
+/* Base Styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+  }
+  
+  /* Main container */
+  .container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    position: relative;
+  }
+  
+  /* Header section */
+  .header {
+    display: flex;
+    align-items: center;
+    padding-left: 40px;
+    margin-bottom: 20px;
+  }
+  
+  .logo-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+  }
+  
+  .logo-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1A237E;
+    margin: 0;
+  }
+  
+  /* Breadcrumb navigation */
+  .breadcrumb {
+    margin: 30px 0;
+    font-size: 14px;
+    color: #555;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .breadcrumb .active {
+    font-weight: 600;
+    color: #1A237E;
+  }
+  
+  /* Form card */
+  .form-card {
+    border: 1px solid #ccc;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
+    text-align: left;
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  form label {
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  form input,
+  form textarea {
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #bbb;
+    font-size: 14px;
+  }
+  
+  /* Navigation buttons */
+  .btn-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .prev-btn,
+  .next-btn {
+    background-color: #1A237E;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 30px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .prev-btn:hover,
+  .next-btn:hover {
+    background-color: #0D1540;
+  }
+  
+  /* Radio Section */
+  .section-title,
+  .radio-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 16px;
+    text-align: center;
+  }
+  
+  /* Styled radio buttons (vertical, centered) */
+  .radio-button-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+  }
+  
+  /* Hide actual radio input */
+  .radio-button-group input[type="radio"] {
+    display: none;
+  }
+  
+  /* Style radio labels as toggle buttons */
+  .radio-button-group label {
+    padding: 10px 20px;
+    border: 2px solid #1A237E;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #1A237E;
+    background-color: transparent;
+    transition: all 0.2s ease-in-out;
+    user-select: none;
+    min-width: 250px;
+    text-align: center;
+  }
+  
+  /* Highlight selected option */
+  .radio-button-group input[type="radio"]:checked + label {
+    background-color: #1A237E;
+    color: white;
+  }
+  

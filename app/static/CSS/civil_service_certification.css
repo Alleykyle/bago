@@ -1,0 +1,113 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+  }
+  
+  .container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    position: relative;
+  }
+  
+  .header {
+    display: flex;
+    align-items: center;
+    padding-left: 40px;
+    margin-top: 20px;
+  }
+  
+  .logo-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+  }
+  
+  .logo-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1A237E;
+    margin: 0;
+  }
+  
+  .back-btn {
+    background-color: #1A237E;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .breadcrumb {
+    margin: 30px 0;
+    font-size: 14px;
+    color: #555;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .breadcrumb .active {
+    font-weight: 600;
+    color: #1A237E;
+  }
+  
+  .form-card {
+    border: 1px solid #ccc;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
+    text-align: left;
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  form label {
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  form input {
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #bbb;
+    font-size: 14px;
+  }
+  
+  /* Updated next-btn to support both <button> and <a> */
+  .next-btn {
+    display: inline-block;
+    background-color: #1A237E;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    text-align: center;
+    text-decoration: none; /* for <a> tag */
+  }
+  
+  .next-btn:hover {
+    background-color: #0D1540;
+  }
+  

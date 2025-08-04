@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings</title>
+  <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      <ul class="nav-menu">
+        <li><a href="/dashboard/">Dashboard</a></li>
+        <li><a href="/application_request/">Application Request</a></li>
+        <li><a href="/history/">History</a></li>
+        <li><a href="/employees_profile/">Employees Profile</a></li>
+        <li><a href="/folder/">Folders</a></li>
+        <li><a href="/settings/">Settings</a></li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <h1>Settings</h1>
+        <a href="/dashboard/" class="back-button">← Back</a>
+      </div>
+
+      <div class="card-grid">
+        {% for setting in settings_options %}
+        <div class="profile-card">
+          <div class="folder-icon">⚙️</div>
+          <h3>{{ setting.title }}</h3>
+          <p>{{ setting.description }}</p>
+          <button class="edit-button">Open</button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

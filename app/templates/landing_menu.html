@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DILG Landing Page</title>
+  <link rel="stylesheet" href="{% static 'CSS/landing_menu.css' %}">
+</head>
+<body>
+  <div class="hero-section">
+    <div class="overlay">
+      <div class="logo-container">
+        <img src="{% static 'Pictures/logo1.png' %}" class="dilg-logo" alt="DILG Logo" />
+      </div>
+
+      <div class="menu">
+        <a href="/dashboard/" class="menu-item">Dashboard</a>
+        <a href="/civil_service_certification/" class="menu-item">Civil Service Certification (CSC)</a>
+        <a href="/requirements_monitoring/" class = "menu-item">Monitoring Task</a>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

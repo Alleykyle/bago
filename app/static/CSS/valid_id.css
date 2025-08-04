@@ -1,0 +1,125 @@
+/* Base Layout */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+  }
+  
+  .container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    position: relative;
+  }
+  
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    padding-left: 40px;
+    margin-bottom: 20px;
+  }
+  
+  .logo-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+  }
+  
+  .logo-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1A237E;
+    margin: 0;
+  }
+  
+  /* Breadcrumb */
+  .breadcrumb {
+    margin: 30px 0;
+    font-size: 14px;
+    color: #555;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .breadcrumb .active {
+    font-weight: 600;
+    color: #1A237E;
+  }
+  
+  /* Form Card */
+  .form-card {
+    border: 1px solid #ccc;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
+    text-align: left;
+  }
+  
+  /* Form Styles */
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  form label {
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  form input[type="file"] {
+    margin-bottom: 20px;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    border: 1px solid #bbb;
+    cursor: pointer;
+  }
+  
+  /* Section Title */
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  
+  /* Button Row */
+  .btn-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .prev-btn,
+  .next-btn {
+    background-color: #1A237E;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 30px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .prev-btn:hover,
+  .next-btn:hover {
+    background-color: #0D1540;
+  }
+  

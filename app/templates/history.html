@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>History</title>
+  <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      <ul class="nav-menu">
+        <li><a href="/dashboard/">Dashboard</a></li>
+        <li><a href="/application_request/">Application Request</a></li>
+        <li><a href="/history/">History</a></li>
+        <li ><a href="/employees_profile/">Employees Profile</a></li>
+        <li><a href="/folder/">Folders</a></li>
+        <li><a href="/settings/">Settings</a></li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <h1>History</h1>
+        <a href="/dashboard/" class="back-button">← Back</a>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ACTIVITIES</th>
+              <th>DATE</th>
+              <th>PROCESSED BY</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Application Form No. 12, Approved by {name}</td>
+              <td>January 1, 1998</td>
+              <td>Leslie Faith Navaja</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

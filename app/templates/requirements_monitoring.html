@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Requirements Monitoring</title>
+  <link rel="stylesheet" href="{% static 'CSS/requirements_monitoring.css' %}">
+</head>
+<body>
+  <div class="monitoring-container">
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <img src="{% static 'Pictures/logo1.png' %}" class="logo" alt="DILG Logo" />
+      <h3>Barangay</h3>
+      <ul class="barangay-list">
+        <li class="active">Barangay 1</li>
+        <li>Barangay 2</li>
+        <li>Barangay 3</li>
+        <li>Barangay 4</li>
+        <li>Barangay 5</li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <h1>Requirements Monitoring</h1>
+        <div class="top-controls">
+          <button class="back-button">← Back</button>
+          <div class="user-icon">N</div>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="tab active">Weekly</button>
+        <button class="tab">Monthly</button>
+        <button class="tab">Semestral</button>
+        <button class="tab">Quarterly</button>
+        <button class="tab">Annually</button>
+        <input type="text" class="search-box" placeholder="Search">
+      </div>
+
+      <!-- Barangay Info -->
+      <div class="barangay-header">
+        <h2>Barangay 1</h2>
+        <span class="date">May 5, 2025</span>
+        <span class="week-btn">Week 05 ⬇</span>
+      </div>
+
+      <!-- Task Card -->
+      <div class="task-card">
+        <h3>Barangay Road CleanUp Operation (BARCO)</h3>
+        <p class="status"><strong>Status:</strong> Accomplished</p>
+        <p><strong>Due Date:</strong> July 2, 2025</p>
+        <p class="last-update">Last Update: July 3, 2025</p>
+        <div class="user-icon large">N</div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

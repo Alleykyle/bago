@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Eligibility Certification</title>
+  <link rel="stylesheet" href="{% static 'CSS/civil_service_certification.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      <h1>Eligibility Certification</h1>
+    </header>
+
+    <nav class="breadcrumb">
+      <span class="active">Request Letter</span>
+      <span>›</span>
+      <span>Application Letter</span>
+      <span>›</span>
+      <span>Valid ID</span>
+      <span>›</span>
+      <span>Signature</span>
+      <span>›</span>
+      <span>Certificate</span>
+    </nav>
+
+    <div class="form-card">
+      <form method="POST">
+        {% csrf_token %}
+        <label for="last_name">Last Name</label>
+        <input type="text" id="last_name" name="last_name" required>
+
+        <label for="first_name">First Name</label>
+        <input type="text" id="first_name" name="first_name" required>
+
+        <label for="middle_initial">Middle Initial</label>
+        <input type="text" id="middle_initial" name="middle_initial">
+
+        <a href="/application_letter/" class="next-btn">Next →</a>
+
+
+      </form>
+    </div>
+  </div>
+</body>
+</html>
