@@ -2,38 +2,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <title>Folders</title>
+  <meta charset="UTF-8">
+  <title>Brgy. Files Sorting</title>
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/folder.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/monitoring_files.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/requirements_monitoring.css' %}">
 </head>
 <body>
   <div class="dashboard-container">
     <!-- Sidebar -->
+     <!-- Sidebar -->
     <div class="sidebar">
-      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
-      <ul class="nav-menu">
-        <li><a href="/dashboard/">Dashboard</a></li>
-        <li><a href="/application_request/">Application Request</a></li>
-        <li><a href="/history/">History</a></li>
-        <li><a href="/employees_profile/">Employees Profile</a></li>
-        <li><a href="/folder/">Folders</a></li>
-        <li><a href="/settings/">Settings</a></li>
-      </ul>
+      <img src="{% static 'Pictures/logo1.png' %}" class="logo" alt="DILG Logo" />
+    
+    
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
-      <!-- Header -->
       <div class="header">
-        <h1>Folder Management</h1>
-        <a href="/dashboard/" class="back-button">← Back</a>
+        <h1>Certificates Files</h1>
+        <a href="/folder/" class="back-button">← Back</a>
       </div>
       
       <!-- Action Buttons with Search -->
       <div class="action-buttons">
-        <div class="buttons-left">
+        <div class="buttons-left"> 
           <button class="create-button">
             <i class="fas fa-plus"></i> Create
           </button>
@@ -58,22 +53,24 @@
         
         <div class="profile-card">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
-          <h3>Brgy. Monitoring Files</h3>
-          <p>Requirements</p>
+          <h3>Approved Certificates</h3>
           <a href="/monitoring_files/" class="edit-button">Open</a>
         </div>
         
         <div class="profile-card">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
-          <h3>Certification Files</h3>
-          <p>Documents</p>
-          <a href="/certification_files/" class="edit-button">Open</a>
+          <h3>Identification Images</h3>
+          <button class="edit-button">Open</button>
         </div>
-        
-        
-    </div> <!-- This closing div was missing! -->
-  </div> <!-- This closes dashboard-container -->
-</body>
-</html>
+
+        <div class="profile-card">
+          <div class="folder-icon"><i class="fas fa-folder"></i></div>
+          <h3>Signatures</h3>
+          <button class="edit-button">Open</button>
+        </div>
+
+    </div>
+
+  </div>
 </body>
 </html>

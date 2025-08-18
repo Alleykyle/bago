@@ -3,8 +3,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Application Request</title>
-  <link rel="stylesheet" href="{% static 'CSS/application_request.css' %}">
+  <title>History</title>
+  <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
 </head>
 <body>
   <div class="dashboard-container">
@@ -13,7 +13,7 @@
       <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
       <ul class="nav-menu">
         <li><a href="/dashboard/">Dashboard</a></li>
-        <li ><a href="/application_request/">Application Request</a></li>
+        <li><a href="/application_request/">Application Request</a></li>
         <li><a href="/history/">History</a></li>
         <li ><a href="/employees_profile/">Employees Profile</a></li>
         <li><a href="/folder/">Folders</a></li>
@@ -24,32 +24,14 @@
     <!-- Main Content -->
     <div class="main-content">
       <div class="header">
-        <h1>Application Request</h1>
+        <h1>Application Request </h1>
         <a href="/dashboard/" class="back-button">← Back</a>
       </div>
 
       <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Client Name</th>
-              <th>ID</th>
-              <th>Date</th>
-              <th>Approval Status</th>
-              <th>Approved By</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><img class="avatar" src="{% static 'Pictures/avatar.png' %}"> Mark Eugene Casanada</td>
-              <td>022A – 9734</td>
-              <td>April 1, 2025</td>
-              <td class="approved">Approved</td>
-              <td>Leslie Faith Navaja</td>
-            </tr>
-          </tbody>
-        </table>
+        
       </div>
+
     </div>
   </div>
 </body>

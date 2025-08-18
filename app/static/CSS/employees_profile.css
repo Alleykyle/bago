@@ -1,18 +1,57 @@
-/* Search bar and layout adjustments */
-.right-tools {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-  }
-  
-  .search-input {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    font-size: 14px;
-    width: 200px;
-  }
-  
+.search-form {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.search-container {
+  position: relative;
+  width: 300px; 
+}
+
+.search-bar {
+  width: 100%;
+  padding: 10px 40px 10px 15px; 
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 25px; 
+  outline: none;
+  box-sizing: border-box;
+}
+
+.search-bar:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+.search-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: #777;
+  padding: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-btn:hover {
+  color: #3498db;
+}
+
+/* Optional: Reduce button size on hover */
+.search-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
   /* Profile Cards Grid */
   .card-grid {
     display: flex;
@@ -74,5 +113,137 @@
     border-radius: 10px;
     transition: background-color 0.3s, color 0.3s;
   }
-  
-  
+  /* Add Employee Button */
+.add-button {
+  background-color: #2456f3;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.add-button:hover {
+  background-color: #1c45c0;
+}
+
+/* Add Form Container */
+.add-form-container {
+  background: #ecf0f1;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 10px 0 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.add-form-container h3 {
+  margin: 0 0 15px;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.form-row input {
+  flex: 1;
+  min-width: 150px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.form-actions {
+  text-align: right;
+}
+
+.save-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.save-button:hover {
+  background-color: #2980b9;
+}
+
+.cancel-button {
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.cancel-button:hover {
+  background-color: #7f8c8d;
+}
+
+/* Messages */
+.messages {
+  margin: 10px 0;
+}
+
+.alert {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.alert.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.alert.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.profile-card {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.avatar-placeholder {
+  width: 100px;
+  height: 100px;
+  background-color: #ddd;
+  border-radius: 50%;
+  margin: 0 auto 15px;
+}
+.search-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+}
+.search-btn svg {
+  display: block;
+}
+
+
+

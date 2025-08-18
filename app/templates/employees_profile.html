@@ -4,7 +4,604 @@
 <head>
   <meta charset="UTF-8" />
   <title>Employee Profile</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/employees_profile.css' %}">
+  <style>
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1200px; 
+      margin: 0 auto; 
+      padding: 20px 0;
+    }
+
+    @media (min-width: 768px) {
+      .card-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 350px)); 
+        justify-content: start; 
+        gap: 24px;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .card-grid {
+        grid-template-columns: repeat(3, 1fr); 
+        max-width: 1100px;
+      }
+    }
+
+    @media (min-width: 1400px) {
+      .card-grid {
+        grid-template-columns: repeat(4, 1fr); 
+        max-width: 1400px;
+      }
+    }
+
+    .profile-card {
+      background: white;
+      border-radius: 15px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(45deg, #1c45c0, #2456f3);
+    }
+
+    .profile-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .avatar-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1c45c0 0%, #2456f3 100%);
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .profile-card h3 {
+      font-size: 1.3rem;
+      color: #333;
+      margin-bottom: 12px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .profile-card p {
+      color: #666;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    .profile-card p strong {
+      color: #333;
+      font-weight: 600;
+    }
+
+    .task-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin: 8px auto;
+      text-align: center;
+      width: fit-content;
+    }
+    .task-badge span{
+      background-color: #0b1a50;
+    }
+
+    .task-documentation { background: #0b1a50; color: white; }
+    .task-monitoring { background: #0b1a50; color: white; }
+    .task-filing { background: #0b1a50; color: white; }
+    .task-supervision { background: #0b1a50; color: white; }
+
+    .action-buttons-container {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    /* Fixed button styling - both buttons now have identical sizing */
+    .edit-button,
+    .delete-button {
+      border: none;
+      padding: 10px 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      position: relative;
+      overflow: hidden;
+      width: 110px !important;
+      height: 42px !important;
+      box-sizing: border-box;
+      min-width: 110px;
+      max-width: 110px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin: 0;
+      vertical-align: top;
+      line-height: 1;
+    }
+   
+    .edit-button {
+      background: linear-gradient(45deg, #1c45c0, #2456f3) !important;
+      color: white !important;
+    }
+
+    .edit-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      color: white !important;
+      text-decoration: none;
+    }
+
+    .delete-button {
+      background: linear-gradient(45deg, #dc3545, #c82333) !important;
+      color: white !important;
+    }
+
+    .delete-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
+      color: white !important;
+      text-decoration: none;
+    }
+
+    .main-content {
+      padding: 20px 30px;
+    }
+
+    .action-buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .search-container {
+      flex: 1;
+      max-width: 400px;
+    }
+
+    .search-form {
+      width: 100%;
+    }
+
+    .search-container .search-container {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 25px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-bar {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      outline: none;
+      font-size: 0.95rem;
+    }
+
+    .search-btn {
+      background: linear-gradient(45deg, #1c45c0, #2456f3);
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .search-btn:hover {
+      background: linear-gradient(45deg, #5a6fd8, #2456f3);
+    }
+
+    .add-button {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+    }
+
+    .add-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+    }
+
+    .add-form-container {
+      display: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .card-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 16px;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-container {
+        max-width: 100%;
+      }
+
+      .action-buttons-container {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .edit-button,
+      .delete-button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .profile-card {
+        padding: 20px;
+      }
+      
+      .main-content {
+        padding: 16px;
+      }
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      transform: scale(0.7);
+      opacity: 0;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      color: #333;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #999;
+      transition: color 0.3s ease;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .close-btn:hover {
+      color: #333;
+      background: #f0f0f0;
+    }
+
+    .modal-form-group {
+      margin-bottom: 20px;
+    }
+
+    .modal-form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .modal-form-group input,
+    .modal-form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #fafafa;
+      box-sizing: border-box;
+    }
+
+    .modal-form-group input:focus,
+    .modal-form-group select:focus {
+      outline: none;
+      border-color: #1c45c0;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: flex-end;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 2px solid #f0f0f0;
+    }
+
+    .modal-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-btn-primary {
+      background: linear-gradient(45deg, #1c45c0, #2456f3);
+      color: white;
+    }
+
+    .modal-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .modal-btn-secondary {
+      background: #f8f9fa;
+      color: #666;
+      border: 2px solid #e9ecef;
+    }
+
+    .modal-btn-secondary:hover {
+      background: #e9ecef;
+      color: #333;
+    }
+
+    .modal-btn-add {
+      background: linear-gradient(45deg, #2456f3, #0b1a50);
+      color: white;
+    }
+
+    .modal-btn-add:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px #2456f3;
+    }
+
+    .modal-btn-danger {
+      background: linear-gradient(45deg, #dc3545, #c82333);
+      color: white;
+    }
+
+    .modal-btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+    }
+
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #c3e6cb;
+      display: none;
+    }
+
+    .success-message.show {
+      display: block;
+      animation: slideInUp 0.3s ease;
+    }
+
+    /* Fixed Error Message Styling */
+    .modal-error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #f5c6cb;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .modal-error-message.show {
+      display: flex;
+      animation: slideInUp 0.3s ease;
+    }
+
+    .modal-error-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    /* Notification container for page-level notifications */
+    .notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 350px;
+    }
+
+    .notification {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #f5c6cb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transform: translateX(100%);
+      opacity: 0;
+      animation: slideInRight 0.3s ease forwards;
+    }
+
+    .notification.success {
+      background: #d4edda;
+      color: #155724;
+      border-color: #c3e6cb;
+    }
+
+    .notification-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .delete-confirmation {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .delete-confirmation .warning-icon {
+      font-size: 4rem;
+      color: #dc3545;
+      margin-bottom: 20px;
+    }
+
+    .delete-confirmation h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .delete-confirmation p {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .employee-info {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 20px 0;
+      border-left: 4px solid #dc3545;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideInUp {
+      from { 
+        transform: translateY(50px);
+        opacity: 0;
+      }
+      to { 
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="dashboard-container">
@@ -21,28 +618,714 @@
       </ul>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
       <div class="header">
-        <h1>Employee Profile</h1>
-        <div class="right-tools">
-          <a href="/dashboard/" class="back-button">← Back</a>
-          <input type="text" class="search-input" placeholder="🔍 Search">
-        </div>
+        <h1>Employees Profile</h1>
+        <a href="/dashboard/" class="back-button">← Back</a>
       </div>
+
+      <div class="action-buttons">
+        <div class="search-container">
+          <form method="GET" class="search-form" id="searchForm">
+            <div class="search-container">
+              <input 
+                type="text" 
+                name="search" 
+                id="searchInput"
+                placeholder="Search employees..." 
+                class="search-bar" 
+                value="{{ request.GET.search }}"
+              >
+              <button type="submit" class="search-btn" id="searchBtn">
+                <i class="fa fa-search"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <button type="button" class="add-button" onclick="openAddModal()">+ Add Employee</button>
+      </div>
+
+      <div id="add-employee-form" class="add-form-container" style="display: none;">
+        <form method="POST" action="{% url 'employees_profile' %}">
+          {% csrf_token %}
+          <h3>Add New Employee</h3>
+          <div class="form-row">
+            <input type="text" name="name" placeholder="Full Name" required />
+            <input type="text" name="id_no" placeholder="ID No." required />
+            <input type="text" name="task" placeholder="Task Assign" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="save-button">Save</button>
+            <button type="button" onclick="toggleAddForm()" class="cancel-button">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
 
       <div class="card-grid">
         {% for emp in employees %}
-        <div class="profile-card">
-          <div class="avatar-placeholder"></div>
-          <h3>{{ emp.name }}</h3>
-          <p>Id No. <strong>{{ emp.id_no }}</strong></p>
-          <p>Task Assign <strong>{{ emp.task }}</strong></p>
-          <button class="edit-button">Edit</button>
+        <div class="profile-card" data-employee-id="{{ emp.id }}">
+          <div class="avatar-placeholder">
+            {{ emp.name|first|upper }}
+          </div>
+          <h3 class="employee-name">{{ emp.name }}</h3>
+          <p>Id No. <strong class="employee-id">{{ emp.id_no }}</strong></p>
+          <p>Task Assign <strong class="employee-task">{{ emp.task }}</strong></p>
+          <div style="text-align: center;">
+            <span class="task-badge task-{{ emp.task|lower }}">{{ emp.task }}</span>
+          </div>
+          <div class="action-buttons-container">
+            <button class="edit-button" 
+                    data-name="{{ emp.name }}" 
+                    data-id-no="{{ emp.id_no }}" 
+                    data-task="{{ emp.task }}" 
+                    data-emp-id="{{ emp.id }}">
+              <i class="fa fa-edit"></i> Edit
+            </button>
+            <button class="delete-button" 
+                    data-name="{{ emp.name }}" 
+                    data-id-no="{{ emp.id_no }}" 
+                    data-emp-id="{{ emp.id }}">
+              <i class="fa fa-trash"></i> Delete
+            </button>
+          </div>
+        </div>
+        {% empty %}
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <h3>No employees found</h3>
+          <p>Click "Add Employee" to get started!</p>
         </div>
         {% endfor %}
       </div>
+  </div>
+
+  <!-- Add Employee Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Add New Employee</h2>
+        <button class="close-btn" onclick="closeAddModal()">×</button>
+      </div>
+
+      <div class="success-message" id="addSuccessMessage">
+        ✅ Employee added successfully!
+      </div>
+
+      <!-- Fixed error message positioning -->
+      <div class="modal-error-message" id="addModalError">
+        <span class="modal-error-icon">⚠️</span>
+        <span id="addModalErrorText">Error message will appear here</span>
+      </div>
+
+      <form id="addForm">
+        {% csrf_token %}
+        
+        <div class="modal-form-group">
+          <label for="addEmployeeName">Full Name</label>
+          <input type="text" id="addEmployeeName" name="name" required>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="addEmployeeId">ID Number</label>
+          <input type="text" id="addEmployeeId" name="id_no" required>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="addEmployeeTask">Task Assignment</label>
+          <select id="addEmployeeTask" name="task" required>
+            <option value="">Select a task...</option>
+            <option value="Documentation">Documentation</option>
+            <option value="Monitoring">Monitoring</option>
+            <option value="Filing">Filing</option>
+            <option value="Supervision">Supervision</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-secondary" onclick="closeAddModal()">
+            Cancel
+          </button>
+          <button type="submit" class="modal-btn modal-btn-add">
+            ➕ Add Employee
+          </button>
+        </div>
+      </form>
     </div>
   </div>
+
+  <!-- Edit Employee Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Employee</h2>
+        <button class="close-btn" onclick="closeEditModal()">×</button>
+      </div>
+
+      <div class="success-message" id="successMessage">
+        ✅ Employee information updated successfully!
+      </div>
+
+      <!-- Fixed error message positioning -->
+      <div class="modal-error-message" id="editModalError">
+        <span class="modal-error-icon">⚠️</span>
+        <span id="editModalErrorText">Error message will appear here</span>
+      </div>
+
+      <form id="editForm">
+        {% csrf_token %}
+        <input type="hidden" id="employeePrimaryId" name="employee_id">
+        
+        <div class="modal-form-group">
+          <label for="employeeName">Full Name</label>
+          <input type="text" id="employeeName" name="name" required>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="employeeId">ID Number</label>
+          <input type="text" id="employeeId" name="id_no" required>
+        </div>
+
+        <div class="modal-form-group">
+          <label for="employeeTask">Task Assignment</label>
+          <select id="employeeTask" name="task" required>
+            <option value="">Select a task...</option>
+            <option value="Documentation">Documentation</option>
+            <option value="Monitoring">Monitoring</option>
+            <option value="Filing">Filing</option>
+            <option value="Supervision">Supervision</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-secondary" onclick="closeEditModal()">
+            Cancel
+          </button>
+          <button type="submit" class="modal-btn modal-btn-primary">
+            💾 Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification container for page-level notifications -->
+  <div class="notification-container" id="notificationContainer">
+    <!-- Notifications will be dynamically added here -->
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Delete Employee</h2>
+        <button class="close-btn" onclick="closeDeleteModal()">×</button>
+      </div>
+
+      <div class="success-message" id="deleteSuccessMessage">
+        ✅ Employee deleted successfully!
+      </div>
+
+      <div class="delete-confirmation">
+        <div class="warning-icon">⚠️</div>
+        <h3>Are you sure you want to delete this employee?</h3>
+        <p>This action cannot be undone.</p>
+        
+        <div class="employee-info" id="deleteEmployeeInfo">
+          <!-- Employee info will be populated here -->
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" onclick="closeDeleteModal()">
+          Cancel
+        </button>
+        <button type="button" class="modal-btn modal-btn-danger" onclick="confirmDelete()">
+          🗑️ Delete Employee
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Modal elements
+    const editModal = document.getElementById('editModal');
+    const addModal = document.getElementById('addModal');
+    const deleteModal = document.getElementById('deleteModal');
+    const editForm = document.getElementById('editForm');
+    const addForm = document.getElementById('addForm');
+    const successMessage = document.getElementById('successMessage');
+    const addSuccessMessage = document.getElementById('addSuccessMessage');
+    const deleteSuccessMessage = document.getElementById('deleteSuccessMessage');
+    
+    // Error message elements
+    const addModalError = document.getElementById('addModalError');
+    const addModalErrorText = document.getElementById('addModalErrorText');
+    const editModalError = document.getElementById('editModalError');
+    const editModalErrorText = document.getElementById('editModalErrorText');
+    
+    let employeeToDelete = null;
+
+    // Initialize event listeners when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeEditButtons();
+      initializeDeleteButtons();
+    });
+
+    function initializeEditButtons() {
+      const editButtons = document.querySelectorAll('.edit-button');
+      editButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const name = this.getAttribute('data-name');
+          const idNo = this.getAttribute('data-id-no');
+          const task = this.getAttribute('data-task');
+          const empId = this.getAttribute('data-emp-id');
+          
+          console.log('Edit button clicked:', {name, idNo, task, empId}); // Debug log
+          openEditModal(name, idNo, task, empId);
+        });
+      });
+    }
+
+    function initializeDeleteButtons() {
+      const deleteButtons = document.querySelectorAll('.delete-button');
+      deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const name = this.getAttribute('data-name');
+          const idNo = this.getAttribute('data-id-no');
+          const empId = this.getAttribute('data-emp-id');
+          
+          console.log('Delete button clicked:', {name, idNo, empId}); // Debug log
+          openDeleteModal(name, idNo, empId);
+        });
+      });
+    }
+
+    // Utility functions for error handling
+    function showAddError(message) {
+      addModalErrorText.textContent = message;
+      addModalError.classList.add('show');
+      addSuccessMessage.classList.remove('show');
+    }
+
+    function hideAddError() {
+      addModalError.classList.remove('show');
+    }
+
+    function showEditError(message) {
+      editModalErrorText.textContent = message;
+      editModalError.classList.add('show');
+      successMessage.classList.remove('show');
+    }
+
+    function hideEditError() {
+      editModalError.classList.remove('show');
+    }
+
+    function showNotification(message, type = 'error') {
+      const container = document.getElementById('notificationContainer');
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      
+      notification.innerHTML = `
+        <span class="modal-error-icon">${type === 'success' ? '✅' : '⚠️'}</span>
+        <span>${message}</span>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+      `;
+      
+      container.appendChild(notification);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.remove();
+        }
+      }, 5000);
+    }
+
+    function toggleAddForm() {
+      const form = document.getElementById('add-employee-form');
+      form.style.display = form.style.display === 'none' || form.style.display === '' ? 'block' : 'none';
+    }
+
+    function openAddModal() {
+      addModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      hideAddError();
+    }
+
+    function closeAddModal() {
+      addModal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+      addSuccessMessage.classList.remove('show');
+      hideAddError();
+      addForm.reset();
+    }
+
+    function openEditModal(name, idNo, task, primaryId) {
+      console.log('Opening edit modal with:', {name, idNo, task, primaryId}); // Debug log
+      
+      document.getElementById('employeeName').value = name || '';
+      document.getElementById('employeeId').value = idNo || '';
+      document.getElementById('employeeTask').value = task || '';
+      document.getElementById('employeePrimaryId').value = primaryId || '';
+
+      editModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      hideEditError();
+    }
+
+    function closeEditModal() {
+      editModal.classList.remove('active');
+      document.body.style.overflow = 'auto'; 
+      successMessage.classList.remove('show');
+      hideEditError();
+      editForm.reset();
+    }
+
+    function openDeleteModal(name, idNo, employeeId) {
+      employeeToDelete = employeeId;
+      
+      // Populate employee info in delete confirmation
+      document.getElementById('deleteEmployeeInfo').innerHTML = `
+        <strong>Name:</strong> ${name}<br>
+        <strong>ID Number:</strong> ${idNo}
+      `;
+      
+      deleteModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDeleteModal() {
+      deleteModal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+      deleteSuccessMessage.classList.remove('show');
+      employeeToDelete = null;
+    }
+
+    function confirmDelete() {
+      if (!employeeToDelete) return;
+
+      fetch(`/delete-employee/${employeeToDelete}/`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          deleteSuccessMessage.classList.add('show');
+          
+          setTimeout(() => {
+            closeDeleteModal();
+            location.reload();
+          }, 1500);
+        } else {
+          showNotification('Error deleting employee: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error deleting employee. Please try again.');
+      });
+    }
+
+    // Close modals when clicking outside
+    [addModal, editModal, deleteModal].forEach(modal => {
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          if (modal === addModal) closeAddModal();
+          if (modal === editModal) closeEditModal();
+          if (modal === deleteModal) closeDeleteModal();
+        }
+      });
+    });
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        if (addModal.classList.contains('active')) {
+          closeAddModal();
+        }
+        if (editModal.classList.contains('active')) {
+          closeEditModal();
+        }
+        if (deleteModal.classList.contains('active')) {
+          closeDeleteModal();
+        }
+      }
+    });
+
+    // Add employee form submission
+    addForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      hideAddError();
+      
+      const formData = new FormData(addForm);
+      const name = formData.get('name');
+      const id_no = formData.get('id_no');
+      const task = formData.get('task');
+
+      // Basic validation
+      if (!name.trim()) {
+        showAddError('Please enter a valid name');
+        return;
+      }
+      if (!id_no.trim()) {
+        showAddError('Please enter a valid ID number');
+        return;
+      }
+      if (!task) {
+        showAddError('Please select a task assignment');
+        return;
+      }
+
+      fetch('/employees_profile/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `name=${encodeURIComponent(name)}&id_no=${encodeURIComponent(id_no)}&task=${encodeURIComponent(task)}`
+      })
+      .then(response => {
+        if (response.ok) {
+          addSuccessMessage.classList.add('show');
+          hideAddError();
+      
+          setTimeout(() => {
+            closeAddModal();
+            location.reload(); 
+          }, 1500);
+        } else if (response.status === 400) {
+          return response.json().then(data => {
+            showAddError(data.error || 'Invalid data provided');
+          });
+        } else {
+          showAddError('Error adding employee. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showAddError('Network error. Please try again.');
+      });
+    });
+
+    // Edit employee form submission
+    editForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      hideEditError();
+      
+      const formData = new FormData(editForm);
+      const employeeId = formData.get('employee_id');
+      const name = formData.get('name');
+      const id_no = formData.get('id_no');
+      const task = formData.get('task');
+
+      console.log('Submitting edit form:', {employeeId, name, id_no, task}); // Debug log
+
+      if (!employeeId) {
+        showEditError('Employee ID is missing. Please try again.');
+        return;
+      }
+
+      // Basic validation
+      if (!name.trim()) {
+        showEditError('Please enter a valid name');
+        return;
+      }
+      if (!id_no.trim()) {
+        showEditError('Please enter a valid ID number');
+        return;
+      }
+      if (!task) {
+        showEditError('Please select a task assignment');
+        return;
+      }
+
+      fetch(`/edit-employee/${employeeId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ name, id_no, task })
+      })
+      .then(response => {
+        console.log('Edit response status:', response.status); // Debug log
+        return response.json();
+      })
+      .then(data => {
+        console.log('Edit response data:', data); // Debug log
+        if (data.success) {
+          successMessage.classList.add('show');
+          hideEditError();
+
+          // Update the card in real-time
+          updateEmployeeCard(employeeId, { name, id_no, task });
+
+          setTimeout(() => {
+            closeEditModal();
+            location.reload(); 
+          }, 1500);
+        } else {
+          showEditError('Error updating employee: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showEditError('Network error. Please try again.');
+      });
+    });
+
+    // Search functionality
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const allCards = document.querySelectorAll('.profile-card');
+
+    // Real-time search as user types
+    searchInput.addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase().trim();
+      filterEmployees(searchTerm);
+    });
+
+    // Search form submission
+    searchForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      filterEmployees(searchTerm);
+    });
+
+    // Filter employees function
+    function filterEmployees(searchTerm) {
+      let visibleCount = 0;
+
+      allCards.forEach(card => {
+        const nameElement = card.querySelector('.employee-name');
+        const idElement = card.querySelector('.employee-id');
+        const taskElement = card.querySelector('.employee-task');
+        
+        if (nameElement && idElement && taskElement) {
+          const name = nameElement.textContent.toLowerCase();
+          const idNo = idElement.textContent.toLowerCase();
+          const task = taskElement.textContent.toLowerCase();
+
+          const matches = name.includes(searchTerm) || 
+                         idNo.includes(searchTerm) || 
+                         task.includes(searchTerm);
+
+          if (matches || searchTerm === '') {
+            card.style.display = 'block';
+            visibleCount++;
+          } else {
+            card.style.display = 'none';
+          }
+        }
+      });
+
+      // Show "no results" message if no employees match
+      showNoResultsMessage(visibleCount, searchTerm);
+    }
+
+    // Show or hide "no results" message
+    function showNoResultsMessage(visibleCount, searchTerm) {
+      const cardGrid = document.querySelector('.card-grid');
+      let noResultsDiv = document.getElementById('noResultsMessage');
+
+      if (visibleCount === 0 && searchTerm !== '') {
+        if (!noResultsDiv) {
+          noResultsDiv = document.createElement('div');
+          noResultsDiv.id = 'noResultsMessage';
+          noResultsDiv.style.cssText = `
+            text-align: center; 
+            padding: 40px; 
+            color: #666; 
+            grid-column: 1 / -1;
+          `;
+          cardGrid.appendChild(noResultsDiv);
+        }
+        noResultsDiv.innerHTML = `
+          <h3>No employees found</h3>
+          <p>No employees match your search for "${searchTerm}"</p>
+        `;
+        noResultsDiv.style.display = 'block';
+      } else if (noResultsDiv) {
+        noResultsDiv.style.display = 'none';
+      }
+    }
+
+    // Get CSRF token from cookies
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    // Update employee card in DOM after successful edit
+    function updateEmployeeCard(employeeId, data) {
+      const card = document.querySelector(`[data-employee-id="${employeeId}"]`);
+      if (card) {
+        // Update name
+        const nameElement = card.querySelector('.employee-name');
+        if (nameElement) nameElement.textContent = data.name;
+        
+        // Update ID
+        const idElement = card.querySelector('.employee-id');
+        if (idElement) idElement.textContent = data.id_no;
+        
+        // Update task
+        const taskElement = card.querySelector('.employee-task');
+        if (taskElement) taskElement.textContent = data.task;
+        
+        // Update task badge
+        const badgeElement = card.querySelector('.task-badge');
+        if (badgeElement) {
+          badgeElement.textContent = data.task;
+          badgeElement.className = `task-badge task-${data.task.toLowerCase()}`;
+        }
+        
+        // Update button data attributes
+        const editButton = card.querySelector('.edit-button');
+        const deleteButton = card.querySelector('.delete-button');
+        
+        if (editButton) {
+          editButton.setAttribute('data-name', data.name);
+          editButton.setAttribute('data-id-no', data.id_no);
+          editButton.setAttribute('data-task', data.task);
+        }
+        
+        if (deleteButton) {
+          deleteButton.setAttribute('data-name', data.name);
+          deleteButton.setAttribute('data-id-no', data.id_no);
+        }
+        
+        // Update avatar placeholder
+        const avatarElement = card.querySelector('.avatar-placeholder');
+        if (avatarElement) {
+          avatarElement.textContent = data.name.charAt(0).toUpperCase();
+        }
+      }
+    }
+  </script>
 </body>
 </html>

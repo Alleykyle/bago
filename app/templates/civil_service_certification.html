@@ -3,46 +3,962 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eligibility Certification</title>
+  <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
   <link rel="stylesheet" href="{% static 'CSS/civil_service_certification.css' %}">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset and base styles */
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #ffffff;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      position: relative;
+      min-height: calc(100vh - 80px); /* Prevent content overflow */
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-left: 40px;
+      margin-top: 20px;
+      position: relative;
+    }
+    
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .logo {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+    }
+    
+    .logo-title h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1A237E;
+      margin: 0;
+    }
+    
+    .back-btn {
+      background-color: #1A237E;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      position: absolute;
+      right: 0;
+    }
+    
+    .back-btn:hover {
+      background-color: #0D1540;
+    }
+    
+    .breadcrumb {
+      margin: 30px 0;
+      font-size: 14px;
+      color: #555;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .breadcrumb .active {
+      font-weight: 600;
+      color: #1A237E;
+    }
+
+    .breadcrumb .completed {
+      font-weight: 600;
+      color: #10b981;
+    }
+
+    .separator {
+      color: #bbb;
+    }
+    
+    .form-card {
+      border: 1px solid #ccc;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      margin: 0 auto 40px; 
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
+      text-align: left;
+      background: white; 
+    }
+
+    .step {
+      display: none !important;
+    }
+
+    .step.active {
+      display: block !important;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1A237E;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    form label {
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #333;
+      display: block;
+    }
+    
+    form input[type="text"], form input[type="file"] {
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #bbb;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    form input[type="text"]:focus, form input[type="file"]:focus {
+      outline: none;
+      border-color: #1A237E;
+    }
+    
+    .next-btn {
+      display: inline-block;
+      background-color: #1A237E;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 30px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+    }
+    
+    .next-btn:hover:not(:disabled) {
+      background-color: #0D1540;
+    }
+
+    .next-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      gap: 10px;
+    }
+
+    .btn-back {
+      background-color: #6b7280;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 30px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .btn-back:hover {
+      background-color: #4b5563;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .radio-option:hover {
+      border-color: #1A237E;
+      background: #f8fafc;
+    }
+
+    .radio-option.selected {
+      border-color: #1A237E;
+      background: #e8eaf6;
+    }
+
+    .radio-option input[type="radio"] {
+      margin-right: 10px;
+      margin-bottom: 0;
+      scale: 1.1;
+    }
+
+    .radio-option label {
+      margin: 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .signature-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .signature-pad {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      margin: 15px auto;
+      cursor: crosshair;
+    }
+
+    #signature-canvas {
+      display: block;
+      border-radius: 6px;
+    }
+
+    .signature-controls {
+      margin: 15px 0;
+    }
+
+    .file-preview {
+      max-width: 200px;
+      max-height: 150px;
+      border-radius: 6px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+    }
+
+    .preview-section {
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+
+    .preview-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .preview-item:last-child {
+      border-bottom: none;
+    }
+
+    .preview-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .preview-value {
+      color: #555;
+      text-align: right;
+      max-width: 60%;
+    }
+
+    .success-message {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: #10b981;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: bold;
+      margin: 0 auto 20px;
+    }
+
+    .success-message h2 {
+      color: #1A237E;
+      margin-bottom: 10px;
+    }
+
+    .success-message p {
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    /* Popup Modal Styles */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .popup-overlay.active {
+      display: flex;
+    }
+
+    .popup-content {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      position: relative;
+      animation: popupSlideIn 0.3s ease-out;
+    }
+
+    @keyframes popupSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .popup-title {
+      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      line-height: 1.4;
+    }
+
+    .popup-message {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+
+    .popup-button {
+      background-color: #4F46E5;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s ease;
+    }
+
+    .popup-button:hover {
+      background-color: #4338CA;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+        margin: 20px auto;
+      }
+      
+      .header {
+        padding-left: 20px;
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      .back-btn {
+        position: static;
+      }
+      
+      .form-card {
+        padding: 20px;
+      }
+      
+      .btn-row {
+        flex-direction: column;
+      }
+      
+      .next-btn, .btn-back {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
-      <h1>Eligibility Certification</h1>
-    </header>
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-title">
+        <h1>Eligibility Certification</h1>
+        <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      </div>
+      <a href="/dashboard/" class="back-btn">← Back</a>
+    </div>
 
+    <!-- Breadcrumb -->
     <nav class="breadcrumb">
-      <span class="active">Request Letter</span>
-      <span>›</span>
-      <span>Application Letter</span>
-      <span>›</span>
-      <span>Valid ID</span>
-      <span>›</span>
-      <span>Signature</span>
-      <span>›</span>
-      <span>Certificate</span>
+      <span id="step1-breadcrumb" class="active">Request Letter</span>
+      <span class="separator">›</span>
+      <span id="step2-breadcrumb">Application Letter</span>
+      <span class="separator">›</span>
+      <span id="step3-breadcrumb">Valid ID</span>
+      <span class="separator">›</span>
+      <span id="step4-breadcrumb">Signature</span>
+      <span class="separator">›</span>
+      <span id="step5-breadcrumb">Certificate</span>
     </nav>
 
+    <!-- Form Container -->
     <div class="form-card">
-      <form method="POST">
-        {% csrf_token %}
-        <label for="last_name">Last Name</label>
-        <input type="text" id="last_name" name="last_name" required>
+      <!-- Step 1: Personal Information -->
+      <div id="step1" class="step active">
+        <h2 class="section-title">Personal Information</h2>
+        <form>
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" required>
 
-        <label for="first_name">First Name</label>
-        <input type="text" id="first_name" name="first_name" required>
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" required>
 
-        <label for="middle_initial">Middle Initial</label>
-        <input type="text" id="middle_initial" name="middle_initial">
+          <label for="middle_initial">Middle Initial</label>
+          <input type="text" id="middle_initial" name="middle_initial">
 
-        <a href="/application_letter/" class="next-btn">Next →</a>
+          <div class="btn-row">
+            <div></div>
+            <button type="button" id="step1-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+          </div>
+        </form>
+      </div>
 
+      <!-- Step 2: Certifier Selection -->
+      <div id="step2" class="step">
+        <h2 class="section-title">Certification from the following officials</h2>
+        <form>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" id="barangay" name="certifier" value="punong_barangay" required>
+              <label for="barangay">Punong Barangay</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="municipality" name="certifier" value="dilg_municipality">
+              <label for="municipality">DILG - Municipality</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="provincial" name="certifier" value="dilg_provincial">
+              <label for="provincial">DILG - Provincial</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="regional" name="certifier" value="dilg_regional">
+              <label for="regional">DILG - Regional</label>
+            </div>
+          </div>
 
-      </form>
+          <div class="btn-row">
+            <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
+            <button type="button" id="step2-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 3: Valid ID Upload -->
+      <div id="step3" class="step">
+        <h2 class="section-title">Upload Your Valid ID</h2>
+        <form>
+          <label for="idFront">Front Page of ID</label>
+          <input type="file" id="idFront" name="idFront" accept="image/*" required>
+          <div id="frontPreview"></div>
+
+          <label for="idBack">Back Page of ID</label>
+          <input type="file" id="idBack" name="idBack" accept="image/*" required>
+          <div id="backPreview"></div>
+
+          <div class="btn-row">
+            <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
+            <button type="button" id="step3-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 4: Signature -->
+      <div id="step4" class="step">
+        <h2 class="section-title">Draw e-Signature</h2>
+        <div class="signature-container">
+          <div class="signature-pad">
+            <canvas id="signature-canvas" width="450" height="200"></canvas>
+          </div>
+          <div class="signature-controls">
+            <button type="button" class="btn-back" onclick="clearSignature()">Clear</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
+          <button type="button" id="step4-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Preview -->
+      <div id="step5" class="step">
+        <h2 class="section-title">Preview</h2>
+        <p style="margin-bottom: 20px; color: #555; text-align: center;">
+          Please ensure that each detail is correct before proceeding.
+        </p>
+        <div class="preview-section">
+          <div class="preview-item">
+            <div class="preview-label">Full Name:</div>
+            <div class="preview-value" id="preview-name"></div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Certifier:</div>
+            <div class="preview-value" id="preview-certifier"></div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">ID Documents:</div>
+            <div class="preview-value" id="preview-ids">Front and Back ID uploaded</div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Signature:</div>
+            <div class="preview-value" id="preview-signature">Signature captured</div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
+          <button type="button" class="next-btn" onclick="finishProcess()">Finish</button>
+        </div>
+      </div>
+
+      <!-- Success Message -->
+      <div id="success" class="step">
+        <div class="success-message">
+          <div class="success-icon">✓</div>
+          <h2>Certificate Generated Successfully!</h2>
+          <p>Your eligibility certification has been processed and is ready for download.</p>
+          <button type="button" onclick="restartProcess()" class="next-btn">Start New Application</button>
+        </div>
+      </div>
+      
     </div>
   </div>
+
+  <!-- Popup Modal -->
+  <div id="popup-overlay" class="popup-overlay">
+    <div class="popup-content">
+      <h3 class="popup-title">Your request is now received.<br>Please wait for any update<br>regarding your request.</h3>
+      <button type="button" class="popup-button" onclick="closePopup()">Done</button>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    let formData = {};
+    let signatureCanvas, signatureCtx;
+    let isDrawing = false;
+    let hasSignature = false;
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Page loaded, initializing...');
+      setupSignatureCanvas();
+      setupEventListeners();
+      updateStepValidation();
+      
+      // Make sure only step 1 is visible
+      showStep(1);
+    });
+
+    function showStep(stepNumber) {
+      console.log('Showing step:', stepNumber);
+      
+      // Hide all steps
+      const allSteps = document.querySelectorAll('.step');
+      allSteps.forEach(step => {
+        step.classList.remove('active');
+      });
+      
+      // Show current step
+      let currentStepEl;
+      if (stepNumber === 6 || stepNumber === 'success') {
+        currentStepEl = document.getElementById('success');
+        currentStep = 6;
+      } else {
+        currentStepEl = document.getElementById(`step${stepNumber}`);
+        currentStep = stepNumber;
+      }
+      
+      if (currentStepEl) {
+        currentStepEl.classList.add('active');
+      }
+      
+      // Only update breadcrumb for steps 1-5
+      if (currentStep <= 5) {
+        updateBreadcrumb();
+      }
+    }
+
+    function setupSignatureCanvas() {
+      signatureCanvas = document.getElementById('signature-canvas');
+      if (!signatureCanvas) return;
+      
+      signatureCtx = signatureCanvas.getContext('2d');
+      signatureCtx.strokeStyle = '#000';
+      signatureCtx.lineWidth = 2;
+      signatureCtx.lineCap = 'round';
+
+      // Mouse events
+      signatureCanvas.addEventListener('mousedown', startDrawing);
+      signatureCanvas.addEventListener('mousemove', draw);
+      signatureCanvas.addEventListener('mouseup', stopDrawing);
+      signatureCanvas.addEventListener('mouseout', stopDrawing);
+
+      // Touch events for mobile
+      signatureCanvas.addEventListener('touchstart', handleTouch);
+      signatureCanvas.addEventListener('touchmove', handleTouch);
+      signatureCanvas.addEventListener('touchend', stopDrawing);
+    }
+
+    function startDrawing(e) {
+      isDrawing = true;
+      const rect = signatureCanvas.getBoundingClientRect();
+      signatureCtx.beginPath();
+      signatureCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const rect = signatureCanvas.getBoundingClientRect();
+      signatureCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      signatureCtx.stroke();
+      hasSignature = true;
+      updateStepValidation();
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+    }
+
+    function handleTouch(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                       e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      signatureCanvas.dispatchEvent(mouseEvent);
+    }
+
+    function clearSignature() {
+      if (signatureCtx) {
+        signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        hasSignature = false;
+        updateStepValidation();
+      }
+    }
+
+    function setupEventListeners() {
+      // Personal info inputs
+      ['last_name', 'first_name', 'middle_initial'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.addEventListener('input', updateStepValidation);
+        }
+      });
+
+      // Radio buttons
+      document.querySelectorAll('input[name="certifier"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+          document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+          this.closest('.radio-option').classList.add('selected');
+          updateStepValidation();
+        });
+      });
+
+      // File inputs
+      const idFront = document.getElementById('idFront');
+      const idBack = document.getElementById('idBack');
+      
+      if (idFront) {
+        idFront.addEventListener('change', function() {
+          handleFileUpload(this, 'frontPreview');
+        });
+      }
+      
+      if (idBack) {
+        idBack.addEventListener('change', function() {
+          handleFileUpload(this, 'backPreview');
+        });
+      }
+    }
+
+    function handleFileUpload(input, previewId) {
+      const file = input.files[0];
+      const preview = document.getElementById(previewId);
+      
+      if (file && preview) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="ID Preview" class="file-preview">`;
+        };
+        reader.readAsDataURL(file);
+      }
+      updateStepValidation();
+    }
+
+    function updateStepValidation() {
+      // Step 1 validation
+      const step1Next = document.getElementById('step1-next');
+      if (step1Next) {
+        const lastName = document.getElementById('last_name')?.value?.trim() || '';
+        const firstName = document.getElementById('first_name')?.value?.trim() || '';
+        step1Next.disabled = !lastName || !firstName;
+      }
+
+      // Step 2 validation
+      const step2Next = document.getElementById('step2-next');
+      if (step2Next) {
+        const certifier = document.querySelector('input[name="certifier"]:checked');
+        step2Next.disabled = !certifier;
+      }
+
+      // Step 3 validation
+      const step3Next = document.getElementById('step3-next');
+      if (step3Next) {
+        const idFront = document.getElementById('idFront')?.files[0];
+        const idBack = document.getElementById('idBack')?.files[0];
+        step3Next.disabled = !idFront || !idBack;
+      }
+
+      // Step 4 validation
+      const step4Next = document.getElementById('step4-next');
+      if (step4Next) {
+        step4Next.disabled = !hasSignature;
+      }
+    }
+
+    function updateBreadcrumb() {
+      for (let i = 1; i <= 5; i++) {
+        const breadcrumb = document.getElementById(`step${i}-breadcrumb`);
+        if (breadcrumb) {
+          breadcrumb.classList.remove('active', 'completed');
+          
+          if (i < currentStep) {
+            breadcrumb.classList.add('completed');
+          } else if (i === currentStep) {
+            breadcrumb.classList.add('active');
+          }
+        }
+      }
+    }
+
+    function nextStep() {
+      console.log('Next step clicked, current step:', currentStep);
+      
+      if (currentStep < 5) {
+        // Save current step data
+        saveStepData();
+        
+        // Move to next step
+        showStep(currentStep + 1);
+
+        // Special handling for preview step
+        if (currentStep === 5) {
+          updatePreview();
+        }
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function prevStep() {
+      console.log('Previous step clicked, current step:', currentStep);
+      
+      if (currentStep > 1 && currentStep <= 5) {
+        showStep(currentStep - 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function saveStepData() {
+      switch(currentStep) {
+        case 1:
+          formData.last_name = document.getElementById('last_name')?.value?.trim() || '';
+          formData.first_name = document.getElementById('first_name')?.value?.trim() || '';
+          formData.middle_initial = document.getElementById('middle_initial')?.value?.trim() || '';
+          break;
+        case 2:
+          const certifier = document.querySelector('input[name="certifier"]:checked');
+          formData.certifier = certifier ? certifier.value : '';
+          break;
+        case 3:
+          formData.idFront = document.getElementById('idFront')?.files[0];
+          formData.idBack = document.getElementById('idBack')?.files[0];
+          break;
+        case 4:
+          formData.signature = signatureCanvas?.toDataURL();
+          break;
+      }
+      console.log('Saved data for step', currentStep, formData);
+    }
+
+    function updatePreview() {
+      // Update preview content
+      const fullName = `${formData.first_name} ${formData.middle_initial ? formData.middle_initial + ' ' : ''}${formData.last_name}`;
+      const previewName = document.getElementById('preview-name');
+      if (previewName) {
+        previewName.textContent = fullName;
+      }
+
+      const certifierText = {
+        'punong_barangay': 'Punong Barangay',
+        'dilg_municipality': 'DILG - Municipality',
+        'dilg_provincial': 'DILG - Provincial',
+        'dilg_regional': 'DILG - Regional'
+      };
+      
+      const previewCertifier = document.getElementById('preview-certifier');
+      if (previewCertifier) {
+        previewCertifier.textContent = certifierText[formData.certifier] || '';
+      }
+
+      if (formData.signature) {
+        const previewSignature = document.getElementById('preview-signature');
+        if (previewSignature) {
+          previewSignature.innerHTML = `<img src="${formData.signature}" alt="Signature" class="file-preview" style="max-height: 60px;">`;
+        }
+      }
+    }
+
+    function finishProcess() {
+      console.log('Finish process');
+      
+      // Save final step data
+      saveStepData();
+      
+      // Show success step first
+      showStep(6); // Use 6 for success step
+      
+      // Update breadcrumb to show completion
+      for (let i = 1; i <= 5; i++) {
+        const breadcrumb = document.getElementById(`step${i}-breadcrumb`);
+        if (breadcrumb) {
+          breadcrumb.classList.remove('active');
+          breadcrumb.classList.add('completed');
+        }
+      }
+
+      // Show popup after a short delay, only when we're on the success step
+      setTimeout(() => {
+        if (currentStep === 6) { // Only show if we're actually on success step
+          showPopup();
+        }
+      }, 1000);
+    }
+
+    function showPopup() {
+      const popup = document.getElementById('popup-overlay');
+      if (popup) {
+        popup.classList.add('active');
+        // Disable body scroll when popup is open
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closePopup() {
+      const popup = document.getElementById('popup-overlay');
+      if (popup) {
+        popup.classList.remove('active');
+        // Re-enable body scroll
+        document.body.style.overflow = '';
+      }
+    }
+
+    function restartProcess() {
+      console.log('Restart process');
+      
+      // Close popup if it's open
+      closePopup();
+      
+      // Reset everything
+      currentStep = 1;
+      formData = {};
+      hasSignature = false;
+
+      // Reset form inputs
+      const inputs = ['last_name', 'first_name', 'middle_initial', 'idFront', 'idBack'];
+      inputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.value = '';
+      });
+
+      // Reset radio buttons
+      document.querySelectorAll('input[name="certifier"]').forEach(radio => radio.checked = false);
+      document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+      
+      // Clear previews
+      const previews = ['frontPreview', 'backPreview'];
+      previews.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.innerHTML = '';
+      });
+      
+      // Clear signature
+      clearSignature();
+
+      // Show first step
+      showStep(1);
+      updateStepValidation();
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
 </body>
 </html>
