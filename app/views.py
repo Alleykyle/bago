@@ -5,29 +5,89 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login  # <-- imported for login handling
 import json
+from django.contrib.auth.models import User
+from django.contrib.auth import login
+from .models import UserProfile
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import logout
+from .decorators import role_required
+
+
+
 
 
 def landing_page(request):
-    return render(request, 'landing.html')  
+    return render(request, 'landing.html')
+
+
+def logout_view(request):
+    logout(request)
+    messages.success(request, "You have successfully logged out.")
+    return redirect('landing_page')
+
 
 def login_page(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            if user.is_active:
+                login(request, user)
+                try:
+                    profile = user.userprofile
+                    role = profile.role.strip().lower()
+                    print(f"Logged in user role: {role}")  # Debug print
+                except UserProfile.DoesNotExist:
+                    messages.error(request, 'User profile not found. Contact admin.')
+                    return redirect('login_page')
+
+                if role == 'barangay official':
+                    return redirect('civil_service_certification')
+                elif role == 'municipal officer':
+                    return redirect('requirements_monitoring')
+                elif role == 'dilg staff':
+                    return redirect('landing_menu')
+                else:
+                    print("Role not matched. Redirecting to landing_page")
+                    return redirect('landing_page')
+            else:
+                messages.error(request, 'Account inactive. Please contact support.')
+        else:
+            messages.error(request, 'Invalid username or password.')
+
     return render(request, 'login_page.html')
+
 
 def landing_menu(request):
     return render(request, 'landing_menu.html')
 
+
 def dashboard(request):
     return render(request, 'dashboard.html')
+
+
+from django.http import HttpResponseForbidden
+
+
 
 def requirements_monitoring(request):
     return render(request, 'requirements_monitoring.html')
 
+
+
 def application_request(request):
     return render(request, 'application_request.html')
 
+
 def history(request):
     return render(request, 'history.html')
+
 
 def employees_profile(request):
     if request.method == 'POST':
@@ -167,20 +227,70 @@ def delete_employee(request, employee_id):
             'error': f'An error occurred: {str(e)}'
         }, status=500)
 
+
 def folder(request):
     return render(request, 'folder.html')
 
 def settings(request):
     return render(request, 'settings.html')
 
+
+
 def civil_service_certification(request):
     return render(request, 'civil_service_certification.html')
+
 
 def application_letter(request):
     return render(request, 'application_letter.html')
 
+
 def monitoring_filess(request):
     return render(request, 'monitoring_files.html')
 
+
 def certification_filess(request):
     return render(request, 'certification_files.html')
+
+
+
+def signup_page(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        role = request.POST.get('role')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+        if not all([username, email, role, password1, password2]):
+            messages.error(request, 'Please fill in all fields.')
+            return render(request, 'signup_page.html')
+
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'signup_page.html')
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already exists.')
+            return render(request, 'signup_page.html')
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email already registered.')
+            return render(request, 'signup_page.html')
+
+        try:
+            validate_password(password1)
+        except ValidationError as e:
+            for error in e:
+                messages.error(request, error)
+            return render(request, 'signup_page.html')
+
+        # Create the user
+        user = User.objects.create_user(username=username, email=email, password=password1)
+
+        # Create or get profile with normalized role (strip spaces)
+        UserProfile.objects.get_or_create(user=user, defaults={'role': role.strip()})
+
+        messages.success(request, 'Account created successfully. Please log in.')
+        return redirect('login_page')
+
+    return render(request, 'signup_page.html')

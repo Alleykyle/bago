@@ -9,6 +9,8 @@ urlpatterns = [
     path('requirements_monitoring/', views.requirements_monitoring, name='requirements_monitoring'),
     path('application_request/', views.application_request, name='application_request'),
     path('history/', views.history, name='history'),
+    path('signup/', views.signup_page, name='signup_page'),
+    path('logout/', views.logout_view, name='logout'),
     
     # Employee management URLs
     path('employees_profile/', views.employees_profile, name='employees_profile'),

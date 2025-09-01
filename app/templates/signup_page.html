@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up - SmartFilex</title>
+  <link rel="stylesheet" href="{% static 'CSS/signup_page.css' %}">
+</head>
+<body>
+  <div class="signup-container">
+    <div class="left-section">
+      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo">
+    </div>
+
+    <div class="right-section">
+      <div class="form-box">
+        <h2>SmartFilex</h2>
+        <form method="POST" action="{% url 'signup_page' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" required>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" required>
+          </div>
+
+          <div class="form-group">
+            <label for="role">Role</label>
+            <select name="role" id="role" required>
+              <option value="">Select role</option>
+              <option value="Barangay Official">Barangay Official</option>
+              <option value="Municipal Officer">Municipal Officer</option>
+              <option value="DILG Staff">DILG Staff</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="password1">Password</label>
+            <input type="password" name="password1" id="password1" required>
+          </div>
+
+          <div class="form-group">
+            <label for="password2">Confirm Password</label>
+            <input type="password" name="password2" id="password2" required>
+          </div>
+
+          <button type="submit" class="btn-submit">Signup</button>
+        </form>
+        <div class="login-link">
+          Already have an account? <a href="{% url 'login_page' %}">Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

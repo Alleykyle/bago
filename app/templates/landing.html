@@ -16,9 +16,17 @@
                     <img src="{% static 'Pictures/logo2.png' %}" alt="Second Logo">
                 </div>
                 <h1>Department of the<br><span>Interior and Local Government</span></h1>
+                
                 <div class="buttons">
-                    <a href="{% url 'login_page' %}" class="btn"><i class="fas fa-sign-in-alt"></i> Login</a>
-                    {% comment %} <a  class="btn"><i class="fas fa-user-plus"></i> Sign up</a> {% endcomment %}
+                    {% if user.is_authenticated %}
+                        <p>Welcome, {{ user.username }}!</p>
+                        <!-- You can customize this link based on role if you want -->
+                        <a href="{% url 'landing_menu' %}" class="btn">Go to Dashboard</a>
+                        <a href="{% url 'logout' %}" class="btn">Logout</a>
+                    {% else %}
+                        <a href="{% url 'login_page' %}" class="btn"><i class="fas fa-sign-in-alt"></i> Login</a>
+                        <a href="{% url 'signup_page' %}" class="btn"><i class="fas fa-user-plus"></i> Signup</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
