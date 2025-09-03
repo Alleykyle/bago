@@ -23,4 +23,6 @@ urlpatterns = [
     path('application_letter/', views.application_letter, name='application_letter'),
     path('monitoring_filess/', views.monitoring_filess, name='monitoring_filess'),
     path('certification_filess/', views.certification_filess, name='certification_filess'),
+
+
 ]

@@ -245,5 +245,243 @@
   display: block;
 }
 
+/* Dark mode for main container and content */
+[data-theme="dark"] .main-content {
+  background: #1a1a1a;
+  color: #e4e6ea;
+}
 
+[data-theme="dark"] .header h1 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .back-button {
+  background: linear-gradient(45deg, #2456f3, #1c45c0);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .back-button:hover {
+  background: linear-gradient(45deg, #3366ff, #2456f3);
+}
+
+/* Dark mode for profile cards */
+[data-theme="dark"] .profile-card {
+  background: #1a1a1a;
+  border: 1px solid #3d4157;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  color: #e4e6ea;
+}
+
+[data-theme="dark"] .profile-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .profile-card h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .profile-card p {
+  color: #b8bcc4;
+}
+
+[data-theme="dark"] .profile-card p strong {
+  color: #ffffff;
+}
+
+/* Dark mode for search container */
+[data-theme="dark"] .search-container .search-container {
+  background: #1a1a1a;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .search-bar {
+  background: #1a1a1a;
+  color: #e4e6ea;
+  border: 1px solid #3d4157;
+}
+
+[data-theme="dark"] .search-bar::placeholder {
+  color: #8892a6;
+}
+
+[data-theme="dark"] .search-bar:focus {
+  background: #363a4f;
+  color: #ffffff;
+}
+
+/* Dark mode for modals */
+[data-theme="dark"] .modal {
+  background: #1a1a1a;
+  color: #e4e6ea;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom: 2px solid #3d4157;
+}
+
+[data-theme="dark"] .modal-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .close-btn {
+  color: #8892a6;
+}
+
+[data-theme="dark"] .close-btn:hover {
+  color: #ffffff;
+  background: #3d4157;
+}
+
+[data-theme="dark"] .modal-form-group label {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .modal-form-group input,
+[data-theme="dark"] .modal-form-group select {
+  background: #363a4f;
+  border: 2px solid #3d4157;
+  color: #e4e6ea;
+}
+
+[data-theme="dark"] .modal-form-group input:focus,
+[data-theme="dark"] .modal-form-group select:focus {
+  background: #404458;
+  border-color: #2456f3;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .modal-form-group input::placeholder {
+  color: #8892a6;
+}
+
+[data-theme="dark"] .modal-actions {
+  border-top: 2px solid #3d4157;
+}
+
+[data-theme="dark"] .modal-btn-secondary {
+  background: #3d4157;
+  color: #e4e6ea;
+  border: 2px solid #4a4f67;
+}
+
+[data-theme="dark"] .modal-btn-secondary:hover {
+  background: #4a4f67;
+  color: #ffffff;
+}
+
+/* Dark mode for employee info in delete modal */
+[data-theme="dark"] .employee-info {
+  background: #363a4f;
+  border-left: 4px solid #dc3545;
+  color: #e4e6ea;
+}
+
+[data-theme="dark"] .delete-confirmation h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .delete-confirmation p {
+  color: #b8bcc4;
+}
+
+/* Dark mode for notifications */
+[data-theme="dark"] .notification {
+  background: #363a4f;
+  color: #e4e6ea;
+  border: 1px solid #3d4157;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .notification.success {
+  background: #2d5a3d;
+  color: #90ee90;
+  border-color: #3d6e4f;
+}
+
+[data-theme="dark"] .modal-error-message {
+  background: #4d2a2f;
+  color: #ffb3b3;
+  border: 1px solid #5a3238;
+}
+
+[data-theme="dark"] .success-message {
+  background: #2d5a3d;
+  color: #90ee90;
+  border: 1px solid #3d6e4f;
+}
+
+/* Dark mode for "no employees found" message */
+[data-theme="dark"] #noResultsMessage {
+  color: #b8bcc4;
+}
+
+[data-theme="dark"] #noResultsMessage h3 {
+  color: #ffffff;
+}
+
+/* Dark mode for messages container */
+[data-theme="dark"] .messages .alert {
+  background: #363a4f;
+  color: #e4e6ea;
+  border: 1px solid #3d4157;
+}
+
+[data-theme="dark"] .alert-success {
+  background: #2d5a3d !important;
+  color: #90ee90 !important;
+  border-color: #3d6e4f !important;
+}
+
+[data-theme="dark"] .alert-error {
+  background: #4d2a2f !important;
+  color: #ffb3b3 !important;
+  border-color: #5a3238 !important;
+}
+
+/* Ensure smooth transitions for theme switching */
+.profile-card,
+.modal,
+.search-container .search-container,
+.search-bar,
+.notification,
+.employee-info,
+.modal-form-group input,
+.modal-form-group select {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Dark mode for overlay */
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Auto theme support */
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .main-content {
+    background: #1a1d29;
+    color: #e4e6ea;
+  }
+  
+  [data-theme="auto"] .profile-card {
+    background: #1a1a1a;
+    border: 1px solid #3d4157;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    color: #e4e6ea;
+  }
+  
+  [data-theme="auto"] .profile-card h3 {
+    color: #ffffff;
+  }
+  
+  [data-theme="auto"] .profile-card p {
+    color: #b8bcc4;
+  }
+  
+  [data-theme="auto"] .profile-card p strong {
+    color: #ffffff;
+  }
+  
+  /* Add all other auto theme styles following the same pattern */
+}
 

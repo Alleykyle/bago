@@ -67,7 +67,6 @@ def login_page(request):
 def landing_menu(request):
     return render(request, 'landing_menu.html')
 
-
 def dashboard(request):
     return render(request, 'dashboard.html')
 
@@ -233,7 +232,6 @@ def folder(request):
 
 def settings(request):
     return render(request, 'settings.html')
-
 
 
 def civil_service_certification(request):

@@ -233,16 +233,6 @@
   color: white;
 }
 
-
-
-
-
-
-
-
-
-
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .search-container {
@@ -268,4 +258,205 @@
   .action-buttons {
     flex-direction: column;
   }
+}
+/* Dark mode for main content area */
+[data-theme="dark"] .main-content {
+  background: #1a1a1a;
+  color: #e4e6ea;
+}
+
+[data-theme="dark"] .header h1 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .back-button {
+  background: linear-gradient(45deg, #2456f3, #1c45c0);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .back-button:hover {
+  background: linear-gradient(45deg, #3366ff, #2456f3);
+}
+
+/* Dark mode for action buttons */
+[data-theme="dark"] .create-button {
+  background: linear-gradient(45deg, #4CAF50, #45a049);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .create-button:hover {
+  background: linear-gradient(45deg, #5cbf60, #4CAF50);
+}
+
+[data-theme="dark"] .upload-button {
+  background: linear-gradient(45deg, #2456f3, #1c45c0);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .upload-button:hover {
+  background: linear-gradient(45deg, #3366ff, #2456f3);
+}
+
+/* Dark mode for search container */
+[data-theme="dark"] .search-container {
+  background: #1a1a1a;
+}
+
+[data-theme="dark"] .search-bar {
+  background: #1a1a1a;
+  color: #e4e6ea;
+  border: 1px solid #3d4157;
+}
+
+[data-theme="dark"] .search-bar::placeholder {
+  color: #8892a6;
+}
+
+[data-theme="dark"] .search-bar:focus {
+  background: #363a4f;
+  color: #ffffff;
+  border-color: #2456f3;
+  box-shadow: 0 0 0 3px rgba(36, 86, 243, 0.2);
+}
+
+/* Dark mode for folder cards (profile-card class) */
+[data-theme="dark"] .profile-card {
+  background: #1a1a1a;
+  border: 1px solid #3d4157;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  color: #e4e6ea;
+}
+
+[data-theme="dark"] .profile-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode for folder icons */
+[data-theme="dark"] .folder-icon {
+  color: #2456f3;
+}
+
+[data-theme="dark"] .folder-icon i {
+  color: #2456f3;
+}
+
+/* Dark mode for folder card titles */
+[data-theme="dark"] .profile-card h3 {
+  color: #ffffff;
+}
+
+/* Dark mode for folder card descriptions */
+[data-theme="dark"] .profile-card p {
+  color: #b8bcc4;
+}
+
+/* Dark mode for edit/open buttons */
+[data-theme="dark"] .edit-button {
+  background: linear-gradient(45deg, #1c45c0, #2456f3) !important;
+  color: white !important;
+  border: none;
+}
+
+[data-theme="dark"] .edit-button:hover {
+  background: linear-gradient(45deg, #2456f3, #3366ff) !important;
+  color: white !important;
+  transform: scale(1.05);
+  box-shadow: 0 5px 20px rgba(36, 86, 243, 0.4);
+}
+
+/* Dark mode for card grid */
+[data-theme="dark"] .card-grid {
+  background: transparent;
+}
+
+/* Ensure smooth transitions for theme switching */
+.profile-card,
+.search-bar,
+.create-button,
+.upload-button,
+.edit-button,
+.folder-icon {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Auto theme support */
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .main-content {
+    background: #1a1d29;
+    color: #e4e6ea;
+  }
+  
+  [data-theme="auto"] .header h1 {
+    color: #ffffff;
+  }
+  
+  [data-theme="auto"] .profile-card {
+    background: #1a1a1a;
+    border: 1px solid #3d4157;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    color: #e4e6ea;
+  }
+  
+  [data-theme="auto"] .profile-card h3 {
+    color: #ffffff;
+  }
+  
+  [data-theme="auto"] .profile-card p {
+    color: #b8bcc4;
+  }
+  
+  [data-theme="auto"] .search-bar {
+    background: #1a1a1a;
+    color: #e4e6ea;
+    border: 1px solid #3d4157;
+  }
+  
+  [data-theme="auto"] .search-bar::placeholder {
+    color: #8892a6;
+  }
+  
+  [data-theme="auto"] .folder-icon {
+    color: #2456f3;
+  }
+  
+  [data-theme="auto"] .edit-button {
+    background: linear-gradient(45deg, #1c45c0, #2456f3) !important;
+    color: white !important;
+  }
+}
+
+/* Additional dark mode refinements */
+[data-theme="dark"] .action-buttons {
+  background: transparent;
+}
+
+[data-theme="dark"] .buttons-left {
+  background: transparent;
+}
+
+/* Dark mode for any additional folder-specific elements */
+[data-theme="dark"] .folder-card {
+  background: #1a1a1a;
+  border: 1px solid #3d4157;
+  color: #e4e6ea;
+}
+
+[data-theme="dark"] .folder-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .folder-description {
+  color: #b8bcc4;
+}
+
+/* Ensure proper contrast for accessibility */
+[data-theme="dark"] .profile-card:focus {
+  outline: 2px solid #2456f3;
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .edit-button:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }

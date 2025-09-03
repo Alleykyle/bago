@@ -1,0 +1,321 @@
+:root {
+  /* Light Theme Variables */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --text-muted: #868e96;
+  --border-color: #dee2e6;
+  --shadow: 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-hover: 0 4px 8px rgba(0,0,0,0.15);
+  --accent-primary: #007bff;
+  --accent-hover: #0056b3;
+  --success: #28a745;
+  --success-hover: #218838;
+  --warning: #ffc107;
+  --danger: #dc3545;
+}
+
+[data-theme="dark"] {
+  /* Dark Theme Variables */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #404040;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #999999;
+  --border-color: #555555;
+  --shadow: 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-hover: 0 4px 8px rgba(0,0,0,0.4);
+  --accent-primary: #4dabf7;
+  --accent-hover: #339af0;
+  --success: #51cf66;
+  --success-hover: #40c057;
+  --warning: #ffd43b;
+  --danger: #ff6b6b;
+}
+
+/* Auto theme media query */
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #1a1a1a;
+    --bg-tertiary: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-muted: #999999;
+    --border-color: #555555;
+    --shadow: 0 2px 4px rgba(0,0,0,0.3);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,0.4);
+    --accent-primary: #4dabf7;
+    --accent-hover: #339af0;
+    --success: #51cf66;
+    --success-hover: #40c057;
+    --warning: #ffd43b;
+    --danger: #ff6b6b;
+  }
+}
+
+/* Global Base Styles */
+body {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dashboard-container {
+  background-color: var(--bg-secondary);
+}
+
+/* Enhanced Sidebar Theming */
+.sidebar {
+  background-color: var(--bg-primary) !important;
+  border-right: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  transition: background-color 0.3s ease;
+}
+
+.sidebar .logo {
+  filter: var(--logo-filter, none);
+  transition: filter 0.3s ease;
+}
+
+[data-theme="dark"] .sidebar .logo {
+  --logo-filter: brightness(0.9) contrast(1.1);
+}
+
+.sidebar .nav-menu {
+  background: transparent;
+}
+
+.sidebar .nav-menu li {
+  background: transparent;
+}
+
+.sidebar .nav-menu li a {
+  color: var(--text-secondary) !important;
+  background-color: transparent !important;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  margin: 2px 8px;
+  padding: 12px 16px;
+  display: block;
+  text-decoration: none;
+}
+
+.sidebar .nav-menu li a:hover {
+  color: var(--accent-primary) !important;
+  background-color: var(--bg-tertiary) !important;
+  transform: translateX(4px);
+}
+
+.sidebar .nav-menu li a.active {
+  color: white !important;
+  background-color: var(--accent-primary) !important;
+  box-shadow: var(--shadow);
+}
+
+/* Ensure all sidebar text elements are themed */
+.sidebar * {
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+/* Main Content Areas */
+.main-content,
+.folder-main-content{
+  background-color: var(--bg-secondary);
+}
+
+/* Headers */
+.header,
+.folder-header,
+.settings-header {
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+}
+
+.header h1,
+.folder-header h1,
+.settings-header h1 {
+  color: var(--text-primary);
+}
+
+.subtitle,
+.folder-subtitle,
+.settings-subtitle {
+  color: var(--text-secondary);
+}
+
+/* Buttons */
+.btn,
+.back-button,
+.create-button,
+.upload-button {
+  transition: all 0.3s ease;
+}
+
+.back-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.back-button:hover {
+  background-color: var(--accent-primary);
+  color: white;
+  box-shadow: var(--shadow-hover);
+}
+
+.btn-primary,
+.create-button,
+.upload-button {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.btn-primary:hover,
+.create-button:hover,
+.upload-button:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+/* Cards and Containers */
+.card,
+.folder-card,
+.settings-section {
+  background-color: var(--bg-primary);
+}
+
+.card:hover,
+.folder-card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* Form Elements */
+.form-control,
+.form-group input,
+.form-group select,
+.search-input {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-group input:focus,
+.form-group select:focus,
+.search-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+  outline: none;
+}
+
+/* Text Elements */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+}
+
+p, span, div {
+  color: var(--text-primary);
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* Folder specific styles */
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.folder-item {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.folder-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.folder-icon {
+  font-size: 48px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.folder-name {
+  color: var(--text-primary);
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.folder-type {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.folder-actions {
+  margin-top: 15px;
+}
+
+.open-button {
+  background-color: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.open-button:hover {
+  background-color: var(--accent-hover);
+}
+
+/* Chat Widget */
+.chat-widget {
+  background-color: var(--accent-primary);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.chat-widget:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.1);
+}
+
+/* Success/Error Messages */
+.success-message {
+  background-color: var(--success);
+  color: white;
+}
+
+.error-message {
+  background-color: var(--danger);
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .folder-grid {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+}

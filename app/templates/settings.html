@@ -1,10 +1,210 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>Settings</title>
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/settings.css' %}">
+  <style>
+    /* Enhanced User Avatar Styles */
+    .user-profile-section {
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 2px solid var(--border-color, #e0e0e0);
+    }
+
+    .user-profile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4FC3F7, #29B6F6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 600;
+      color: white;
+      transition: all 0.3s ease;
+      border: 4px solid transparent;
+      position: relative;
+      text-transform: uppercase;
+    }
+
+    .user-avatar:hover {
+      transform: scale(1.05);
+      border-color: #4FC3F7;
+      box-shadow: 0 0 25px rgba(79, 195, 247, 0.4);
+    }
+
+    .user-details h2 {
+      margin: 0 0 4px 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary, #333);
+    }
+
+    .role {
+      color: var(--text-secondary, #666);
+      font-size: 16px;
+      font-weight: 500;
+      padding: 4px 12px;
+      background: var(--accent-light, #e3f2fd);
+      border-radius: 20px;
+      display: inline-block;
+      text-transform: capitalize;
+    }
+
+    .user-status {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .status-indicator {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #4CAF50;
+      border: 3px solid var(--card-background, #ffffff);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .status-indicator:hover {
+      transform: scale(1.2);
+    }
+
+    .status-indicator.away {
+      background-color: #FF9800;
+    }
+
+    .status-indicator.busy {
+      background-color: #f44336;
+    }
+
+    .status-indicator.offline {
+      background-color: #757575;
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: var(--text-secondary, #666);
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .status-text:hover {
+      color: var(--primary-color, #4FC3F7);
+    }
+
+    /* Preview Update Animation */
+    .user-avatar.updating {
+      animation: updatePulse 0.4s ease-in-out;
+    }
+
+    .user-details.updating {
+      animation: updatePulse 0.4s ease-in-out;
+    }
+
+    .role.updating {
+      animation: updatePulse 0.4s ease-in-out;
+    }
+
+    @keyframes updatePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    /* Notification Styles */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .notification.error {
+      background: #f44336;
+    }
+
+    .notification.info {
+      background: #2196F3;
+    }
+
+    /* Login Status Indicator */
+    .login-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary, #666);
+      margin-top: 4px;
+    }
+
+    .login-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #4CAF50;
+    }
+
+    /* Dark Theme Support */
+    [data-theme="dark"] .user-profile-section {
+      --card-background: #2a2a2a;
+      --border-color: #444;
+      --text-primary: #ffffff;
+      --text-secondary: #cccccc;
+      --accent-light: #1e3a8a;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .user-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+      }
+      
+      .user-profile-header {
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      .user-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="dashboard-container">
@@ -17,28 +217,428 @@
         <li><a href="/history/">History</a></li>
         <li><a href="/employees_profile/">Employees Profile</a></li>
         <li><a href="/folder/">Folders</a></li>
-        <li><a href="/settings/">Settings</a></li>
+        <li><a href="/settings/" class="active">Settings</a></li>
       </ul>
     </div>
 
     <!-- Main Content -->
-    <div class="main-content">
-      <div class="header">
-        <h1>Settings</h1>
+    <div class="settings-main-content">
+      <div class="settings-header">
+        <div>
+          <h1>General Settings</h1>
+          <div class="settings-subtitle">Manage account settings and preferences</div>
+        </div>
         <a href="/dashboard/" class="back-button">← Back</a>
       </div>
 
-      <div class="card-grid">
-        {% for setting in settings_options %}
-        <div class="profile-card">
-          <div class="folder-icon">⚙️</div>
-          <h3>{{ setting.title }}</h3>
-          <p>{{ setting.description }}</p>
-          <button class="edit-button">Open</button>
+      <div class="settings-content">
+        <!-- Enhanced User Profile Section -->
+        <div class="user-profile-section">
+          <div class="user-profile-header">
+            <div class="user-info">
+              <div class="user-avatar" id="userAvatar">
+                {% if user.first_name and user.last_name %}
+                  {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+                {% elif user.first_name %}
+                  {{ user.first_name.0|upper }}
+                {% elif user.last_name %}
+                  {{ user.last_name.0|upper }}
+                {% elif user.username %}
+                  {{ user.username.0|upper }}
+                {% else %}
+                  U
+                {% endif %}
+              </div>
+              <div class="user-details">
+                <h2 id="userName">
+                  {% if user.first_name or user.last_name %}
+                    {{ user.first_name|default:"" }} {{ user.last_name|default:"" }}
+                  {% else %}
+                    {{ user.username|title }}
+                  {% endif %}
+                </h2>
+                <div class="role" id="userRole">{{ user.profile.role|default:"Employee"|title }}</div>
+                <div class="login-status">
+                  <div class="login-dot"></div>
+                  <span>Logged in as {{ user.username }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="user-status">
+              <div class="status-indicator" id="statusIndicator" title="Click to change status"></div>
+              <div class="status-text" id="statusText">Online</div>
+            </div>
+          </div>
         </div>
-        {% endfor %}
+
+        <!-- Account Settings Section -->
+        <div class="settings-section">
+          <div class="section-title">Account Settings</div>
+          <form id="account-settings-form">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="edit-name">Edit name</label>
+              <input type="text" id="edit-name" name="name" 
+                     value="{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}" 
+                     placeholder="Enter your full name">
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-role">Edit Role</label>
+              <select id="edit-role" name="role">
+                <option value="Barangay_Official" {% if user.profile.role == 'Barangay_Official' %}selected{% endif %}>Barangay Official</option>
+                <option value="Municipal_Officer" {% if user.profile.role == 'Municipal_Officer' %}selected{% endif %}>Municipal Officer</option>
+                <option value="DILG_Staff" {% if user.profile.role == 'DILG_Staff' %}selected{% endif %}>DILG Staff</option>
+              </select>
+            </div>
+            
+            <button type="submit" class="save-button">Save Changes</button>
+          </form>
+        </div>
+
+        <!-- Enhanced Appearance Settings Section -->
+        <div class="settings-section">
+          <div class="section-title">Appearance Settings</div>
+          <form id="appearance-settings-form">
+            <div class="form-group">
+              <label for="change-theme">Change Theme</label>
+              <select id="change-theme" name="theme">
+                <option value="light">Light <span class="theme-preview light"></span></option>
+                <option value="dark">Dark <span class="theme-preview dark"></span></option>
+                <option value="auto">Auto (System) <span class="theme-preview auto"></span></option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="font-size">Font Size</label>
+              <select id="font-size" name="fontSize">
+                <option value="small">Small</option>
+                <option value="medium" selected>Medium</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+            
+            <button type="submit" class="save-button">Save Preferences</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
+
+  <script>
+    // Simplified User Avatar Manager Class
+    class UserAvatarManager {
+      constructor() {
+        this.currentStatus = 'online';
+        this.statuses = ['online', 'away', 'busy', 'offline'];
+        this.statusTexts = {
+          'online': 'Online',
+          'away': 'Away',
+          'busy': 'Busy',
+          'offline': 'Offline'
+        };
+        this.init();
+      }
+
+      init() {
+        this.bindEvents();
+        this.loadUserPreferences();
+        this.displayUserInfo();
+      }
+
+      bindEvents() {
+        // Status indicator click
+        document.getElementById('statusIndicator').addEventListener('click', () => {
+          this.cycleStatus();
+        });
+
+        document.getElementById('statusText').addEventListener('click', () => {
+          this.cycleStatus();
+        });
+
+        // Real-time form updates with preview
+        document.getElementById('edit-name').addEventListener('input', (e) => {
+          this.updateNamePreview(e.target.value);
+        });
+
+        document.getElementById('edit-role').addEventListener('change', (e) => {
+          this.updateRolePreview(e.target.value);
+        });
+      }
+
+      loadUserPreferences() {
+        const savedStatus = localStorage.getItem('userStatus') || 'online';
+        this.setStatus(savedStatus);
+      }
+
+      displayUserInfo() {
+        // Get user data from Django template
+        const userNameElement = document.getElementById('userName');
+        const userAvatarElement = document.getElementById('userAvatar');
+        
+        // Get the actual display name from the template
+        let displayName = userNameElement.textContent.trim();
+        
+        // If display name is empty or just spaces, get username
+        if (!displayName || displayName === '') {
+          const username = "{{ user.username|default:'' }}";
+          if (username) {
+            displayName = username;
+            userNameElement.textContent = username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+          }
+        }
+        
+        // Update avatar initials based on display name
+        if (displayName) {
+          this.updateAvatarInitials(displayName);
+        }
+      }
+
+      updateAvatarInitials(name) {
+        const userAvatarElement = document.getElementById('userAvatar');
+        const nameParts = name.trim().split(' ').filter(part => part.length > 0);
+        let initials = '';
+        
+        if (nameParts.length >= 2) {
+          // First name + Last name initials
+          initials = nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0);
+        } else if (nameParts.length === 1) {
+          // Just first initial (or first two characters for usernames)
+          const singleName = nameParts[0];
+          if (singleName.length >= 2) {
+            initials = singleName.charAt(0) + singleName.charAt(1);
+          } else {
+            initials = singleName.charAt(0);
+          }
+        }
+        
+        if (initials && userAvatarElement) {
+          userAvatarElement.textContent = initials.toUpperCase();
+        }
+      }
+
+      cycleStatus() {
+        const currentIndex = this.statuses.indexOf(this.currentStatus);
+        const nextStatus = this.statuses[(currentIndex + 1) % this.statuses.length];
+        this.setStatus(nextStatus);
+        this.showNotification(`Status changed to ${this.statusTexts[nextStatus]}`, 'info');
+      }
+
+      setStatus(status) {
+        this.currentStatus = status;
+        const indicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+
+        // Remove all status classes
+        indicator.className = 'status-indicator';
+        // Add new status class
+        if (status !== 'online') {
+          indicator.classList.add(status);
+        }
+
+        statusText.textContent = this.statusTexts[status];
+        localStorage.setItem('userStatus', status);
+      }
+
+      updateNamePreview(name) {
+        if (name.trim()) {
+          const userNameElement = document.getElementById('userName');
+          const userAvatarElement = document.getElementById('userAvatar');
+          
+          // Update display name with animation
+          userNameElement.classList.add('updating');
+          userNameElement.textContent = name;
+          
+          // Update avatar initials
+          userAvatarElement.classList.add('updating');
+          this.updateAvatarInitials(name);
+          
+          // Remove animation classes
+          setTimeout(() => {
+            userNameElement.classList.remove('updating');
+            userAvatarElement.classList.remove('updating');
+          }, 400);
+        }
+      }
+
+      updateRolePreview(role) {
+        const roleElement = document.getElementById('userRole');
+        roleElement.classList.add('updating');
+        roleElement.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+        
+        setTimeout(() => {
+          roleElement.classList.remove('updating');
+        }, 400);
+      }
+
+      showNotification(message, type = 'success') {
+        // Remove existing notification
+        const existing = document.querySelector('.notification');
+        if (existing) existing.remove();
+
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Show notification
+        setTimeout(() => notification.classList.add('show'), 100);
+
+        // Hide notification
+        setTimeout(() => {
+          notification.classList.remove('show');
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+      }
+    }
+
+    // Theme Management Class
+    class ThemeManager {
+      constructor() {
+        this.currentTheme = 'light';
+        this.init();
+      }
+
+      init() {
+        this.loadPreferences();
+        this.applyTheme(this.currentTheme);
+        this.watchSystemTheme();
+      }
+
+      loadPreferences() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedFontSize = localStorage.getItem('fontSize') || 'medium';
+
+        this.currentTheme = savedTheme;
+
+        document.getElementById('change-theme').value = savedTheme;
+        document.getElementById('font-size').value = savedFontSize;
+
+        this.applyFontSize(savedFontSize);
+      }
+
+      applyTheme(theme) {
+        const html = document.documentElement;
+        
+        html.classList.add('theme-transition');
+        html.setAttribute('data-theme', theme);
+        
+        this.currentTheme = theme;
+        localStorage.setItem('theme', theme);
+
+        setTimeout(() => {
+          html.classList.remove('theme-transition');
+        }, 300);
+
+        this.showSuccessMessage(`Theme changed to ${theme.charAt(0).toUpperCase() + theme.slice(1)}`);
+      }
+
+      applyFontSize(size) {
+        const root = document.documentElement;
+        const sizeMap = {
+          'small': '13px',
+          'medium': '14px',
+          'large': '15px'
+        };
+        
+        root.style.fontSize = sizeMap[size];
+        localStorage.setItem('fontSize', size);
+      }
+
+      watchSystemTheme() {
+        if (window.matchMedia) {
+          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+          mediaQuery.addListener((e) => {
+            if (this.currentTheme === 'auto') {
+              this.applyTheme('auto');
+            }
+          });
+        }
+      }
+
+      showSuccessMessage(message) {
+        const existing = document.querySelector('.success-message');
+        if (existing) existing.remove();
+
+        const messageEl = document.createElement('div');
+        messageEl.className = 'success-message';
+        messageEl.textContent = message;
+        document.body.appendChild(messageEl);
+
+        setTimeout(() => messageEl.classList.add('show'), 100);
+
+        setTimeout(() => {
+          messageEl.classList.remove('show');
+          setTimeout(() => messageEl.remove(), 300);
+        }, 3000);
+      }
+    }
+
+    // Initialize managers
+    const avatarManager = new UserAvatarManager();
+    const themeManager = new ThemeManager();
+
+    // Your existing functions
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        window.location.href = '/logout/';
+      }
+    }
+    
+    function toggleChat() {
+      alert('Chat functionality would be implemented here');
+    }
+    
+    // Handle account settings form submission
+    document.getElementById('account-settings-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      
+      fetch('/update-profile/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          avatarManager.showNotification('Profile updated successfully!', 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          alert('Error updating profile: ' + data.message);
+        }
+      })
+      .catch(error => {
+        alert('Error updating profile');
+        console.error('Error:', error);
+      });
+    });
+    
+    // Enhanced appearance settings form submission
+    document.getElementById('appearance-settings-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const theme = document.getElementById('change-theme').value;
+      const fontSize = document.getElementById('font-size').value;
+      
+      themeManager.applyTheme(theme);
+      themeManager.applyFontSize(fontSize);
+      
+      themeManager.showSuccessMessage('Appearance preferences saved!');
+    });
+
+    // Real-time theme switching
+    document.getElementById('change-theme').addEventListener('change', function(e) {
+      themeManager.applyTheme(e.target.value);
+    });
+
+    // Real-time font size changes
+    document.getElementById('font-size').addEventListener('change', function(e) {
+      themeManager.applyFontSize(e.target.value);
+    });
+  </script>
 </body>
 </html>
