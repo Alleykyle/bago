@@ -2,6 +2,7 @@ from django.http import HttpResponseForbidden
 from functools import wraps
 from django.contrib.auth.decorators import login_required
 
+
 def role_required(*required_roles):
     """
     Decorator for views that checks whether a user has one of the allowed roles.
@@ -25,3 +26,5 @@ def role_required(*required_roles):
             return view_func(request, *args, **kwargs)
         return _wrapped_view
     return decorator
+
+

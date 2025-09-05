@@ -609,8 +609,8 @@
     <!-- Sidebar -->
     <div class="sidebar">
       <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
-      <ul class="nav-menu">
-        <li>Dashboard</li>
+      <ul class="nav-menu">     
+        <li><a href="/dashboard/">Dashboard</a></li>
         <li><a href="#">Application Request</a></li>
         <li><a href="/history/">History</a></li>
         <li><a href="/employees_profile/">Employees Profile</a></li>
@@ -672,7 +672,7 @@
       {% endif %}
 
       <div class="card-grid">
-        {% for emp in employees %}
+        {% for emp in page_obj %}
         <div class="profile-card" data-employee-id="{{ emp.id }}">
           <div class="avatar-placeholder">
             {{ emp.name|first|upper }}
