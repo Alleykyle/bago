@@ -40,5 +40,17 @@ urlpatterns = [
     path('refresh-analytics/', views.refresh_analytics, name='refresh_analytics'),
     path('analytics_dashboard/', views.analytics_dashboard, name='analytics_dashboard'),
     path('employee-search-api/', views.employee_search_api, name='employee_search_api'),
+
+    # Public form for citizens
+    path('civil_service_certification/', views.civil_service_certification, name='civil_service_certification'),
+    
+    # Form submission endpoint
+    path('submit_eligibility_request/', views.submit_eligibility_request, name='submit_eligibility_request'),
+    
+    # Admin dashboard
+    path('application_request/', views.application_request, name='application_request'),
+    
+    # Status update endpoint
+    path('update_application_status/', views.update_application_status, name='update_application_status'),
 ]
 

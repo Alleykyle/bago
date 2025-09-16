@@ -438,7 +438,7 @@
         <h1>Eligibility Certification</h1>
         <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
       </div>
-      <a href="/dashboard/" class="back-btn">← Back</a>
+      <a href="{% url 'landing_menu' %}" class="back-button">← Back</a>
     </div>
 
     <!-- Breadcrumb -->
@@ -590,7 +590,8 @@
   <!-- Popup Modal -->
   <div id="popup-overlay" class="popup-overlay">
     <div class="popup-content">
-      <h3 class="popup-title">Your request is now received.<br>Please wait for any update<br>regarding your request.</h3>
+      <h3 class="popup-title">Application Submitted Successfully!</h3>
+      <p class="popup-message">Your eligibility certification request has been received and is currently under review. Please wait for approval from the designated officials. You will be notified once your request has been processed.</p>
       <button type="button" class="popup-button" onclick="closePopup()">Done</button>
     </div>
   </div>
@@ -751,6 +752,7 @@
       updateStepValidation();
     }
 
+    
     function updateStepValidation() {
       // Step 1 validation
       const step1Next = document.getElementById('step1-next');
@@ -780,6 +782,34 @@
       if (step4Next) {
         step4Next.disabled = !hasSignature;
       }
+
+      // Step 5 validation - Check if we're on step 5
+      if (currentStep === 5) {
+        const finishButton = document.querySelector('#step5 .next-btn');
+        if (finishButton) {
+          // Debug logging
+          console.log('Validating finish button with formData:', formData);
+          console.log('hasSignature:', hasSignature);
+          
+          // Check if all required data is available
+          const hasPersonalInfo = formData.last_name && formData.first_name;
+          const hasCertifier = formData.certifier;
+          const hasIds = formData.idFront && formData.idBack;
+          const hasValidSignature = hasSignature || formData.signature;
+          
+          console.log('Validation checks:', {
+            hasPersonalInfo,
+            hasCertifier,
+            hasIds,
+            hasValidSignature
+          });
+          
+          const isValid = hasPersonalInfo && hasCertifier && hasIds && hasValidSignature;
+          finishButton.disabled = !isValid;
+          
+          console.log('Finish button disabled:', finishButton.disabled);
+        }
+      }
     }
 
     function updateBreadcrumb() {
@@ -800,10 +830,10 @@
     function nextStep() {
       console.log('Next step clicked, current step:', currentStep);
       
+      // Save current step data BEFORE moving to next step
+      saveStepData();
+      
       if (currentStep < 5) {
-        // Save current step data
-        saveStepData();
-        
         // Move to next step
         showStep(currentStep + 1);
 
@@ -832,23 +862,40 @@
           formData.last_name = document.getElementById('last_name')?.value?.trim() || '';
           formData.first_name = document.getElementById('first_name')?.value?.trim() || '';
           formData.middle_initial = document.getElementById('middle_initial')?.value?.trim() || '';
+          console.log('Saved step 1 data:', {
+            last_name: formData.last_name,
+            first_name: formData.first_name,
+            middle_initial: formData.middle_initial
+          });
           break;
         case 2:
           const certifier = document.querySelector('input[name="certifier"]:checked');
           formData.certifier = certifier ? certifier.value : '';
+          console.log('Saved step 2 data:', { certifier: formData.certifier });
           break;
         case 3:
           formData.idFront = document.getElementById('idFront')?.files[0];
           formData.idBack = document.getElementById('idBack')?.files[0];
+          console.log('Saved step 3 data:', { 
+            idFront: formData.idFront ? 'File selected' : 'No file',
+            idBack: formData.idBack ? 'File selected' : 'No file'
+          });
           break;
         case 4:
-          formData.signature = signatureCanvas?.toDataURL();
+          if (hasSignature && signatureCanvas) {
+            formData.signature = signatureCanvas.toDataURL();
+          }
+          console.log('Saved step 4 data:', { 
+            signature: formData.signature ? 'Signature saved' : 'No signature'
+          });
           break;
       }
-      console.log('Saved data for step', currentStep, formData);
+      console.log('Complete formData after step', currentStep, ':', formData);
     }
 
     function updatePreview() {
+      console.log('Updating preview with formData:', formData);
+      
       // Update preview content
       const fullName = `${formData.first_name} ${formData.middle_initial ? formData.middle_initial + ' ' : ''}${formData.last_name}`;
       const previewName = document.getElementById('preview-name');
@@ -865,7 +912,7 @@
       
       const previewCertifier = document.getElementById('preview-certifier');
       if (previewCertifier) {
-        previewCertifier.textContent = certifierText[formData.certifier] || '';
+        previewCertifier.textContent = certifierText[formData.certifier] || 'Not selected';
       }
 
       if (formData.signature) {
@@ -874,32 +921,135 @@
           previewSignature.innerHTML = `<img src="${formData.signature}" alt="Signature" class="file-preview" style="max-height: 60px;">`;
         }
       }
+      
+      // Update button validation after preview is populated
+      updateStepValidation();
+    }
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          // Does this cookie string begin with the name we want?
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
     }
 
     function finishProcess() {
-      console.log('Finish process');
+      console.log('Finish process started');
       
       // Save final step data
       saveStepData();
       
-      // Show success step first
-      showStep(6); // Use 6 for success step
+      // Prepare form data for submission
+      const submitData = new FormData();
+      submitData.append('last_name', formData.last_name || '');
+      submitData.append('first_name', formData.first_name || '');
+      submitData.append('middle_initial', formData.middle_initial || '');
+      submitData.append('certifier', formData.certifier || '');
       
-      // Update breadcrumb to show completion
-      for (let i = 1; i <= 5; i++) {
-        const breadcrumb = document.getElementById(`step${i}-breadcrumb`);
-        if (breadcrumb) {
-          breadcrumb.classList.remove('active');
-          breadcrumb.classList.add('completed');
+      // Check if files exist before appending
+      if (formData.idFront) {
+        submitData.append('id_front', formData.idFront);
+      }
+      if (formData.idBack) {
+        submitData.append('id_back', formData.idBack);
+      }
+      
+      // Show loading state
+      const finishBtn = document.querySelector('#step5 .next-btn');
+      if (finishBtn) {
+        finishBtn.textContent = 'Submitting...';
+        finishBtn.disabled = true;
+      }
+      
+      // Convert signature canvas to blob and append
+      if (signatureCanvas && hasSignature) {
+        signatureCanvas.toBlob(function(blob) {
+          if (blob) {
+            submitData.append('signature', blob, 'signature.png');
+          }
+          
+          // Get CSRF token
+          const csrfToken = getCookie('csrftoken');
+          
+          if (!csrfToken) {
+            alert('Security token not found. Please refresh the page and try again.');
+            if (finishBtn) {
+              finishBtn.textContent = 'Finish';
+              finishBtn.disabled = false;
+            }
+            return;
+          }
+          
+          // Submit to Django backend - CORRECTED URL to match your urls.py
+          console.log('Submitting to: /submit_eligibility_request/');
+          fetch('/submit_eligibility_request/', {  // This matches line 30 in your URLs
+            method: 'POST',
+            body: submitData,
+            headers: {
+              'X-CSRFToken': csrfToken
+            }
+          })
+          .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+              // Show success step
+              showStep(6);
+              
+              // Update breadcrumb to show completion
+              for (let i = 1; i <= 5; i++) {
+                const breadcrumb = document.getElementById(`step${i}-breadcrumb`);
+                if (breadcrumb) {
+                  breadcrumb.classList.remove('active');
+                  breadcrumb.classList.add('completed');
+                }
+              }
+
+              // Show popup after a short delay
+              setTimeout(() => {
+                if (currentStep === 6) {
+                  showPopup();
+                }
+              }, 1000);
+            } else {
+              alert('Error submitting application: ' + (data.error || 'Please try again.'));
+            }
+          })
+          .catch(error => {
+            console.error('Fetch error:', error);
+            alert('Error submitting application. Please check your connection and try again.');
+          })
+          .finally(() => {
+            // Reset button state
+            if (finishBtn) {
+              finishBtn.textContent = 'Finish';
+              finishBtn.disabled = false;
+            }
+          });
+        }, 'image/png');
+      } else {
+        console.error('No signature canvas or signature not drawn');
+        alert('Please ensure you have drawn a signature before submitting.');
+        if (finishBtn) {
+          finishBtn.textContent = 'Finish';
+          finishBtn.disabled = false;
         }
       }
-
-      // Show popup after a short delay, only when we're on the success step
-      setTimeout(() => {
-        if (currentStep === 6) { // Only show if we're actually on success step
-          showPopup();
-        }
-      }, 1000);
     }
 
     function showPopup() {
