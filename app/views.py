@@ -22,6 +22,8 @@ import openpyxl
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Q, Count, Avg, Sum  
+from .models import EligibilityRequest
+from django.views.decorators.http import require_POST
 
 
 
@@ -791,6 +793,7 @@ def settings(request):
 
 
 def civil_service_certification(request):
+    """Render the public certification form"""
     return render(request, 'civil_service_certification.html')
 
 
@@ -1161,4 +1164,215 @@ def bulk_employee_operations(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
     
+
+@require_http_methods(["POST"])
+def submit_eligibility_request(request):
+    """Handle form submission from the public certification form"""
+    try:
+        # Debug logging
+        print("=== FORM SUBMISSION DEBUG ===")
+        print("POST data:", dict(request.POST))
+        print("FILES data:", dict(request.FILES))
+        print("Content-Type:", request.content_type)
+        
+        # Extract and validate form data
+        last_name = request.POST.get('last_name', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        middle_initial = request.POST.get('middle_initial', '').strip()
+        certifier = request.POST.get('certifier', '').strip()
+        
+        # Validation
+        if not last_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Last name is required'
+            }, status=400)
+            
+        if not first_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'First name is required'
+            }, status=400)
+            
+        if not certifier:
+            return JsonResponse({
+                'success': False,
+                'error': 'Certifier selection is required'
+            }, status=400)
+        
+        # Validate certifier choice against model choices
+        valid_certifiers = [choice[0] for choice in EligibilityRequest.CERTIFIER_CHOICES]
+        if certifier not in valid_certifiers:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid certifier selection. Must be one of: {valid_certifiers}'
+            }, status=400)
+        
+        # Handle file uploads
+        id_front = request.FILES.get('id_front')
+        id_back = request.FILES.get('id_back')
+        signature = request.FILES.get('signature')
+        
+        print(f"Files found - id_front: {id_front is not None}, id_back: {id_back is not None}, signature: {signature is not None}")
+        
+        if not id_front:
+            return JsonResponse({
+                'success': False,
+                'error': 'Front ID image is required'
+            }, status=400)
+            
+        if not id_back:
+            return JsonResponse({
+                'success': False,
+                'error': 'Back ID image is required'
+            }, status=400)
+            
+        if not signature:
+            return JsonResponse({
+                'success': False,
+                'error': 'Signature is required'
+            }, status=400)
+        
+        # Create new request using the correct field names from your model
+        try:
+            eligibility_request = EligibilityRequest.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                middle_initial=middle_initial if middle_initial else None,
+                certifier=certifier,  # This matches your model field
+                id_front=id_front,
+                id_back=id_back,
+                signature=signature,
+                status='pending',
+                date_submitted=timezone.now()  # Use timezone.now() instead of datetime.now()
+            )
+            
+            print(f"Successfully created request with ID: {eligibility_request.id}")
+            
+            # Generate a reference number for the user (since your model doesn't have id_number)
+            reference_number = f"EC-{timezone.now().year}-{eligibility_request.id:03d}"
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Application submitted successfully!',
+                'id_number': reference_number,  
+                'request_id': eligibility_request.id
+            })
+            
+        except Exception as create_error:
+            print(f"Error creating EligibilityRequest: {create_error}")
+            print(f"Error type: {type(create_error).__name__}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            
+            return JsonResponse({
+                'success': False,
+                'error': f'Database error: {str(create_error)}'
+            }, status=400)
+        
+    except Exception as e:
+        print(f"=== SUBMISSION ERROR ===")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Submission failed: {str(e)}'
+        }, status=400)
+
+@login_required
+def application_request(request):
+    """Render the admin application request management page"""
+    # Get all eligibility requests
+    requests = EligibilityRequest.objects.all().order_by('-date_submitted')
     
+    context = {
+        'requests': requests
+    }
+    return render(request, 'application_request.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def update_application_status(request):
+    """Update the status of an eligibility request"""
+    try:
+        # Parse JSON data
+        data = json.loads(request.body)
+        request_id = data.get('id')
+        new_status = data.get('status')
+        
+        # Validate input
+        if not request_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Request ID is required'
+            }, status=400)
+            
+        if not new_status:
+            return JsonResponse({
+                'success': False,
+                'error': 'Status is required'
+            }, status=400)
+        
+        # Validate status choice
+        valid_statuses = ['pending', 'approved', 'rejected', 'processing']
+        if new_status not in valid_statuses:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid status. Must be one of: {valid_statuses}'
+            }, status=400)
+        
+        # Get the request
+        try:
+            eligibility_request = EligibilityRequest.objects.get(id=request_id)
+        except EligibilityRequest.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Request not found'
+            }, status=404)
+        
+        # Update status
+        eligibility_request.status = new_status
+        
+        # Update approved_by and date_processed for approved/rejected status
+        if new_status in ['approved', 'rejected']:
+            eligibility_request.approved_by = request.user
+            eligibility_request.date_processed = timezone.now()  # Use timezone.now()
+        elif new_status == 'pending':
+            # Reset approval fields when changing back to pending
+            eligibility_request.approved_by = None
+            eligibility_request.date_processed = None
+        
+        eligibility_request.save()
+        
+        # Prepare response data
+        approved_by_name = None
+        if eligibility_request.approved_by:
+            approved_by_name = eligibility_request.approved_by.get_full_name() or eligibility_request.approved_by.username
+        else:
+            approved_by_name = '-'
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Status updated to {new_status.capitalize()}',
+            'approved_by': approved_by_name,
+            'new_status': new_status
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        # Log the actual error for debugging
+        import traceback
+        print(f"Error updating application status: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }, status=500)

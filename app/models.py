@@ -7,6 +7,9 @@ import json
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save, pre_delete, post_delete
+from django.dispatch import receiver
+
 
 
 
@@ -160,8 +163,6 @@ class Employee(models.Model):
 
 
 # Signal handlers for audit logging
-from django.db.models.signals import post_save, pre_delete, post_delete
-from django.dispatch import receiver
 
 @receiver(post_save, sender=Employee)
 def employee_post_save(sender, instance, created, **kwargs):
@@ -249,6 +250,7 @@ class UserProfile(models.Model):
         self.login_count += 1
         self.save()
 
+<<<<<<< HEAD
     def get_redirect_url(self):
         """Return the correct redirect path based on role"""
         mapping = {
@@ -259,3 +261,59 @@ class UserProfile(models.Model):
         return mapping.get(self.role.lower(), 'dashboard')
 
 
+=======
+from django.db import models
+from django.utils import timezone
+
+class EligibilityRequest(models.Model):
+    CERTIFIER_CHOICES = [
+        ('punong_barangay', 'Punong Barangay'),
+        ('dilg_municipality', 'DILG - Municipality'),
+        ('dilg_provincial', 'DILG - Provincial'),
+        ('dilg_regional', 'DILG - Regional'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('processing', 'Processing'),
+    ]
+    
+    # Personal Information
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    middle_initial = models.CharField(max_length=5, blank=True, null=True)
+    
+    # This is the field Django is looking for
+    certifier = models.CharField(max_length=50, choices=CERTIFIER_CHOICES)
+    
+    # File uploads
+    id_front = models.ImageField(upload_to='eligibility/ids/', null=True, blank=True)
+    id_back = models.ImageField(upload_to='eligibility/ids/', null=True, blank=True)
+    signature = models.ImageField(upload_to='eligibility/signatures/', null=True, blank=True)
+    
+    # Status and dates
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    date_submitted = models.DateTimeField(default=timezone.now)
+    approved_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='approved_requests'
+    )
+    date_processed = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-date_submitted']
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.status}"
+    
+    @property
+    def full_name(self):
+        if self.middle_initial:
+            return f"{self.first_name} {self.middle_initial} {self.last_name}"
+        return f"{self.first_name} {self.last_name}"
+>>>>>>> e1659ea72834b1b12aac0cf6115a61d7ffa2e3b5
