@@ -15,8 +15,13 @@
             </div>
         </div>
         <div class="login-section">
+            <!-- ✅ FIXED: form now posts to login_page -->
             <form class="login-form" method="POST" action="{% url 'login_page' %}">
                 {% csrf_token %}
+                
+                <!-- ✅ Preserve ?next= -->
+                <input type="hidden" name="next" value="{{ next }}">
+
                 <div class="form-title">
                     <h2>SmartFilex</h2>
                 </div>

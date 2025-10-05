@@ -10,6 +10,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('requirements_monitoring/', views.requirements_monitoring, name='requirements_monitoring'),
     path('application_request/', views.application_request, name='application_request'),
+     path('csc/', views.civil_service_certification, name='civi_service_certification'),
     
     # Enhanced History URLs
     path('history/', views.history, name='history'),

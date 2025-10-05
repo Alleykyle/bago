@@ -227,25 +227,35 @@ def get_client_ip(request):
 # Add to your UserProfile model
 class UserProfile(models.Model):
     ROLE_CHOICES = [
-        ('Barangay Official', 'Barangay Official'),
-        ('Municipal Officer', 'Municipal Officer'),
-        ('DILG Staff', 'DILG Staff'),
+        ('barangay official', 'Barangay Official'),
+        ('municipal officer', 'Municipal Officer'),
+        ('dilg staff', 'DILG Staff'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=50, choices=ROLE_CHOICES)
-    
-    # Additional profile fields
+
+    # Extra profile fields
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     login_count = models.PositiveIntegerField(default=0)
     is_profile_complete = models.BooleanField(default=False)
-    
+
     def __str__(self):
-        return f"{self.user.username} - {self.role}"
-    
+        return f"{self.user.username} - {self.role.title()}"
+
     def update_login_info(self, ip_address):
-        """Update login information"""
+        """Update login info after each login"""
         self.last_login_ip = ip_address
         self.login_count += 1
         self.save()
+
+    def get_redirect_url(self):
+        """Return the correct redirect path based on role"""
+        mapping = {
+            'barangay official': 'civil_service_certification',
+            'municipal officer': 'requirements_monitoring',
+            'dilg staff': 'landing_menu',
+        }
+        return mapping.get(self.role.lower(), 'dashboard')
+
 

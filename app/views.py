@@ -75,70 +75,62 @@ def login_page(request):
         password = request.POST.get('password')
 
         user = authenticate(request, username=username, password=password)
+        ip_address = get_client_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
         if user is not None:
-            if user.is_active:
-                login(request, user)
-                
-                # Get client info
-                ip_address = get_client_ip(request)
-                user_agent = request.META.get('HTTP_USER_AGENT', '')
-                
-                # Update profile login info
-                try:
-                    profile = user.userprofile
-                    if hasattr(profile, 'update_login_info'):
-                        profile.update_login_info(ip_address)
-                    
-                    # Create audit log
-                    try:
-                        AuditLog.objects.create(
-                            user=user,
-                            action='LOGIN',
-                            ip_address=ip_address,
-                            user_agent=user_agent,
-                            description=f"User {username} logged in successfully"
-                        )
-                    except:
-                        pass  # Skip audit logging if AuditLog doesn't exist
-                    
-                    role = profile.role.strip().lower()
-                    
-                    if role == 'barangay official':
-                        return redirect('civil_service_certification')
-                    elif role == 'municipal officer':
-                        return redirect('requirements_monitoring')
-                    elif role == 'dilg staff':
-                        return redirect('landing_menu')
-                    else:
-                        return redirect('landing_page')
-                        
-                except UserProfile.DoesNotExist:
-                    messages.error(request, 'User profile not found. Contact admin.')
-                    return redirect('login_page')
-            else:
-                messages.error(request, 'Account inactive. Please contact support.')
+            login(request, user)
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.update_login_info(ip_address)
+
+            AuditLog.objects.create(
+                user=user,
+                action='LOGIN',
+                ip_address=ip_address,
+                user_agent=user_agent,
+                description=f"{user.username} logged in as {profile.role}",
+            )
+
+            # 🧠 Debug
+            print("🔍 ROLE DETECTED:", profile.role)
+            print("🔍 REDIRECTING TO:", profile.get_redirect_url())
+
+            redirect_url = profile.get_redirect_url()
+            messages.success(request, f"Welcome back, {user.username}!")
+            return redirect(redirect_url)
+
         else:
-            # Log failed login attempt
-            try:
-                AuditLog.objects.create(
-                    action='LOGIN',
-                    ip_address=get_client_ip(request),
-                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    description=f"Failed login attempt for username: {username}"
-                )
-            except:
-                pass  # Skip audit logging if AuditLog doesn't exist
-            messages.error(request, 'Invalid username or password.')
+            messages.error(request, "Invalid username or password.")
 
     return render(request, 'login_page.html')
+
+
+@login_required
+def logout_view(request):
+    """Handle user logout with audit log"""
+    user = request.user
+    ip_address = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+
+    # Log the logout action
+    AuditLog.objects.create(
+        user=user,
+        action='LOGOUT',
+        ip_address=ip_address,
+        user_agent=user_agent,
+        description=f"{user.username} logged out",
+    )
+
+    logout(request)
+    messages.info(request, "You have been logged out successfully.")
+    return redirect('login')  # change to your login page URL name
 
 
 def landing_menu(request):
     return render(request, 'landing_menu.html')
 
 
-@login_required
+
 def dashboard(request):
     """
     Safe Analytics Dashboard View - No attribute errors
@@ -565,7 +557,7 @@ def activity_stats(request):
 
 
 
-@login_required
+
 def employees_profile(request):
     # Handle POST - Add new employee with validation
     if request.method == 'POST':
@@ -795,6 +787,7 @@ def folder(request):
 
 def settings(request):
     return render(request, 'settings.html')
+
 
 
 def civil_service_certification(request):

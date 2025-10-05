@@ -299,6 +299,26 @@
       </ul>
     </div>
 
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <span style="font-size: 0.9em; color: var(--text-secondary);">
+        Last updated: <span id="lastUpdated">{% now "M d, H:i" %}</span>
+      </span>
+      <a href="{% url 'landing_menu' %}" class="back-button">← Back</a>
+      <form method="post" action="{% url 'logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" style="
+            background: #ef4444; 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            cursor: pointer;">
+          Logout
+        </button>
+      </form>
+    </div>
+  
+
     <!-- Main Content -->
     <div class="main-content">
       <div class="header">
