@@ -7,428 +7,11 @@
   <title>Eligibility Certification</title>
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
   <link rel="stylesheet" href="{% static 'CSS/civil_service_certification.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/theme-system.css' %}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    /* Reset and base styles */
-    * {
-      box-sizing: border-box;
-    }
-    
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', sans-serif;
-      background-color: #ffffff;
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 20px;
-      position: relative;
-      min-height: calc(100vh - 80px); /* Prevent content overflow */
-    }
-    
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-left: 40px;
-      margin-top: 20px;
-      position: relative;
-    }
-    
-    .logo-title {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .logo {
-      width: 60px;
-      height: 60px;
-      object-fit: contain;
-    }
-    
-    .logo-title h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #1A237E;
-      margin: 0;
-    }
-    
-    .back-btn {
-      background-color: #1A237E;
-      color: white;
-      padding: 10px 18px;
-      border-radius: 30px;
-      text-decoration: none;
-      font-weight: 600;
-      position: absolute;
-      right: 0;
-    }
-    
-    .back-btn:hover {
-      background-color: #0D1540;
-    }
-    
-    .breadcrumb {
-      margin: 30px 0;
-      font-size: 14px;
-      color: #555;
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    
-    .breadcrumb .active {
-      font-weight: 600;
-      color: #1A237E;
-    }
-
-    .breadcrumb .completed {
-      font-weight: 600;
-      color: #10b981;
-    }
-
-    .separator {
-      color: #bbb;
-    }
-    
-    .form-card {
-      border: 1px solid #ccc;
-      padding: 30px;
-      border-radius: 12px;
-      max-width: 500px;
-      margin: 0 auto 40px; 
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
-      text-align: left;
-      background: white; 
-    }
-
-    .step {
-      display: none !important;
-    }
-
-    .step.active {
-      display: block !important;
-    }
-
-    .section-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: #1A237E;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    
-    form {
-      display: flex;
-      flex-direction: column;
-    }
-    
-    form label {
-      margin-bottom: 5px;
-      font-weight: 600;
-      color: #333;
-      display: block;
-    }
-    
-    form input[type="text"], form input[type="file"] {
-      margin-bottom: 20px;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #bbb;
-      font-size: 14px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    form input[type="text"]:focus, form input[type="file"]:focus {
-      outline: none;
-      border-color: #1A237E;
-    }
-    
-    .next-btn {
-      display: inline-block;
-      background-color: #1A237E;
-      color: white;
-      padding: 10px;
-      border: none;
-      border-radius: 30px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      width: 100%;
-      text-align: center;
-      text-decoration: none;
-    }
-    
-    .next-btn:hover:not(:disabled) {
-      background-color: #0D1540;
-    }
-
-    .next-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .btn-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 20px;
-      gap: 10px;
-    }
-
-    .btn-back {
-      background-color: #6b7280;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 30px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      text-align: center;
-    }
-
-    .btn-back:hover {
-      background-color: #4b5563;
-    }
-
-    .radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .radio-option {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .radio-option:hover {
-      border-color: #1A237E;
-      background: #f8fafc;
-    }
-
-    .radio-option.selected {
-      border-color: #1A237E;
-      background: #e8eaf6;
-    }
-
-    .radio-option input[type="radio"] {
-      margin-right: 10px;
-      margin-bottom: 0;
-      scale: 1.1;
-    }
-
-    .radio-option label {
-      margin: 0;
-      cursor: pointer;
-      font-weight: 500;
-    }
-
-    .signature-container {
-      text-align: center;
-      margin: 20px 0;
-    }
-
-    .signature-pad {
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: white;
-      margin: 15px auto;
-      cursor: crosshair;
-    }
-
-    #signature-canvas {
-      display: block;
-      border-radius: 6px;
-    }
-
-    .signature-controls {
-      margin: 15px 0;
-    }
-
-    .file-preview {
-      max-width: 200px;
-      max-height: 150px;
-      border-radius: 6px;
-      margin-top: 10px;
-      border: 1px solid #ccc;
-    }
-
-    .preview-section {
-      background: #f8fafc;
-      border-radius: 6px;
-      padding: 20px;
-      margin: 15px 0;
-    }
-
-    .preview-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #ddd;
-    }
-
-    .preview-item:last-child {
-      border-bottom: none;
-    }
-
-    .preview-label {
-      font-weight: 600;
-      color: #333;
-    }
-
-    .preview-value {
-      color: #555;
-      text-align: right;
-      max-width: 60%;
-    }
-
-    .success-message {
-      text-align: center;
-      padding: 40px 20px;
-    }
-
-    .success-icon {
-      width: 80px;
-      height: 80px;
-      background: #10b981;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      font-weight: bold;
-      margin: 0 auto 20px;
-    }
-
-    .success-message h2 {
-      color: #1A237E;
-      margin-bottom: 10px;
-    }
-
-    .success-message p {
-      color: #555;
-      margin-bottom: 20px;
-    }
-
-    /* Popup Modal Styles */
-    .popup-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .popup-overlay.active {
-      display: flex;
-    }
-
-    .popup-content {
-      background: white;
-      border-radius: 12px;
-      padding: 40px;
-      max-width: 400px;
-      width: 90%;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      position: relative;
-      animation: popupSlideIn 0.3s ease-out;
-    }
-
-    @keyframes popupSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    .popup-title {
-      color: #333;
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 15px;
-      line-height: 1.4;
-    }
-
-    .popup-message {
-      color: #666;
-      font-size: 14px;
-      margin-bottom: 25px;
-      line-height: 1.5;
-    }
-
-    .popup-button {
-      background-color: #4F46E5;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.2s ease;
-    }
-
-    .popup-button:hover {
-      background-color: #4338CA;
-    }
-
-    @media (max-width: 768px) {
-      .container {
-        padding: 10px;
-        margin: 20px auto;
-      }
-      
-      .header {
-        padding-left: 20px;
-        flex-direction: column;
-        gap: 15px;
-      }
-      
-      .back-btn {
-        position: static;
-      }
-      
-      .form-card {
-        padding: 20px;
-      }
-      
-      .btn-row {
-        flex-direction: column;
-      }
-      
-      .next-btn, .btn-back {
-        width: 100%;
-      }
-    }
-  </style>
+ 
 </head>
 <body>
   <div class="container">
@@ -438,46 +21,215 @@
         <h1>Eligibility Certification</h1>
         <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
       </div>
-      <a href="{% url 'landing_menu' %}" class="back-button">← Back</a>
+      <a href="{% url 'landing_menu' %}" class="back-btn">← Back</a>
     </div>
 
     <!-- Breadcrumb -->
-    <nav class="breadcrumb">
-      <span id="step1-breadcrumb" class="active">Request Letter</span>
+    <nav class="breadcrumb" id="breadcrumb-nav" style="display: none;">
+      <span id="step1-breadcrumb" class="active">Personal Info</span>
       <span class="separator">›</span>
-      <span id="step2-breadcrumb">Application Letter</span>
+      <span id="step2-breadcrumb">Position Details</span>
       <span class="separator">›</span>
-      <span id="step3-breadcrumb">Valid ID</span>
+      <span id="step3-breadcrumb">Certifier</span>
       <span class="separator">›</span>
-      <span id="step4-breadcrumb">Signature</span>
+      <span id="step4-breadcrumb">Valid ID</span>
       <span class="separator">›</span>
-      <span id="step5-breadcrumb">Certificate</span>
+      <span id="step5-breadcrumb">Signature</span>
     </nav>
 
     <!-- Form Container -->
     <div class="form-card">
-      <!-- Step 1: Personal Information -->
-      <div id="step1" class="step active">
-        <h2 class="section-title">Personal Information</h2>
-        <form>
-          <label for="last_name">Last Name</label>
-          <input type="text" id="last_name" name="last_name" required>
-
-          <label for="first_name">First Name</label>
-          <input type="text" id="first_name" name="first_name" required>
-
-          <label for="middle_initial">Middle Initial</label>
-          <input type="text" id="middle_initial" name="middle_initial">
-
-          <div class="btn-row">
-            <div></div>
-            <button type="button" id="step1-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+      <!-- Introduction Page -->
+      <div id="intro" class="step active">
+        <div style="text-align: center; padding: 20px 0;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
           </div>
-        </form>
+          <h2 style="color: #1A237E; font-size: 28px; margin-bottom: 15px; font-weight: 700;">Eligibility Certification</h2>
+          <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 30px; max-width: 400px; margin-left: auto; margin-right: auto;">
+            This certification verifies your eligibility to hold a position in the government service. Please select the type of position you are applying for.
+          </p>
+          <div style="background: #f0f4ff; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="color: #1A237E; font-size: 16px; margin-bottom: 10px; font-weight: 600;">Requirements:</h3>
+            <ul style="text-align: left; color: #555; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+              <li>Valid Government-issued ID</li>
+              <li>Complete personal information</li>
+              <li>Position details</li>
+              <li>Electronic signature</li>
+            </ul>
+          </div>
+          <button type="button" class="next-btn" onclick="showSelectionPage()">Get Started →</button>
+        </div>
       </div>
 
-      <!-- Step 2: Certifier Selection -->
+      <!-- Selection Page: Appointive or Elective -->
+      <div id="selection" class="step">
+        <h2 class="section-title">Select Position Type</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+          Choose whether you are applying for an appointive or elective position
+        </p>
+        <div class="radio-group">
+          <div class="radio-option" onclick="selectPositionType('appointive')" style="padding: 25px;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <div style="width: 40px; height: 40px; background: #fef3c7; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <h3 style="margin: 0; color: #1A237E; font-size: 18px; font-weight: 600;">Appointive Position</h3>
+              </div>
+              <p style="color: #666; font-size: 14px; margin: 0 0 0 55px; line-height: 1.5;">
+                For positions filled through appointment by an authorized official
+              </p>
+            </div>
+          </div>
+          
+          <div class="radio-option" onclick="selectPositionType('elective')" style="padding: 25px;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <div style="width: 40px; height: 40px; background: #dbeafe; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </div>
+                <h3 style="margin: 0; color: #1A237E; font-size: 18px; font-weight: 600;">Elective Position</h3>
+              </div>
+              <p style="color: #666; font-size: 14px; margin: 0 0 0 55px; line-height: 1.5;">
+                For positions filled through electoral process by the people
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="btn-row">
+          <button type="button" class="btn-back" onclick="showIntroPage()">← Back</button>
+          <div></div>
+        </div>
+      </div>
+
+      <!-- Step 1: Personal Information -->
+      <!-- Step 1: Personal Information -->
+<div id="step1" class="step">
+  <h2 class="section-title">Personal Information</h2>
+  <form>
+    <label for="last_name">Last Name</label>
+    <input type="text" id="last_name" name="last_name" required>
+
+    <label for="first_name">First Name</label>
+    <input type="text" id="first_name" name="first_name" required>
+
+    <label for="middle_initial">Middle Initial</label>
+    <input type="text" id="middle_initial" name="middle_initial">
+
+    <!-- NEW BARANGAY FIELD -->
+    <label for="barangay">Barangay</label>
+    <input type="text" id="barangay" name="barangay" placeholder="e.g., Ibabang Iyam, Market View" required>
+    <small style="display: block; margin-top: -15px; margin-bottom: 15px; color: #666; font-size: 12px;">
+      Enter the barangay where you served/are serving
+    </small>
+
+    <label for="email">Email Address <span style="color: red;">*</span></label>
+    <input type="email" id="email" name="email" placeholder="your-email@gmail.com" required>
+    <small style="display: block; margin-top: -15px; margin-bottom: 15px; color: #666; font-size: 12px;">
+      You will receive status updates at this email address
+    </small>
+
+    <div class="btn-row">
+      <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
+      <button type="button" id="step1-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+    </div>
+  </form>
+</div>
+
+      <!-- Step 2: Position Details (Dynamic based on selection) -->
       <div id="step2" class="step">
+        <!-- Appointive Fields -->
+        <div id="appointive-fields" style="display: none;">
+          <h2 class="section-title">Appointive Position Details</h2>
+          <form>
+            <label for="appointing_authority">Appointing Authority (Name)</label>
+            <input type="text" id="appointing_authority" name="appointing_authority" placeholder="Name of the appointing official" required>
+
+            <label for="appointment_from">Date of Appointment: From</label>
+            <input type="date" id="appointment_from" name="appointment_from" required>
+
+            <label for="appointment_to">Date of Appointment: To</label>
+            <input type="date" id="appointment_to" name="appointment_to" required>
+
+            <label for="years_in_service">Number of Years in Service</label>
+            <input type="number" id="years_in_service" name="years_in_service" min="0" placeholder="Years of service" required>
+
+            <label for="appointing_punong_barangay">Name of Appointing Punong Barangay</label>
+            <input type="text" id="appointing_punong_barangay" name="appointing_punong_barangay" placeholder="Full name of Punong Barangay" required>
+
+            <label for="pb_date_elected">Date Elected (Punong Barangay)</label>
+            <input type="date" id="pb_date_elected" name="pb_date_elected" required>
+
+            <label for="pb_years_service">No. of Years in Service (Punong Barangay)</label>
+            <input type="number" id="pb_years_service" name="pb_years_service" min="0" placeholder="Years" required>
+
+            <div class="btn-row">
+              <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
+              <button type="button" id="step2-appointive-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Elective Fields -->
+        <div id="elective-fields" style="display: none;">
+          <h2 class="section-title">Elective Position Details</h2>
+          <form>
+            <label for="position_held">Position Held</label>
+            <input type="text" id="position_held" name="position_held" placeholder="e.g., Barangay Kagawad, SK Chairman" required>
+
+            <label for="election_from">Date of Election: From</label>
+            <input type="date" id="election_from" name="election_from" required>
+
+            <label for="election_to">Date of Election: To</label>
+            <input type="date" id="election_to" name="election_to" required>
+
+            <label for="term_office">Term of Office (Inclusive Dates)</label>
+            <input type="text" id="term_office" name="term_office" placeholder="e.g., June 2023 - June 2026" required>
+
+            <label>Completed Term of Office?</label>
+            <div class="radio-group" style="margin-bottom: 20px;">
+              <div class="radio-option">
+                <input type="radio" id="term_yes" name="completed_term" value="yes" required>
+                <label for="term_yes">Yes</label>
+              </div>
+              <div class="radio-option">
+                <input type="radio" id="term_no" name="completed_term" value="no">
+                <label for="term_no">No</label>
+              </div>
+            </div>
+
+            <div id="incomplete-reason" style="display: none;">
+              <label for="incomplete_reason_text">Reason for Incomplete Term</label>
+              <input type="text" id="incomplete_reason_text" name="incomplete_reason_text" placeholder="Enter reason">
+            </div>
+
+            <div class="btn-row">
+              <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
+              <button type="button" id="step2-elective-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Step 3: Certifier Selection -->
+      <div id="step3" class="step">
         <h2 class="section-title">Certification from the following officials</h2>
         <form>
           <div class="radio-group">
@@ -501,13 +253,13 @@
 
           <div class="btn-row">
             <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
-            <button type="button" id="step2-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+            <button type="button" id="step3-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
           </div>
         </form>
       </div>
 
-      <!-- Step 3: Valid ID Upload -->
-      <div id="step3" class="step">
+      <!-- Step 4: Valid ID Upload -->
+      <div id="step4" class="step">
         <h2 class="section-title">Upload Your Valid ID</h2>
         <form>
           <label for="idFront">Front Page of ID</label>
@@ -520,32 +272,64 @@
 
           <div class="btn-row">
             <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
-            <button type="button" id="step3-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+            <button type="button" id="step4-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
           </div>
         </form>
       </div>
 
-      <!-- Step 4: Signature -->
-      <div id="step4" class="step">
+      <!-- Step 5: Signature (IMPROVED VERSION) -->
+      <div id="step5" class="step">
         <h2 class="section-title">Draw e-Signature</h2>
-        <div class="signature-container">
-          <div class="signature-pad">
-            <canvas id="signature-canvas" width="450" height="200"></canvas>
+        
+        <div class="signature-wrapper">
+          <div class="signature-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">No signature drawn</span>
           </div>
-          <div class="signature-controls">
-            <button type="button" class="btn-back" onclick="clearSignature()">Clear</button>
+
+          <div class="signature-info">
+            <div class="info-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="info-text">
+              <p>Draw your signature in the box below. You can use your mouse, trackpad, or touch screen.</p>
+            </div>
+          </div>
+
+          <div class="signature-container">
+            <div class="signature-pad">
+              <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="signature-canvas" width="580" height="220"></canvas>
+                <div class="canvas-placeholder" id="placeholder">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                  </svg>
+                  <div>Click or tap to start signing</div>
+                </div>
+              </div>
+            </div>
+            <div class="signature-controls">
+              <button type="button" onclick="clearSignature()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span>Clear</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="btn-row">
           <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
-          <button type="button" id="step4-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
+          <button type="button" id="step5-next" class="next-btn" onclick="nextStep()" disabled>Next →</button>
         </div>
       </div>
 
-      <!-- Step 5: Preview -->
-      <div id="step5" class="step">
-        <h2 class="section-title">Preview</h2>
+      <!-- Step 6: Preview -->
+      <div id="step6" class="step">
+        <h2 class="section-title">Review Your Application</h2>
         <p style="margin-bottom: 20px; color: #555; text-align: center;">
           Please ensure that each detail is correct before proceeding.
         </p>
@@ -554,10 +338,62 @@
             <div class="preview-label">Full Name:</div>
             <div class="preview-value" id="preview-name"></div>
           </div>
+          
+          <div class="preview-item">
+            <div class="preview-label">Email:</div>
+            <div class="preview-value" id="preview-email"></div>
+          </div>
+          
+          <div class="preview-item">
+            <div class="preview-label">Position Type:</div>
+            <div class="preview-value" id="preview-position-type"></div>
+          </div>
+
+          <!-- Appointive specific -->
+          <div id="preview-appointive" style="display: none;">
+            <div class="preview-item">
+              <div class="preview-label">Appointing Authority:</div>
+              <div class="preview-value" id="preview-appointing-authority"></div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Appointment Period:</div>
+              <div class="preview-value" id="preview-appointment-period"></div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Years in Service:</div>
+              <div class="preview-value" id="preview-years-service"></div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Barangay:</div>
+              <div class="preview-value" id="preview-barangay"></div>
+            </div>
+          </div>
+
+          <!-- Elective specific -->
+          <div id="preview-elective" style="display: none;">
+            <div class="preview-item">
+              <div class="preview-label">Position Held:</div>
+              <div class="preview-value" id="preview-position-held"></div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Election Period:</div>
+              <div class="preview-value" id="preview-election-period"></div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Term Completed:</div>
+              <div class="preview-value" id="preview-term-completed"></div>
+            </div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Barangay:</div>
+            <div class="preview-value" id="preview-barangay"></div>
+          </div>
+
           <div class="preview-item">
             <div class="preview-label">Certifier:</div>
             <div class="preview-value" id="preview-certifier"></div>
           </div>
+          
           <div class="preview-item">
             <div class="preview-label">ID Documents:</div>
             <div class="preview-value" id="preview-ids">Front and Back ID uploaded</div>
@@ -570,7 +406,7 @@
 
         <div class="btn-row">
           <button type="button" class="btn-back" onclick="prevStep()">← Back</button>
-          <button type="button" class="next-btn" onclick="finishProcess()">Finish</button>
+          <button type="button" class="next-btn" onclick="finishProcess()">Submit Application</button>
         </div>
       </div>
 
@@ -578,11 +414,267 @@
       <div id="success" class="step">
         <div class="success-message">
           <div class="success-icon">✓</div>
-          <h2>Certificate Generated Successfully!</h2>
-          <p>Your eligibility certification has been processed and is ready for download.</p>
+          <h2>Application Submitted Successfully!</h2>
+          <p>Your eligibility certification request has been received and is currently under review.</p>
+          <button type="button" id="view-certificate-btn" onclick="showCertificate()" class="next-btn" style="display: none; margin-bottom: 10px;">View Certificate</button>
           <button type="button" onclick="restartProcess()" class="next-btn">Start New Application</button>
         </div>
       </div>
+
+      <!-- Certificate (Appointive Only) -->
+      <div id="certificate" class="step">
+        <div class="certificate-container">
+          <div class="certificate-paper">
+            <!-- Decorative Border -->
+            <div class="certificate-border">
+              <!-- Header with Logos -->
+              <div class="certificate-header">
+                <div class="logo-left">
+                  <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="cert-logo">
+                </div>
+                <div class="header-text">
+                  <p class="header-line">Republic of the Philippines</p>
+                  <h1 class="header-title">DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT</h1>
+                  <p class="header-line">REGION IV-A CALABARZON</p>
+                  <p class="header-line">CITY OF LUCENA</p>
+                </div>
+                <div class="logo-right">
+                  <img src="{% static 'Pictures/logo1.png' %}" alt="Bagong Pilipinas Logo" class="cert-logo">
+                </div>
+              </div>
+
+              <p class="form-reference">CSC-ERPO BOE Form 1(b). April 2012</p>
+
+              <!-- Certificate Title -->
+              <div class="certificate-title-section">
+                <h2 class="cert-main-title">CERTIFICATION</h2>
+                <p class="cert-subtitle">on Services Rendered in the Barangay*</p>
+                <p class="cert-position-type">(Appointive Official)</p>
+              </div>
+
+              <!-- Certificate Body -->
+              <div class="certificate-body">
+                <p class="cert-text">
+                  This is to certify that <strong class="cert-name" id="cert-full-name"></strong> has rendered services in Barangay <strong><span id="cert-barangay"></span></strong>, , with the following details:
+                </p>
+              </div>
+
+              <!-- Certificate Table -->
+              <div class="table-wrapper">
+                <table class="certificate-table">
+                  <thead>
+                    <tr class="table-header-row">
+                      <th rowspan="2" class="table-header">Position Held</th>
+                      <th rowspan="2" class="table-header">Date of Appointment<br/>(start from most recent)</th>
+                      <th colspan="2" class="table-header">Inclusive Dates of Years Served</th>
+                      <th rowspan="2" class="table-header">No. of Years Served</th>
+                      <th colspan="3" class="table-header">Appointing Punong Barangay</th>
+                    </tr>
+                    <tr class="table-subheader-row">
+                      <th class="table-subheader">From<br/>(mm/dd/yyyy)</th>
+                      <th class="table-subheader">To<br/>(mm/dd/yyyy)</th>
+                      <th class="table-subheader">Name</th>
+                      <th class="table-subheader">Date Elected</th>
+                      <th class="table-subheader">Term of Office<br/>(no. of years)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="table-data-row">
+                      <td class="table-cell cell-position">Barangay Secretary</td>
+                      <td class="table-cell" id="cert-appointment-date"></td>
+                      <td class="table-cell" id="cert-date-from"></td>
+                      <td class="table-cell" id="cert-date-to"></td>
+                      <td class="table-cell" id="cert-years-served"></td>
+                      <td class="table-cell" id="cert-pb-name"></td>
+                      <td class="table-cell" id="cert-pb-date"></td>
+                      <td class="table-cell" id="cert-pb-years"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Footer Text -->
+              <div class="certificate-footer-text">
+                <p class="cert-text">
+                  This Certification is issued in support of the evaluation/processing of the application of <strong class="cert-name" id="cert-full-name-2"></strong> for the grant of Barangay Official Eligibility pursuant to Republic Act No. 7160, in accordance with CSC Resolution No. 13 series of 2012.
+                </p>
+              </div>
+
+              <!-- Date and Signature Section -->
+              <div class="signature-section">
+                <p class="cert-date-text">
+                   <span id="cert-date"></span>.
+                </p>
+                
+                <div class="signature-box">
+                  <div class="signature-line"></div>
+                  <p class="signatory-name">ENRICO O. DAMOT</p>
+                  <p class="signatory-position">OIC-HUC Director</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="certificate-actions">
+          <button type="button" onclick="printCertificate()" class="cert-btn cert-btn-print">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+            </svg>
+            Print Certificate
+          </button>
+          <button type="button" onclick="downloadCertificate()" class="cert-btn cert-btn-download">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Download PDF
+          </button>
+          <button type="button" onclick="backToSuccess()" class="cert-btn cert-btn-back">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back
+          </button>
+        </div>
+      </div>
+                <!-- Certificate (Elective Official) -->
+          <div id="certificate-elective" class="step">
+            <div class="certificate-container">
+              <div class="certificate-paper">
+                <!-- Decorative Border -->
+                <div class="certificate-border">
+                  <!-- Header with Logos -->
+                  <div class="certificate-header">
+                    <div class="logo-left">
+                      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="cert-logo">
+                    </div>
+                    <div class="header-text">
+                      <p class="header-line">Republic of the Philippines</p>
+                      <h1 class="header-title">DEPARTMENT OF THE INTERIOR AND LOCAL GOVERNMENT</h1>
+                      <p class="header-line">REGION IV-A CALABARZON</p>
+                      <p class="header-line">CITY OF LUCENA</p>
+                    </div>
+                    <div class="logo-right">
+                      <img src="{% static 'Pictures/logo1.png' %}" alt="Bagong Pilipinas Logo" class="cert-logo">
+                    </div>
+                  </div>
+
+                  <p class="form-reference">CSC-ERPO BOE Form 1(a) (Revised, June 2017)</p>
+
+                  <!-- Certificate Title -->
+                  <div class="certificate-title-section">
+                    <h2 class="cert-main-title">CERTIFICATION</h2>
+                    <p class="cert-subtitle">on Services Rendered in the Barangay</p>
+                    <p class="cert-position-type">(Elective Official)</p>
+                  </div>
+
+                  <!-- Certificate Body -->
+                  <div class="certificate-body">
+                    <p class="cert-text">
+                      This is to certify that <strong class="cert-name" id="cert-elec-full-name"></strong> has rendered services in Barangay <strong><span id="cert-elec-barangay"></span></strong>, with the following details:
+                    </p>
+                  </div>
+
+                  <!-- Certificate Table for Elective -->
+                  <div class="table-wrapper">
+                    <table class="certificate-table">
+                      <thead>
+                        <tr class="table-header-row">
+                          <th class="table-header">Position Held</th>
+                          <th class="table-header">Date of Election<br/>(mm/dd/yyyy)</th>
+                          <th class="table-header">Term of Office<br/>(no. of years)</th>
+                          <th class="table-header" colspan="2">Inclusive Dates<br/>From (mm/dd/yyyy) - To (mm/dd/yyyy)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr class="table-data-row">
+                          <td class="table-cell cell-position" id="cert-elec-position"></td>
+                          <td class="table-cell" id="cert-elec-election-date"></td>
+                          <td class="table-cell" id="cert-elec-term"></td>
+                          <td class="table-cell" id="cert-elec-date-from"></td>
+                          <td class="table-cell" id="cert-elec-date-to"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Completion Status -->
+                  <div style="margin: 25px 20px;">
+                    <p style="font-size: 14px; color: #333; margin-bottom: 15px;">
+                      <strong>Completed Term of Office?</strong> (Please check (√) appropriate box)
+                    </p>
+                    <div style="display: flex; gap: 30px; margin-left: 30px;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="display: inline-block; width: 18px; height: 18px; border: 2px solid #1A237E; text-align: center; line-height: 14px; font-weight: bold;" id="cert-elec-yes-check"></span>
+                        <span style="font-size: 13px; color: #1a1a1a;">YES</span>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="display: inline-block; width: 18px; height: 18px; border: 2px solid #1A237E; text-align: center; line-height: 14px; font-weight: bold;" id="cert-elec-no-check"></span>
+                        <span style="font-size: 13px; color: #333;">NO, Specify total number of days not served <span style="text-decoration: underline;" id="cert-elec-incomplete-days"></span></span>
+                      </div>
+                    </div>
+                    
+                    <div id="cert-elec-reason-section" style="margin-top: 20px; margin-left: 30px; display: none;">
+                      <p style="font-size: 13px; color: #1a1a1a;">
+                        <strong>Reason for non-completion:</strong>
+                      </p>
+                      <p style="font-size: 13px; color: #333; margin-top: 8px; padding: 10px; background: #f5f5f5; border-radius: 4px; border-left: 3px solid #1A237E;" id="cert-elec-reason-text"></p>
+                    </div>
+
+                    <div style="margin-top: 20px; margin-left: 30px;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="display: inline-block; width: 18px; height: 18px; border: 2px solid #1A237E;"></span>
+                        <span style="font-size: 13px; color: #333;">Assumed under rule on succession.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Footer Text -->
+                  <div class="certificate-footer-text">
+                    <p class="cert-text">
+                      This Certification is issued in support of the evaluation/processing of the application of <strong class="cert-name" id="cert-elec-full-name-2"></strong> for the grant of Barangay Official Eligibility pursuant to Republic Act No. 7160, in accordance with CSC Resolution No. <strong>1200865</strong> dated June 14, 2012 and CSC Resolution No. <strong>1601257</strong> dated November 21, 2016.
+                    </p>
+                  </div>
+
+                  <!-- Date and Signature Section -->
+                  <div class="signature-section">
+                    <p class="cert-date-text">
+                      Lucena City, Quezon, <span id="cert-elec-date"></span>.
+                    </p>
+                    
+                    <div class="signature-box">
+                      <div class="signature-line"></div>
+                      <p class="signatory-name">ENGR. VILMA B. DE TORRES</p>
+                      <p class="signatory-position">OIC-HUC Director</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="certificate-actions">
+              <button type="button" onclick="printCertificate()" class="cert-btn cert-btn-print">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                </svg>
+                Print Certificate
+              </button>
+              <button type="button" onclick="downloadCertificate()" class="cert-btn cert-btn-download">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Download PDF
+              </button>
+              <button type="button" onclick="backToSuccess()" class="cert-btn cert-btn-back">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back
+              </button>
+            </div>
+          </div>
       
     </div>
   </div>
@@ -597,122 +689,636 @@
   </div>
 
   <script>
-    let currentStep = 1;
+    // Calculate detailed time difference (years, months, days)
+function calculateDetailedDifference(fromDate, toDate) {
+  if (!fromDate || !toDate) return { years: 0, months: 0, days: 0, totalDays: 0 };
+  
+  const from = new Date(fromDate);
+  const to = new Date(toDate);
+  
+  // Calculate total days
+  const timeDiff = to.getTime() - from.getTime();
+  const totalDays = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+  
+  // Calculate years, months, days
+  let years = to.getFullYear() - from.getFullYear();
+  let months = to.getMonth() - from.getMonth();
+  let days = to.getDate() - from.getDate();
+  
+  // Adjust for negative days
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(to.getFullYear(), to.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  
+  // Adjust for negative months
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  return { years, months, days, totalDays };
+}
+
+// Format the difference as a readable string
+function setupAppointiveCalculations() {
+  console.log('Setting up appointive calculations...');
+  
+  const appointmentFrom = document.getElementById('appointment_from');
+  const appointmentTo = document.getElementById('appointment_to');
+  const yearsInService = document.getElementById('years_in_service');
+  
+  if (!appointmentFrom || !appointmentTo || !yearsInService) {
+    console.log('Appointive fields not found');
+    return;
+  }
+  
+  console.log('Appointive fields found!');
+  
+  // Make the field readonly and show it's auto-calculated
+  yearsInService.setAttribute('readonly', 'readonly');
+  yearsInService.style.backgroundColor = 'var(--bg-tertiary)';
+  yearsInService.style.cursor = 'not-allowed';
+  yearsInService.placeholder = 'Auto-calculated from dates';
+  
+  // Create a helper div to show detailed breakdown
+  let helperDiv = document.getElementById('years-service-helper');
+  if (!helperDiv) {
+    helperDiv = document.createElement('small');
+    helperDiv.id = 'years-service-helper';
+    helperDiv.style.cssText = 'display: block; font-size: 12px; color: #666; margin-top: -15px; margin-bottom: 15px;';
+    yearsInService.parentNode.insertBefore(helperDiv, yearsInService.nextSibling);
+  }
+  
+  const calculate = () => {
+    console.log('Calculating appointive years...', appointmentFrom.value, appointmentTo.value);
+    
+    if (appointmentFrom.value && appointmentTo.value) {
+      const diff = calculateDetailedDifference(appointmentFrom.value, appointmentTo.value);
+      const decimalYears = calculateDecimalYears(appointmentFrom.value, appointmentTo.value);
+      
+      yearsInService.value = decimalYears;
+      helperDiv.innerHTML = `📊 <strong>${formatDifference(diff)}</strong> (${diff.totalDays} total days)`;
+      helperDiv.style.color = '#28a745';
+      
+      console.log('Calculated:', decimalYears, 'years');
+    } else {
+      yearsInService.value = '';
+      helperDiv.textContent = 'Enter both dates to calculate years of service';
+      helperDiv.style.color = '#666';
+    }
+    
+    if (typeof updateStepValidation === 'function') {
+      updateStepValidation();
+    }
+  };
+  
+  // Remove old listeners and add new ones
+  appointmentFrom.removeEventListener('change', calculate);
+  appointmentTo.removeEventListener('change', calculate);
+  appointmentFrom.addEventListener('change', calculate);
+  appointmentTo.addEventListener('change', calculate);
+  
+  // Trigger initial calculation if values exist
+  if (appointmentFrom.value && appointmentTo.value) {
+    calculate();
+  }
+}
+
+
+
+   
+// Initialize all calculations when step 2 is shown
+function initializeDateCalculations() {
+  console.log('Initializing date calculations for position type:', positionType);
+  
+  // Use a longer delay to ensure DOM is fully ready
+  setTimeout(() => {
+    if (positionType === 'appointive') {
+      console.log('Initializing APPOINTIVE calculations...');
+      setupAppointiveCalculations();
+      setupPBYearsCalculation();
+    } else if (positionType === 'elective') {
+      console.log('Initializing ELECTIVE calculations...');
+      setupElectiveCalculations();
+    }
+  }, 200);
+}
+
+function setupPBYearsCalculation() {
+  console.log('Setting up PB years calculation...');
+  
+  const pbDateElected = document.getElementById('pb_date_elected');
+  const pbYearsService = document.getElementById('pb_years_service');
+  
+  if (!pbDateElected || !pbYearsService) {
+    console.log('PB fields not found');
+    return;
+  }
+  
+  console.log('PB fields found!');
+  
+  pbYearsService.setAttribute('readonly', 'readonly');
+  pbYearsService.style.backgroundColor = 'var(--bg-tertiary)';
+  pbYearsService.style.cursor = 'not-allowed';
+  pbYearsService.placeholder = 'Auto-calculated from election date';
+  
+  // Create helper div
+  let helperDiv = document.getElementById('pb-years-helper');
+  if (!helperDiv) {
+    helperDiv = document.createElement('small');
+    helperDiv.id = 'pb-years-helper';
+    helperDiv.style.cssText = 'display: block; font-size: 12px; color: #666; margin-top: -15px; margin-bottom: 15px;';
+    pbYearsService.parentNode.insertBefore(helperDiv, pbYearsService.nextSibling);
+  }
+  
+  const calculate = () => {
+    console.log('Calculating PB years...', pbDateElected.value);
+    
+    if (pbDateElected.value) {
+      const today = new Date().toISOString().split('T')[0];
+      const diff = calculateDetailedDifference(pbDateElected.value, today);
+      const decimalYears = calculateDecimalYears(pbDateElected.value, today);
+      
+      pbYearsService.value = decimalYears;
+      helperDiv.innerHTML = `📊 <strong>${formatDifference(diff)}</strong> (up to today)`;
+      helperDiv.style.color = '#28a745';
+      
+      console.log('PB Calculated:', decimalYears, 'years');
+    } else {
+      pbYearsService.value = '';
+      helperDiv.textContent = 'Enter election date to calculate years in service';
+      helperDiv.style.color = '#666';
+    }
+    
+    if (typeof updateStepValidation === 'function') {
+      updateStepValidation();
+    }
+  };
+  
+  // Remove old listener and add new one
+  pbDateElected.removeEventListener('change', calculate);
+  pbDateElected.addEventListener('change', calculate);
+  
+  // Trigger initial calculation if value exists
+  if (pbDateElected.value) {
+    calculate();
+  }
+}
+    
+
+function setupElectiveCalculations() {
+  console.log('Setting up elective calculations...');
+  
+  const electionFrom = document.getElementById('election_from');
+  const electionTo = document.getElementById('election_to');
+  const termOffice = document.getElementById('term_office');
+  const termYes = document.querySelector('input[name="completed_term"][value="yes"]');
+  const termNo = document.querySelector('input[name="completed_term"][value="no"]');
+  const incompleteReasonText = document.getElementById('incomplete_reason_text');
+  
+  if (!electionFrom || !electionTo) {
+    console.log('Elective fields not found');
+    return;
+  }
+  
+  console.log('Elective fields found!');
+  
+  // Create a hidden field to store days not served
+  let daysNotServedInput = document.getElementById('days_not_served_value');
+  if (!daysNotServedInput) {
+    daysNotServedInput = document.createElement('input');
+    daysNotServedInput.type = 'hidden';
+    daysNotServedInput.id = 'days_not_served_value';
+    daysNotServedInput.name = 'days_not_served';
+    if (termNo && termNo.parentNode) {
+      termNo.parentNode.appendChild(daysNotServedInput);
+    }
+  }
+  
+  // Create a display field for auto-calculated term
+  let termDisplay = document.getElementById('term-auto-display');
+  if (!termDisplay && termOffice) {
+    termDisplay = document.createElement('div');
+    termDisplay.id = 'term-auto-display';
+    termDisplay.style.cssText = 'font-size: 13px; color: #28a745; margin-top: 8px; margin-bottom: 15px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #28a745;';
+    termOffice.parentNode.insertBefore(termDisplay, termOffice.nextSibling);
+  }
+  
+  // Create days not served display
+  let daysNotServedDisplay = document.getElementById('days-not-served-display');
+  if (!daysNotServedDisplay && incompleteReasonText) {
+    daysNotServedDisplay = document.createElement('div');
+    daysNotServedDisplay.id = 'days-not-served-display';
+    daysNotServedDisplay.style.cssText = 'font-size: 13px; color: #dc3545; margin-top: 8px; margin-bottom: 15px; padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107; display: none;';
+    incompleteReasonText.parentNode.insertBefore(daysNotServedDisplay, incompleteReasonText.nextSibling);
+  }
+  
+  const calculate = () => {
+    console.log('Calculating elective term...', electionFrom.value, electionTo.value);
+    
+    if (electionFrom.value && electionTo.value) {
+      const diff = calculateDetailedDifference(electionFrom.value, electionTo.value);
+      
+      if (termDisplay) {
+        termDisplay.innerHTML = `
+          <strong>📅 Calculated Term Period:</strong><br>
+          <div style="margin-top: 6px;">
+            • Duration: <strong>${formatDifference(diff)}</strong><br>
+            • Total Days: <strong>${diff.totalDays} days</strong><br>
+            • Years (decimal): <strong>${calculateDecimalYears(electionFrom.value, electionTo.value)} years</strong>
+          </div>
+        `;
+      }
+      
+      // Auto-fill term_office field with formatted date range
+      if (termOffice) {
+        const fromDate = new Date(electionFrom.value);
+        const toDate = new Date(electionTo.value);
+        const fromFormatted = fromDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const toFormatted = toDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        termOffice.value = `${fromFormatted} - ${toFormatted}`;
+      }
+      
+      console.log('Elective calculation complete');
+    }
+    
+    if (typeof updateStepValidation === 'function') {
+      updateStepValidation();
+    }
+  };
+  
+  // Calculate days not served when "No" is selected
+  const calculateDaysNotServed = () => {
+    console.log('Checking days not served...');
+    
+    // Get fresh reference to ensure we have the current checked state
+    const termNoChecked = document.querySelector('input[name="completed_term"][value="no"]:checked');
+    
+    console.log('termNo checked:', termNoChecked !== null);
+    console.log('electionFrom:', electionFrom.value);
+    console.log('electionTo:', electionTo.value);
+    
+    if (termNoChecked && electionFrom.value && electionTo.value) {
+      const totalDiff = calculateDetailedDifference(electionFrom.value, electionTo.value);
+      const today = new Date();
+      const electionToDate = new Date(electionTo.value);
+      
+      let daysNotServed = 0;
+      let displayMessage = '';
+      
+      if (today < electionToDate) {
+        // Term not yet completed - calculate remaining days
+        const actualDiff = calculateDetailedDifference(electionFrom.value, today.toISOString().split('T')[0]);
+        daysNotServed = totalDiff.totalDays - actualDiff.totalDays;
+        displayMessage = `<span style="color: #dc3545; font-weight: bold; font-size: 16px;">${daysNotServed} days</span>`;
+        
+        if (daysNotServedDisplay) {
+          daysNotServedDisplay.style.display = 'block';
+          daysNotServedDisplay.innerHTML = `
+            <strong>⚠️ Days Not Served Calculation:</strong><br>
+            <div style="margin-top: 6px;">
+              Total term days: <strong>${totalDiff.totalDays}</strong><br>
+              Days served so far: <strong>${actualDiff.totalDays}</strong><br>
+              <strong style="color: #dc3545; font-size: 16px;">Days not served: ${daysNotServed} days</strong><br>
+              <small style="color: #666;">(Term ends ${electionTo.value})</small>
+            </div>
+          `;
+        }
+        
+        console.log('✅ Days not served calculated:', daysNotServed);
+      } else {
+        // Term already completed - show 0 days
+        daysNotServed = 0;
+        displayMessage = `<span style="color: #28a745; font-weight: bold; font-size: 16px;">0 days</span> <small style="color: #666;">(term completed ${electionTo.value})</small>`;
+        
+        if (daysNotServedDisplay) {
+          daysNotServedDisplay.style.display = 'block';
+          daysNotServedDisplay.innerHTML = `
+            <strong style="color: #28a745;">✓ Term Completed</strong><br>
+            <div style="margin-top: 6px;">
+              Total term: <strong>${totalDiff.totalDays} days</strong> (${formatDifference(totalDiff)})<br>
+              Status: <strong style="color: #28a745;">Full term served</strong><br>
+              <small style="color: #666;">Term ended on ${electionTo.value}</small>
+            </div>
+          `;
+        }
+        
+        console.log('✅ Term completed, 0 days not served');
+      }
+      
+      // Update the label with the calculated days
+      const termNoLabel = document.querySelector('label[for="term_no"]');
+      if (termNoLabel) {
+        termNoLabel.innerHTML = `No, Specify total number of days not served ${displayMessage}`;
+      }
+      
+      // Store in hidden field
+      if (daysNotServedInput) {
+        daysNotServedInput.value = daysNotServed;
+      }
+      
+    } else {
+      // Reset label if "No" is not checked or dates missing
+      const termNoLabel = document.querySelector('label[for="term_no"]');
+      if (termNoLabel && !termNoChecked) {
+        termNoLabel.textContent = 'No';
+      } else if (termNoLabel && termNoChecked && (!electionFrom.value || !electionTo.value)) {
+        termNoLabel.innerHTML = 'No, Specify total number of days not served <span style="color: #ff9800; font-style: italic;">(enter dates above first)</span>';
+      }
+      
+      if (daysNotServedDisplay) {
+        daysNotServedDisplay.style.display = 'none';
+      }
+      
+      console.log('⚠️ Cannot calculate: missing data or checkbox not checked');
+    }
+  };
+  
+  // Remove old listeners and add new ones
+  electionFrom.removeEventListener('change', calculate);
+  electionTo.removeEventListener('change', calculate);
+  electionFrom.addEventListener('change', () => {
+    calculate();
+    calculateDaysNotServed();
+  });
+  
+  electionTo.addEventListener('change', () => {
+    calculate();
+    calculateDaysNotServed();
+  });
+  
+  // CRITICAL FIX: Add listeners to BOTH radio buttons
+  if (termNo) {
+    termNo.removeEventListener('change', calculateDaysNotServed);
+    termNo.addEventListener('change', () => {
+      console.log('termNo changed!');
+      // Small delay to ensure DOM is updated
+      setTimeout(calculateDaysNotServed, 50);
+    });
+  }
+  
+  if (termYes) {
+    termYes.removeEventListener('change', () => {});
+    termYes.addEventListener('change', () => {
+      console.log('termYes changed!');
+      if (daysNotServedDisplay) {
+        daysNotServedDisplay.style.display = 'none';
+      }
+      // Reset the "No" label
+      const termNoLabel = document.querySelector('label[for="term_no"]');
+      if (termNoLabel) {
+        termNoLabel.textContent = 'No';
+      }
+    });
+  }
+  
+  // Trigger initial calculation if values exist
+  if (electionFrom.value && electionTo.value) {
+    calculate();
+    // Check if termNo is already checked
+    if (document.querySelector('input[name="completed_term"][value="no"]:checked')) {
+      setTimeout(calculateDaysNotServed, 100);
+    }
+  }
+}
+  
+ 
+
+    let currentStep = 'intro';
+    let positionType = null;
     let formData = {};
     let signatureCanvas, signatureCtx;
     let isDrawing = false;
     let hasSignature = false;
 
-    // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Page loaded, initializing...');
       setupSignatureCanvas();
       setupEventListeners();
-      updateStepValidation();
-      
-      // Make sure only step 1 is visible
-      showStep(1);
+      // These functions are called when step2 is shown, not on page load
+      showStep('intro');
     });
 
-    function showStep(stepNumber) {
-      console.log('Showing step:', stepNumber);
+    function showStep(stepId) {
+      console.log('Showing step:', stepId);
       
-      // Hide all steps
+      // Get elements
+      const container = document.querySelector('.container');
+      const formCard = document.querySelector('.form-card');
+      
+      // Hide all steps first
       const allSteps = document.querySelectorAll('.step');
       allSteps.forEach(step => {
         step.classList.remove('active');
       });
       
-      // Show current step
-      let currentStepEl;
-      if (stepNumber === 6 || stepNumber === 'success') {
-        currentStepEl = document.getElementById('success');
-        currentStep = 6;
+      // Special handling for certificate steps
+      if (stepId === 'certificate' || stepId === 'certificate-elective') {
+        // EXPAND EVERYTHING for certificate view
+        if (container) {
+          container.style.maxWidth = 'none';
+          container.style.width = '100%';
+          container.style.padding = '20px';
+        }
+        if (formCard) {
+          formCard.style.padding = '0';
+          formCard.style.maxWidth = 'none';
+          formCard.style.width = '100%';
+          formCard.style.overflow = 'visible';
+        }
+        
+        // Hide breadcrumb for certificate
+        const breadcrumb = document.getElementById('breadcrumb-nav');
+        if (breadcrumb) {
+          breadcrumb.style.display = 'none';
+        }
       } else {
-        currentStepEl = document.getElementById(`step${stepNumber}`);
-        currentStep = stepNumber;
+        // RESTORE normal width for other steps
+        if (container) {
+          container.style.maxWidth = '1200px';
+          container.style.width = 'auto';
+          container.style.padding = '20px';
+        }
+        if (formCard) {
+          formCard.style.padding = '48px';
+          formCard.style.maxWidth = '';
+          formCard.style.width = '';
+          formCard.style.overflow = '';
+        }
+        
+        // Handle breadcrumb visibility
+        const breadcrumb = document.getElementById('breadcrumb-nav');
+        if (breadcrumb) {
+          if (stepId === 'intro' || stepId === 'selection' || stepId === 'success') {
+            breadcrumb.style.display = 'none';
+          } else {
+            breadcrumb.style.display = 'flex';
+            updateBreadcrumb();
+          }
+        }
       }
+      
+      // Show current step
+      const currentStepEl = document.getElementById(stepId);
+      currentStep = stepId;
       
       if (currentStepEl) {
         currentStepEl.classList.add('active');
+        currentStepEl.style.display = 'block';
       }
       
-      // Only update breadcrumb for steps 1-5
-      if (currentStep <= 5) {
-        updateBreadcrumb();
-      }
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showIntroPage() {
+      showStep('intro');
+    }
+
+    function showSelectionPage() {
+      showStep('selection');
+    }
+
+    function selectPositionType(type) {
+      positionType = type;
+      formData.positionType = type;
+      console.log('Selected position type:', type);
+      showStep('step1');
     }
 
     function setupSignatureCanvas() {
       signatureCanvas = document.getElementById('signature-canvas');
+      const canvasWrapper = document.getElementById('canvasWrapper');
+      const placeholder = document.getElementById('placeholder');
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      
       if (!signatureCanvas) return;
       
       signatureCtx = signatureCanvas.getContext('2d');
       signatureCtx.strokeStyle = '#000';
-      signatureCtx.lineWidth = 2;
+      signatureCtx.lineWidth = 2.5;
       signatureCtx.lineCap = 'round';
+      signatureCtx.lineJoin = 'round';
 
-      // Mouse events
       signatureCanvas.addEventListener('mousedown', startDrawing);
       signatureCanvas.addEventListener('mousemove', draw);
       signatureCanvas.addEventListener('mouseup', stopDrawing);
       signatureCanvas.addEventListener('mouseout', stopDrawing);
 
-      // Touch events for mobile
       signatureCanvas.addEventListener('touchstart', handleTouch);
       signatureCanvas.addEventListener('touchmove', handleTouch);
       signatureCanvas.addEventListener('touchend', stopDrawing);
-    }
 
-    function startDrawing(e) {
-      isDrawing = true;
-      const rect = signatureCanvas.getBoundingClientRect();
-      signatureCtx.beginPath();
-      signatureCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    }
+      function startDrawing(e) {
+        isDrawing = true;
+        const rect = signatureCanvas.getBoundingClientRect();
+        signatureCtx.beginPath();
+        signatureCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        
+        if (canvasWrapper) canvasWrapper.classList.add('active');
+        if (placeholder) placeholder.classList.add('hidden');
+      }
 
-    function draw(e) {
-      if (!isDrawing) return;
-      const rect = signatureCanvas.getBoundingClientRect();
-      signatureCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-      signatureCtx.stroke();
-      hasSignature = true;
-      updateStepValidation();
-    }
+      function draw(e) {
+        if (!isDrawing) return;
+        const rect = signatureCanvas.getBoundingClientRect();
+        signatureCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        signatureCtx.stroke();
+        hasSignature = true;
+        updateSignatureStatus();
+      }
 
-    function stopDrawing() {
-      isDrawing = false;
-    }
+      function stopDrawing() {
+        if (isDrawing) {
+          isDrawing = false;
+          if (canvasWrapper) canvasWrapper.classList.remove('active');
+        }
+      }
 
-    function handleTouch(e) {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
-                                       e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-      });
-      signatureCanvas.dispatchEvent(mouseEvent);
+      function handleTouch(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                         e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+          clientX: touch.clientX,
+          clientY: touch.clientY
+        });
+        signatureCanvas.dispatchEvent(mouseEvent);
+      }
+
+      function updateSignatureStatus() {
+        if (statusDot && statusText) {
+          if (hasSignature) {
+            statusDot.classList.add('active');
+            statusText.textContent = 'Signature captured';
+          } else {
+            statusDot.classList.remove('active');
+            statusText.textContent = 'No signature drawn';
+          }
+        }
+        updateStepValidation();
+      }
     }
 
     function clearSignature() {
       if (signatureCtx) {
         signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
         hasSignature = false;
+        
+        const placeholder = document.getElementById('placeholder');
+        if (placeholder) placeholder.classList.remove('hidden');
+        
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        if (statusDot) statusDot.classList.remove('active');
+        if (statusText) statusText.textContent = 'No signature drawn';
+        
         updateStepValidation();
       }
     }
+ 
 
     function setupEventListeners() {
-      // Personal info inputs
-      ['last_name', 'first_name', 'middle_initial'].forEach(id => {
+      ['last_name', 'first_name', 'middle_initial', 'barangay', 'email'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('input', updateStepValidation);
+    }
+  });
+
+      ['appointing_authority', 'appointment_from', 'appointment_to', 'years_in_service', 
+       'appointing_punong_barangay', 'pb_date_elected', 'pb_years_service'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
           element.addEventListener('input', updateStepValidation);
         }
       });
 
-      // Radio buttons
+      ['position_held', 'election_from', 'election_to', 'term_office'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.addEventListener('input', updateStepValidation);
+        }
+      });
+
+      document.querySelectorAll('input[name="completed_term"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+          document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+          this.closest('.radio-option').classList.add('selected');
+          
+          const reasonDiv = document.getElementById('incomplete-reason');
+          if (this.value === 'no') {
+            reasonDiv.style.display = 'block';
+          } else {
+            reasonDiv.style.display = 'none';
+          }
+          updateStepValidation();
+        });
+      });
+
       document.querySelectorAll('input[name="certifier"]').forEach(radio => {
         radio.addEventListener('change', function() {
           document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
@@ -721,7 +1327,6 @@
         });
       });
 
-      // File inputs
       const idFront = document.getElementById('idFront');
       const idBack = document.getElementById('idBack');
       
@@ -752,75 +1357,89 @@
       updateStepValidation();
     }
 
-    
     function updateStepValidation() {
-      // Step 1 validation
-      const step1Next = document.getElementById('step1-next');
-      if (step1Next) {
-        const lastName = document.getElementById('last_name')?.value?.trim() || '';
-        const firstName = document.getElementById('first_name')?.value?.trim() || '';
-        step1Next.disabled = !lastName || !firstName;
+       const step1Next = document.getElementById('step1-next');
+  if (step1Next) {
+    const lastName = document.getElementById('last_name')?.value?.trim() || '';
+    const firstName = document.getElementById('first_name')?.value?.trim() || '';
+    const barangay = document.getElementById('barangay')?.value?.trim() || '';
+    const email = document.getElementById('email')?.value?.trim() || '';
+    // Now requires barangay too
+    step1Next.disabled = !lastName || !firstName || !barangay || !email;
+  }
+
+      if (positionType === 'appointive') {
+        const step2AppointiveNext = document.getElementById('step2-appointive-next');
+        if (step2AppointiveNext) {
+          const authority = document.getElementById('appointing_authority')?.value?.trim() || '';
+          const from = document.getElementById('appointment_from')?.value || '';
+          const to = document.getElementById('appointment_to')?.value || '';
+          const years = document.getElementById('years_in_service')?.value || '';
+          const pbName = document.getElementById('appointing_punong_barangay')?.value?.trim() || '';
+          const pbDate = document.getElementById('pb_date_elected')?.value || '';
+          const pbYears = document.getElementById('pb_years_service')?.value || '';
+          
+          step2AppointiveNext.disabled = !authority || !from || !to || !years || !pbName || !pbDate || !pbYears;
+        }
+      } else if (positionType === 'elective') {
+        const step2ElectiveNext = document.getElementById('step2-elective-next');
+        if (step2ElectiveNext) {
+          const position = document.getElementById('position_held')?.value?.trim() || '';
+          const from = document.getElementById('election_from')?.value || '';
+          const to = document.getElementById('election_to')?.value || '';
+          const term = document.getElementById('term_office')?.value?.trim() || '';
+          const completed = document.querySelector('input[name="completed_term"]:checked');
+          
+          let isValid = position && from && to && term && completed;
+          
+          if (completed && completed.value === 'no') {
+            const reason = document.getElementById('incomplete_reason_text')?.value?.trim() || '';
+            isValid = isValid && reason;
+          }
+          
+          step2ElectiveNext.disabled = !isValid;
+        }
       }
 
-      // Step 2 validation
-      const step2Next = document.getElementById('step2-next');
-      if (step2Next) {
-        const certifier = document.querySelector('input[name="certifier"]:checked');
-        step2Next.disabled = !certifier;
-      }
-
-      // Step 3 validation
       const step3Next = document.getElementById('step3-next');
       if (step3Next) {
-        const idFront = document.getElementById('idFront')?.files[0];
-        const idBack = document.getElementById('idBack')?.files[0];
-        step3Next.disabled = !idFront || !idBack;
+        const certifier = document.querySelector('input[name="certifier"]:checked');
+        step3Next.disabled = !certifier;
       }
 
-      // Step 4 validation
       const step4Next = document.getElementById('step4-next');
       if (step4Next) {
-        step4Next.disabled = !hasSignature;
+        const idFront = document.getElementById('idFront')?.files[0];
+        const idBack = document.getElementById('idBack')?.files[0];
+        step4Next.disabled = !idFront || !idBack;
       }
 
-      // Step 5 validation - Check if we're on step 5
-      if (currentStep === 5) {
-        const finishButton = document.querySelector('#step5 .next-btn');
-        if (finishButton) {
-          // Debug logging
-          console.log('Validating finish button with formData:', formData);
-          console.log('hasSignature:', hasSignature);
-          
-          // Check if all required data is available
-          const hasPersonalInfo = formData.last_name && formData.first_name;
-          const hasCertifier = formData.certifier;
-          const hasIds = formData.idFront && formData.idBack;
-          const hasValidSignature = hasSignature || formData.signature;
-          
-          console.log('Validation checks:', {
-            hasPersonalInfo,
-            hasCertifier,
-            hasIds,
-            hasValidSignature
-          });
-          
-          const isValid = hasPersonalInfo && hasCertifier && hasIds && hasValidSignature;
-          finishButton.disabled = !isValid;
-          
-          console.log('Finish button disabled:', finishButton.disabled);
-        }
+      const step5Next = document.getElementById('step5-next');
+      if (step5Next) {
+        step5Next.disabled = !hasSignature;
       }
     }
 
     function updateBreadcrumb() {
+      const stepMapping = {
+        'step1': 1,
+        'step2': 2,
+        'step3': 3,
+        'step4': 4,
+        'step5': 5,
+        'step6': 6
+      };
+      
+      const currentStepNum = stepMapping[currentStep];
+      
       for (let i = 1; i <= 5; i++) {
         const breadcrumb = document.getElementById(`step${i}-breadcrumb`);
         if (breadcrumb) {
           breadcrumb.classList.remove('active', 'completed');
           
-          if (i < currentStep) {
+          if (i < currentStepNum) {
             breadcrumb.classList.add('completed');
-          } else if (i === currentStep) {
+          } else if (i === currentStepNum) {
             breadcrumb.classList.add('active');
           }
         }
@@ -830,19 +1449,30 @@
     function nextStep() {
       console.log('Next step clicked, current step:', currentStep);
       
-      // Save current step data BEFORE moving to next step
       saveStepData();
       
-      if (currentStep < 5) {
-        // Move to next step
-        showStep(currentStep + 1);
-
-        // Special handling for preview step
-        if (currentStep === 5) {
+      const stepOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6'];
+      const currentIndex = stepOrder.indexOf(currentStep);
+      
+      if (currentIndex < stepOrder.length - 1) {
+        const nextStepId = stepOrder[currentIndex + 1];
+        
+        if (nextStepId === 'step2') {
+  if (positionType === 'appointive') {
+    document.getElementById('appointive-fields').style.display = 'block';
+    document.getElementById('elective-fields').style.display = 'none';
+  } else if (positionType === 'elective') {
+    document.getElementById('appointive-fields').style.display = 'none';
+    document.getElementById('elective-fields').style.display = 'block';
+  }
+  initializeDateCalculations();  // ADD this single line
+}
+        
+        if (nextStepId === 'step6') {
           updatePreview();
         }
-
-        // Scroll to top
+        
+        showStep(nextStepId);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
@@ -850,57 +1480,115 @@
     function prevStep() {
       console.log('Previous step clicked, current step:', currentStep);
       
-      if (currentStep > 1 && currentStep <= 5) {
-        showStep(currentStep - 1);
+      const stepOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6'];
+      const currentIndex = stepOrder.indexOf(currentStep);
+      
+      if (currentIndex > 0) {
+        const prevStepId = stepOrder[currentIndex - 1];
+        showStep(prevStepId);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (currentStep === 'step1') {
+        showStep('selection');
       }
     }
 
     function saveStepData() {
       switch(currentStep) {
-        case 1:
+        case 'step1':
           formData.last_name = document.getElementById('last_name')?.value?.trim() || '';
           formData.first_name = document.getElementById('first_name')?.value?.trim() || '';
           formData.middle_initial = document.getElementById('middle_initial')?.value?.trim() || '';
-          console.log('Saved step 1 data:', {
-            last_name: formData.last_name,
-            first_name: formData.first_name,
-            middle_initial: formData.middle_initial
-          });
+          formData.barangay = document.getElementById('barangay')?.value?.trim() || ''; // NEW
+          formData.email = document.getElementById('email')?.value?.trim() || '';
+          console.log('Saved step 1 data:', formData);
           break;
-        case 2:
+          
+        case 'step2':
+          if (positionType === 'appointive') {
+            formData.appointing_authority = document.getElementById('appointing_authority')?.value?.trim() || '';
+            formData.appointment_from = document.getElementById('appointment_from')?.value || '';
+            formData.appointment_to = document.getElementById('appointment_to')?.value || '';
+            formData.years_in_service = document.getElementById('years_in_service')?.value || '';
+            formData.appointing_punong_barangay = document.getElementById('appointing_punong_barangay')?.value?.trim() || '';
+            formData.pb_date_elected = document.getElementById('pb_date_elected')?.value || '';
+            formData.pb_years_service = document.getElementById('pb_years_service')?.value || '';
+          } else if (positionType === 'elective') {
+            formData.position_held = document.getElementById('position_held')?.value?.trim() || '';
+            formData.election_from = document.getElementById('election_from')?.value || '';
+            formData.election_to = document.getElementById('election_to')?.value || '';
+            formData.term_office = document.getElementById('term_office')?.value?.trim() || '';
+            const completedTerm = document.querySelector('input[name="completed_term"]:checked');
+            formData.completed_term = completedTerm ? completedTerm.value : '';
+            formData.incomplete_reason = document.getElementById('incomplete_reason_text')?.value?.trim() || '';
+          }
+          console.log('Saved step 2 data:', formData);
+          break;
+          
+        case 'step3':
           const certifier = document.querySelector('input[name="certifier"]:checked');
           formData.certifier = certifier ? certifier.value : '';
-          console.log('Saved step 2 data:', { certifier: formData.certifier });
+          console.log('Saved step 3 data:', formData);
           break;
-        case 3:
+          
+        case 'step4':
           formData.idFront = document.getElementById('idFront')?.files[0];
           formData.idBack = document.getElementById('idBack')?.files[0];
-          console.log('Saved step 3 data:', { 
-            idFront: formData.idFront ? 'File selected' : 'No file',
-            idBack: formData.idBack ? 'File selected' : 'No file'
-          });
+          console.log('Saved step 4 data:', formData);
           break;
-        case 4:
+          
+        case 'step5':
           if (hasSignature && signatureCanvas) {
             formData.signature = signatureCanvas.toDataURL();
           }
-          console.log('Saved step 4 data:', { 
-            signature: formData.signature ? 'Signature saved' : 'No signature'
-          });
+          console.log('Saved step 5 data:', formData);
           break;
       }
-      console.log('Complete formData after step', currentStep, ':', formData);
+      console.log('Complete formData:', formData);
     }
 
     function updatePreview() {
       console.log('Updating preview with formData:', formData);
       
-      // Update preview content
       const fullName = `${formData.first_name} ${formData.middle_initial ? formData.middle_initial + ' ' : ''}${formData.last_name}`;
       const previewName = document.getElementById('preview-name');
       if (previewName) {
         previewName.textContent = fullName;
+      }
+      const previewBarangay = document.getElementById('preview-barangay');
+        if (previewBarangay) {
+          previewBarangay.textContent = formData.barangay || 'Not provided';
+        }
+      
+      const previewEmail = document.getElementById('preview-email');
+      if (previewEmail) {
+        previewEmail.textContent = formData.email || 'Not provided';
+      }
+
+      const previewPositionType = document.getElementById('preview-position-type');
+      if (previewPositionType) {
+        previewPositionType.textContent = positionType === 'appointive' ? 'Appointive Position' : 'Elective Position';
+      }
+
+      const appointivePreview = document.getElementById('preview-appointive');
+      const electivePreview = document.getElementById('preview-elective');
+      
+      if (positionType === 'appointive') {
+        appointivePreview.style.display = 'block';
+        electivePreview.style.display = 'none';
+        
+        document.getElementById('preview-appointing-authority').textContent = formData.appointing_authority || 'Not provided';
+        document.getElementById('preview-appointment-period').textContent = 
+          `${formData.appointment_from || ''} to ${formData.appointment_to || ''}`;
+        document.getElementById('preview-years-service').textContent = formData.years_in_service || 'Not provided';
+      } else if (positionType === 'elective') {
+        appointivePreview.style.display = 'none';
+        electivePreview.style.display = 'block';
+        
+        document.getElementById('preview-position-held').textContent = formData.position_held || 'Not provided';
+        document.getElementById('preview-election-period').textContent = 
+          `${formData.election_from || ''} to ${formData.election_to || ''}`;
+        document.getElementById('preview-term-completed').textContent = 
+          formData.completed_term === 'yes' ? 'Yes' : `No (${formData.incomplete_reason || 'No reason provided'})`;
       }
 
       const certifierText = {
@@ -921,9 +1609,6 @@
           previewSignature.innerHTML = `<img src="${formData.signature}" alt="Signature" class="file-preview" style="max-height: 60px;">`;
         }
       }
-      
-      // Update button validation after preview is populated
-      updateStepValidation();
     }
 
     function getCookie(name) {
@@ -932,7 +1617,6 @@
         const cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
           const cookie = cookies[i].trim();
-          // Does this cookie string begin with the name we want?
           if (cookie.substring(0, name.length + 1) === (name + '=')) {
             cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
             break;
@@ -941,122 +1625,187 @@
       }
       return cookieValue;
     }
+// COUNTING
+function calculateDetailedDifference(fromDate, toDate) {
+  if (!fromDate || !toDate) return { years: 0, months: 0, days: 0, totalDays: 0 };
+  
+  const from = new Date(fromDate);
+  const to = new Date(toDate);
+  
+  // Calculate total days
+  const timeDiff = to.getTime() - from.getTime();
+  const totalDays = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+  
+  // Calculate years, months, days
+  let years = to.getFullYear() - from.getFullYear();
+  let months = to.getMonth() - from.getMonth();
+  let days = to.getDate() - from.getDate();
+  
+  // Adjust for negative days
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(to.getFullYear(), to.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  
+  // Adjust for negative months
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  return { years, months, days, totalDays };
+}
+
+function formatDifference(diff) {
+  const parts = [];
+  if (diff.years > 0) parts.push(`${diff.years} year${diff.years !== 1 ? 's' : ''}`);
+  if (diff.months > 0) parts.push(`${diff.months} month${diff.months !== 1 ? 's' : ''}`);
+  if (diff.days > 0) parts.push(`${diff.days} day${diff.days !== 1 ? 's' : ''}`);
+  
+  return parts.length > 0 ? parts.join(', ') : '0 days';
+}
+
+// Calculate decimal years for service
+function calculateDecimalYears(fromDate, toDate) {
+  if (!fromDate || !toDate) return '0.0';
+  
+  const diff = calculateDetailedDifference(fromDate, toDate);
+  const decimalYears = diff.years + (diff.months / 12) + (diff.days / 365);
+  
+  return decimalYears.toFixed(1);
+}
+
+
+
+
+
 
     function finishProcess() {
       console.log('Finish process started');
       
-      // Save final step data
       saveStepData();
       
-      // Prepare form data for submission
       const submitData = new FormData();
       submitData.append('last_name', formData.last_name || '');
       submitData.append('first_name', formData.first_name || '');
       submitData.append('middle_initial', formData.middle_initial || '');
-      submitData.append('certifier', formData.certifier || '');
-      
-      // Check if files exist before appending
-      if (formData.idFront) {
-        submitData.append('id_front', formData.idFront);
-      }
-      if (formData.idBack) {
-        submitData.append('id_back', formData.idBack);
-      }
-      
-      // Show loading state
-      const finishBtn = document.querySelector('#step5 .next-btn');
-      if (finishBtn) {
-        finishBtn.textContent = 'Submitting...';
-        finishBtn.disabled = true;
-      }
-      
-      // Convert signature canvas to blob and append
-      if (signatureCanvas && hasSignature) {
-        signatureCanvas.toBlob(function(blob) {
-          if (blob) {
-            submitData.append('signature', blob, 'signature.png');
-          }
-          
-          // Get CSRF token
-          const csrfToken = getCookie('csrftoken');
-          
-          if (!csrfToken) {
-            alert('Security token not found. Please refresh the page and try again.');
-            if (finishBtn) {
-              finishBtn.textContent = 'Finish';
-              finishBtn.disabled = false;
-            }
-            return;
-          }
-          
-          // Submit to Django backend - CORRECTED URL to match your urls.py
-          console.log('Submitting to: /submit_eligibility_request/');
-          fetch('/submit_eligibility_request/', {  // This matches line 30 in your URLs
-            method: 'POST',
-            body: submitData,
-            headers: {
-              'X-CSRFToken': csrfToken
-            }
-          })
-          .then(response => {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then(data => {
-            console.log('Response data:', data);
-            if (data.success) {
-              // Show success step
-              showStep(6);
-              
-              // Update breadcrumb to show completion
-              for (let i = 1; i <= 5; i++) {
-                const breadcrumb = document.getElementById(`step${i}-breadcrumb`);
-                if (breadcrumb) {
-                  breadcrumb.classList.remove('active');
-                  breadcrumb.classList.add('completed');
-                }
-              }
+      submitData.append('barangay', formData.barangay || ''); // NEW
+      submitData.append('email', formData.email || '');
+      submitData.append('position_type', positionType || '');
 
-              // Show popup after a short delay
-              setTimeout(() => {
-                if (currentStep === 6) {
-                  showPopup();
-                }
-              }, 1000);
-            } else {
-              alert('Error submitting application: ' + (data.error || 'Please try again.'));
-            }
-          })
-          .catch(error => {
-            console.error('Fetch error:', error);
-            alert('Error submitting application. Please check your connection and try again.');
-          })
-          .finally(() => {
-            // Reset button state
-            if (finishBtn) {
-              finishBtn.textContent = 'Finish';
-              finishBtn.disabled = false;
-            }
-          });
-        }, 'image/png');
-      } else {
-        console.error('No signature canvas or signature not drawn');
-        alert('Please ensure you have drawn a signature before submitting.');
+  if (positionType === 'appointive') {
+    submitData.append('appointing_authority', formData.appointing_authority || '');
+    submitData.append('appointment_from', formData.appointment_from || '');
+    submitData.append('appointment_to', formData.appointment_to || '');
+    submitData.append('years_in_service', formData.years_in_service || '');
+    submitData.append('appointing_punong_barangay', formData.appointing_punong_barangay || '');
+    submitData.append('pb_date_elected', formData.pb_date_elected || '');
+    submitData.append('pb_years_service', formData.pb_years_service || '');
+  }
+  
+  if (positionType === 'elective') {
+    submitData.append('position_held', formData.position_held || '');
+    submitData.append('election_from', formData.election_from || '');
+    submitData.append('election_to', formData.election_to || '');
+    submitData.append('term_office', formData.term_office || '');
+    submitData.append('completed_term', formData.completed_term || '');
+    submitData.append('incomplete_reason', formData.incomplete_reason || '');
+  }
+  
+  submitData.append('certifier', formData.certifier || '');
+  
+  if (formData.idFront) {
+    submitData.append('id_front', formData.idFront);
+  }
+  if (formData.idBack) {
+    submitData.append('id_back', formData.idBack);
+  }
+  
+  const finishBtn = document.querySelector('#step6 .next-btn');
+  if (finishBtn) {
+    finishBtn.textContent = 'Submitting...';
+    finishBtn.disabled = true;
+  }
+  
+  if (signatureCanvas && hasSignature) {
+    signatureCanvas.toBlob(function(blob) {
+      if (blob) {
+        submitData.append('signature', blob, 'signature.png');
+      }
+      
+      const csrfToken = getCookie('csrftoken');
+      
+      if (!csrfToken) {
+        alert('Security token not found. Please refresh the page and try again.');
         if (finishBtn) {
-          finishBtn.textContent = 'Finish';
+          finishBtn.textContent = 'Submit Application';
           finishBtn.disabled = false;
         }
+        return;
       }
+      
+      fetch('/submit_eligibility_request/', {
+        method: 'POST',
+        body: submitData,
+        headers: {
+          'X-CSRFToken': csrfToken
+        }
+      })
+      .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+          showStep('success');
+          
+          // Show certificate button for BOTH types now
+          document.getElementById('view-certificate-btn').style.display = 'block';
+          
+          for (let i = 1; i <= 5; i++) {
+            const breadcrumb = document.getElementById(`step${i}-breadcrumb`);
+            if (breadcrumb) {
+              breadcrumb.classList.remove('active');
+              breadcrumb.classList.add('completed');
+            }
+          }
+
+          setTimeout(() => {
+            showPopup();
+          }, 1000);
+        } else {
+          alert('Error submitting application: ' + (data.error || 'Please try again.'));
+        }
+      })
+      .catch(error => {
+        console.error('Fetch error:', error);
+        alert('Error submitting application. Please check your connection and try again.');
+      })
+      .finally(() => {
+        if (finishBtn) {
+          finishBtn.textContent = 'Submit Application';
+          finishBtn.disabled = false;
+        }
+      });
+    }, 'image/png');
+  } else {
+    alert('Please ensure you have drawn a signature before submitting.');
+    if (finishBtn) {
+      finishBtn.textContent = 'Submit Application';
+      finishBtn.disabled = false;
     }
+  }
+}
 
     function showPopup() {
       const popup = document.getElementById('popup-overlay');
       if (popup) {
         popup.classList.add('active');
-        // Disable body scroll when popup is open
         document.body.style.overflow = 'hidden';
       }
     }
@@ -1065,50 +1814,582 @@
       const popup = document.getElementById('popup-overlay');
       if (popup) {
         popup.classList.remove('active');
-        // Re-enable body scroll
         document.body.style.overflow = '';
       }
     }
 
     function restartProcess() {
       console.log('Restart process');
-      
-      // Close popup if it's open
+  
       closePopup();
       
-      // Reset everything
-      currentStep = 1;
+      currentStep = 'intro';
+      positionType = null;
       formData = {};
       hasSignature = false;
 
-      // Reset form inputs
-      const inputs = ['last_name', 'first_name', 'middle_initial', 'idFront', 'idBack'];
-      inputs.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) element.value = '';
-      });
 
-      // Reset radio buttons
+      const textInputs = ['last_name', 'first_name', 'middle_initial', 'barangay', 'email', 
+                      'appointing_authority', 'appointment_from', 'appointment_to', 
+                      'years_in_service', 'appointing_punong_barangay', 'pb_date_elected', 
+                      'pb_years_service', 'position_held', 'election_from', 'election_to', 
+                      'term_office', 'incomplete_reason_text', 'idFront', 'idBack'];
+  
+  textInputs.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) element.value = '';
+  });
       document.querySelectorAll('input[name="certifier"]').forEach(radio => radio.checked = false);
+      document.querySelectorAll('input[name="completed_term"]').forEach(radio => radio.checked = false);
       document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
       
-      // Clear previews
       const previews = ['frontPreview', 'backPreview'];
       previews.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.innerHTML = '';
       });
       
-      // Clear signature
+      const incompleteReason = document.getElementById('incomplete-reason');
+      if (incompleteReason) {
+        incompleteReason.style.display = 'none';
+      }
+      
       clearSignature();
 
-      // Show first step
-      showStep(1);
+      showStep('intro');
       updateStepValidation();
 
-      // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showCertificate() {
+  // DEBUG: Check what data we have
+  console.log('=== DEBUG showCertificate ===');
+  console.log('formData:', formData);
+  console.log('positionType:', positionType);
+  console.log('first_name:', formData.first_name);
+  console.log('last_name:', formData.last_name);
+  console.log('barangay:', formData.barangay);
+  
+  const fullName = `${formData.first_name} ${formData.middle_initial ? formData.middle_initial + '. ' : ''}${formData.last_name}`;
+  console.log('fullName:', fullName);
+  
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  
+  const today = new Date();
+  const monthNames = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+  const certDate = `${monthNames[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+  
+  // Expand the container
+  const container = document.querySelector('.container');
+  if (container) {
+    container.style.maxWidth = '100%';
+    container.style.width = '100%';
+    container.style.padding = '20px';
+  }
+  
+  if (positionType === 'appointive') {
+    console.log('Showing APPOINTIVE certificate');
+    
+    // Check if elements exist
+    const nameEl = document.getElementById('cert-full-name');
+    const barangayEl = document.getElementById('cert-barangay');
+    console.log('cert-full-name element:', nameEl);
+    console.log('cert-barangay element:', barangayEl);
+    
+    // Populate APPOINTIVE certificate
+    if (nameEl) nameEl.textContent = fullName;
+    if (document.getElementById('cert-full-name-2')) {
+      document.getElementById('cert-full-name-2').textContent = fullName;
+    }
+    if (barangayEl) barangayEl.textContent = formData.barangay || 'Not specified';
+    
+    if (document.getElementById('cert-appointment-date')) {
+      document.getElementById('cert-appointment-date').textContent = formatDate(formData.appointment_from);
+    }
+    if (document.getElementById('cert-date-from')) {
+      document.getElementById('cert-date-from').textContent = formatDate(formData.appointment_from);
+    }
+    if (document.getElementById('cert-date-to')) {
+      document.getElementById('cert-date-to').textContent = formatDate(formData.appointment_to);
+    }
+    if (document.getElementById('cert-years-served')) {
+      document.getElementById('cert-years-served').textContent = formData.years_in_service + ' years';
+    }
+    if (document.getElementById('cert-pb-name')) {
+      document.getElementById('cert-pb-name').textContent = formData.appointing_punong_barangay;
+    }
+    if (document.getElementById('cert-pb-date')) {
+      document.getElementById('cert-pb-date').textContent = formatDate(formData.pb_date_elected);
+    }
+    if (document.getElementById('cert-pb-years')) {
+      document.getElementById('cert-pb-years').textContent = formData.pb_years_service + ' years';
+    }
+    if (document.getElementById('cert-date')) {
+      document.getElementById('cert-date').textContent = certDate;
+    }
+    
+    showStep('certificate');
+    const certificateDiv = document.getElementById('certificate');
+    if (certificateDiv) {
+      certificateDiv.classList.add('active');
+    }
+    
+  } else if (positionType === 'elective') {
+    console.log('Showing ELECTIVE certificate');
+    
+    // Check if elements exist
+    const nameEl = document.getElementById('cert-elec-full-name');
+    const barangayEl = document.getElementById('cert-elec-barangay');
+    console.log('cert-elec-full-name element:', nameEl);
+    console.log('cert-elec-barangay element:', barangayEl);
+    
+    // Populate ELECTIVE certificate
+    if (nameEl) nameEl.textContent = fullName;
+    if (document.getElementById('cert-elec-full-name-2')) {
+      document.getElementById('cert-elec-full-name-2').textContent = fullName;
+    }
+    if (barangayEl) barangayEl.textContent = formData.barangay || 'Not specified';
+    
+    if (document.getElementById('cert-elec-position')) {
+      document.getElementById('cert-elec-position').textContent = formData.position_held;
+    }
+    if (document.getElementById('cert-elec-election-date')) {
+      document.getElementById('cert-elec-election-date').textContent = formatDate(formData.election_from);
+    }
+    if (document.getElementById('cert-elec-term')) {
+      document.getElementById('cert-elec-term').textContent = formData.term_office;
+    }
+    if (document.getElementById('cert-elec-date-from')) {
+      document.getElementById('cert-elec-date-from').textContent = formatDate(formData.election_from);
+    }
+    if (document.getElementById('cert-elec-date-to')) {
+      document.getElementById('cert-elec-date-to').textContent = formatDate(formData.election_to);
+    }
+    if (document.getElementById('cert-elec-date')) {
+      document.getElementById('cert-elec-date').textContent = certDate;
+    }
+    
+    // Handle completion status
+    const yesCheck = document.getElementById('cert-elec-yes-check');
+    const noCheck = document.getElementById('cert-elec-no-check');
+    const reasonSection = document.getElementById('cert-elec-reason-section');
+    const incompleteDays = document.getElementById('cert-elec-incomplete-days');
+    const reasonText = document.getElementById('cert-elec-reason-text');
+    
+    if (formData.completed_term === 'yes') {
+      if (yesCheck) yesCheck.textContent = '√';
+      if (noCheck) noCheck.textContent = '';
+      if (reasonSection) reasonSection.style.display = 'none';
+    } else {
+        if (yesCheck) yesCheck.textContent = '';
+        if (noCheck) noCheck.textContent = '√';
+        if (reasonSection) reasonSection.style.display = 'block';
+        
+        // Get the calculated days not served from the hidden field
+        const daysNotServedValue = document.getElementById('days_not_served_value')?.value || '0';
+        if (incompleteDays) incompleteDays.textContent = daysNotServedValue + ' days';
+        
+        if (reasonText) reasonText.textContent = formData.incomplete_reason || 'Not specified';
+      }
+    
+    showStep('certificate-elective');
+    const certificateDiv = document.getElementById('certificate-elective');
+    if (certificateDiv) {
+      certificateDiv.classList.add('active');
+    }
+  }
+  
+  console.log('=== END DEBUG ===');
+}
+
+
+    function backToSuccess() {
+  // Restore container width
+  const container = document.querySelector('.container');
+  if (container) {
+    container.style.maxWidth = '1200px';
+    container.style.width = 'auto';
+    container.style.padding = '20px';
+  }
+  
+  // Remove active class from BOTH certificates
+  const appointiveCert = document.getElementById('certificate');
+  if (appointiveCert) {
+    appointiveCert.classList.remove('active');
+  }
+  
+  const electiveCert = document.getElementById('certificate-elective');
+  if (electiveCert) {
+    electiveCert.classList.remove('active');
+  }
+  
+  showStep('success');
+}    
+
+    function printCertificate() {
+  // Get the active certificate
+  const appointiveCert = document.getElementById('certificate');
+  const electiveCert = document.getElementById('certificate-elective');
+  
+  let activeCert = null;
+  if (appointiveCert && appointiveCert.classList.contains('active')) {
+    activeCert = appointiveCert;
+  } else if (electiveCert && electiveCert.classList.contains('active')) {
+    activeCert = electiveCert;
+  }
+  
+  if (!activeCert) {
+    alert('No certificate to print. Please view the certificate first.');
+    return;
+  }
+  
+  // Hide all action buttons temporarily
+  const actionButtons = activeCert.querySelectorAll('.certificate-actions');
+  actionButtons.forEach(btn => {
+    btn.style.display = 'none';
+  });
+  
+  // Small delay to ensure buttons are hidden before print
+  setTimeout(() => {
+    window.print();
+    
+    // Restore buttons after print dialog closes
+    setTimeout(() => {
+      actionButtons.forEach(btn => {
+        btn.style.display = 'flex';
+      });
+    }, 500);
+  }, 100);
+}
+
+    function downloadCertificate() {
+  // Check if html2pdf library is loaded
+  if (typeof html2pdf === 'undefined') {
+    alert('To download as PDF:\n\n1. Click "Print Certificate" button\n2. In the print dialog, select "Save as PDF"\n3. Choose your location and save');
+    printCertificate();
+    return;
+  }
+  
+  // Get the active certificate
+  const appointiveCert = document.getElementById('certificate');
+  const electiveCert = document.getElementById('certificate-elective');
+  
+  let activeCert = null;
+  let certType = '';
+  
+  if (appointiveCert && appointiveCert.classList.contains('active')) {
+    activeCert = appointiveCert;
+    certType = 'Appointive';
+  } else if (electiveCert && electiveCert.classList.contains('active')) {
+    activeCert = electiveCert;
+    certType = 'Elective';
+  }
+  
+  if (!activeCert) {
+    alert('No certificate to download. Please view the certificate first.');
+    return;
+  }
+  
+  // Get the certificate paper element
+  const certContent = activeCert.querySelector('.certificate-paper');
+  
+  if (!certContent) {
+    alert('Certificate content not found.');
+    return;
+  }
+  
+  // Hide action buttons
+  const actionButtons = activeCert.querySelectorAll('.certificate-actions');
+  actionButtons.forEach(btn => {
+    btn.style.display = 'none';
+  });
+  
+  // Show loading message
+  const downloadBtn = activeCert.querySelector('.cert-btn-download');
+  const originalText = downloadBtn ? downloadBtn.innerHTML : '';
+  if (downloadBtn) {
+    downloadBtn.innerHTML = `
+      <svg class="animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-opacity="0.25"></circle>
+        <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor"></path>
+      </svg>
+      Generating PDF...
+    `;
+    downloadBtn.disabled = true;
+  }
+  
+  // Generate filename
+  const fullName = (formData.first_name || 'User') + '_' + (formData.last_name || 'Certificate');
+  const safeFilename = fullName.replace(/[^a-zA-Z0-9_]/g, '_');
+  const filename = `${certType}_Certificate_${safeFilename}.pdf`;
+  
+  // FIXED PDF OPTIONS - Minimal margins, no top space
+  const opt = {
+    margin: [5, 5, 5, 5], // MINIMAL margins (5mm all sides)
+    filename: filename,
+    image: { 
+      type: 'jpeg', 
+      quality: 0.98 
+    },
+    html2canvas: { 
+      scale: 2.5,            // Higher quality
+      useCORS: true,
+      logging: false,
+      letterRendering: true,
+      scrollY: 0,
+      scrollX: 0,
+      y: 0,                  // Start from top
+      windowWidth: 794,      // A4 width in pixels at 96 DPI
+      windowHeight: 1123,    // A4 height in pixels at 96 DPI
+      backgroundColor: '#ffffff'
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4',
+      orientation: 'portrait',
+      compress: true,
+      putOnlyUsedFonts: true
+    },
+    pagebreak: { 
+      mode: ['avoid-all', 'css'],
+      before: [],
+      after: [],
+      avoid: [
+        '.certificate-paper',
+        '.certificate-border', 
+        '.certificate-table', 
+        '.certificate-header', 
+        '.certificate-title-section', 
+        '.certificate-body', 
+        '.signature-section',
+        '.table-wrapper',
+        'table',
+        'tbody',
+        'thead'
+      ]
+    }
+  };
+  
+  // Generate and download PDF
+  html2pdf()
+    .set(opt)
+    .from(certContent)
+    .save()
+    .then(() => {
+      // Restore buttons
+      actionButtons.forEach(btn => {
+        btn.style.display = 'flex';
+      });
+      
+      // Restore button text
+      if (downloadBtn) {
+        downloadBtn.innerHTML = originalText;
+        downloadBtn.disabled = false;
+      }
+      
+      console.log('PDF downloaded successfully!');
+    })
+    .catch(err => {
+      console.error('PDF generation error:', err);
+      
+      // Restore buttons
+      actionButtons.forEach(btn => {
+        btn.style.display = 'flex';
+      });
+      
+      if (downloadBtn) {
+        downloadBtn.innerHTML = originalText;
+        downloadBtn.disabled = false;
+      }
+      
+      // Fallback to print method
+      alert('PDF generation failed. Using print-to-PDF method instead.\n\nPlease select "Save as PDF" in the print dialog.');
+      printCertificate();
+    });
+}
+  </script>
+
+
+  <script>
+    // Global Theme Management System
+    class GlobalThemeManager {
+      constructor() {
+        this.currentTheme = 'light';
+        this.currentFontSize = 'medium';
+        this.currentAnimationSpeed = 'normal';
+        this.init();
+      }
+
+      init() {
+        this.loadPreferences();
+        this.applyTheme(this.currentTheme);
+        this.applyFontSize(this.currentFontSize);
+        this.applyAnimationSpeed(this.currentAnimationSpeed);
+        this.watchSystemTheme();
+      }
+
+      loadPreferences() {
+        this.currentTheme = localStorage.getItem('theme') || 'light';
+        this.currentFontSize = localStorage.getItem('fontSize') || 'medium';
+        this.currentAnimationSpeed = localStorage.getItem('animationSpeed') || 'normal';
+      }
+
+      applyTheme(theme) {
+        const html = document.documentElement;
+        
+        html.classList.add('theme-transition');
+        html.setAttribute('data-theme', theme);
+        
+        this.currentTheme = theme;
+        localStorage.setItem('theme', theme);
+
+        setTimeout(() => {
+          html.classList.remove('theme-transition');
+        }, 300);
+
+        const themeSelector = document.getElementById('change-theme');
+        if (themeSelector) {
+          themeSelector.value = theme;
+        }
+      }
+
+      applyFontSize(size) {
+        const root = document.documentElement;
+        const sizeMap = {
+          'small': '14px',
+          'medium': '15px',
+          'large': '16px'
+        };
+        
+        root.style.fontSize = sizeMap[size];
+        this.currentFontSize = size;
+        localStorage.setItem('fontSize', size);
+
+        const fontSizeSelector = document.getElementById('font-size');
+        if (fontSizeSelector) {
+          fontSizeSelector.value = size;
+        }
+      }
+
+      applyAnimationSpeed(speed) {
+        const root = document.documentElement;
+        const speedMap = {
+          'slow': '0.6s',
+          'normal': '0.3s',
+          'fast': '0.15s',
+          'none': '0s'
+        };
+        
+        root.style.setProperty('--transition-duration', speedMap[speed]);
+        this.currentAnimationSpeed = speed;
+        localStorage.setItem('animationSpeed', speed);
+
+        const style = document.createElement('style');
+        style.textContent = `
+          .theme-transition * {
+            transition-duration: ${speedMap[speed]} !important;
+          }
+        `;
+        
+        const oldStyle = document.getElementById('animation-speed-style');
+        if (oldStyle) oldStyle.remove();
+        
+        style.id = 'animation-speed-style';
+        document.head.appendChild(style);
+
+        const animationSpeedSelector = document.getElementById('animation-speed');
+        if (animationSpeedSelector) {
+          animationSpeedSelector.value = speed;
+        }
+      }
+
+      watchSystemTheme() {
+        if (window.matchMedia) {
+          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+          mediaQuery.addListener((e) => {
+            if (this.currentTheme === 'auto') {
+              this.applyTheme('auto');
+            }
+          });
+        }
+      }
+
+      setTheme(theme) {
+        this.applyTheme(theme);
+      }
+
+      getTheme() {
+        return this.currentTheme;
+      }
+
+      toggleTheme() {
+        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        this.applyTheme(newTheme);
+        return newTheme;
+      }
+
+      showSuccessMessage(message) {
+        const existing = document.querySelector('.success-message');
+        if (existing) existing.remove();
+
+        const messageEl = document.createElement('div');
+        messageEl.className = 'success-message';
+        messageEl.textContent = message;
+        document.body.appendChild(messageEl);
+
+        setTimeout(() => messageEl.classList.add('show'), 100);
+
+        setTimeout(() => {
+          messageEl.classList.remove('show');
+          setTimeout(() => messageEl.remove(), 300);
+        }, 3000);
+      }
+    }
+
+    let globalThemeManager;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      globalThemeManager = new GlobalThemeManager();
+      
+      const themeSelector = document.getElementById('change-theme');
+      if (themeSelector) {
+        themeSelector.addEventListener('change', function(e) {
+          globalThemeManager.setTheme(e.target.value);
+        });
+      }
+
+      const fontSizeSelector = document.getElementById('font-size');
+      if (fontSizeSelector) {
+        fontSizeSelector.addEventListener('change', function(e) {
+          globalThemeManager.applyFontSize(e.target.value);
+        });
+      }
+
+      const animationSpeedSelector = document.getElementById('animation-speed');
+      if (animationSpeedSelector) {
+        animationSpeedSelector.addEventListener('change', function(e) {
+          globalThemeManager.applyAnimationSpeed(e.target.value);
+        });
+      }
+    });
+
+    window.globalThemeManager = globalThemeManager;
+
+    function toggleTheme() {
+      if (window.globalThemeManager) {
+        return window.globalThemeManager.toggleTheme();
+      }
     }
   </script>
 </body>
 </html>
+      

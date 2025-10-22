@@ -22,9 +22,16 @@ import openpyxl
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Q, Count, Avg, Sum  
-from .models import EligibilityRequest
+from .models import EligibilityRequest, Barangay, Requirement, RequirementSubmission, RequirementAttachment, Notification
 from django.views.decorators.http import require_POST
-
+import os
+from datetime import date
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from datetime import timedelta
 
 
 try:
@@ -234,9 +241,6 @@ def debug_employee(request):
     except Exception as e:
         return JsonResponse({'error': str(e)})
 
-
-def requirements_monitoring(request):
-    return render(request, 'requirements_monitoring.html')
 
 
 def application_request(request):
@@ -806,7 +810,8 @@ def monitoring_filess(request):
 
 
 def certification_filess(request):
-    return render(request, 'certification_files.html')
+    return render(request, 'certification_filess.html')
+
 
 
 def signup_page(request):
@@ -1179,6 +1184,7 @@ def submit_eligibility_request(request):
         last_name = request.POST.get('last_name', '').strip()
         first_name = request.POST.get('first_name', '').strip()
         middle_initial = request.POST.get('middle_initial', '').strip()
+        email = request.POST.get('email', '').strip()  # ← ADD THIS LINE
         certifier = request.POST.get('certifier', '').strip()
         
         # Validation
@@ -1192,6 +1198,13 @@ def submit_eligibility_request(request):
             return JsonResponse({
                 'success': False,
                 'error': 'First name is required'
+            }, status=400)
+        
+        # ← ADD THIS EMAIL VALIDATION
+        if not email:
+            return JsonResponse({
+                'success': False,
+                'error': 'Email address is required'
             }, status=400)
             
         if not certifier:
@@ -1239,22 +1252,23 @@ def submit_eligibility_request(request):
                 first_name=first_name,
                 last_name=last_name,
                 middle_initial=middle_initial if middle_initial else None,
-                certifier=certifier,  # This matches your model field
+                email=email,  # ← ADD THIS LINE
+                certifier=certifier,
                 id_front=id_front,
                 id_back=id_back,
                 signature=signature,
                 status='pending',
-                date_submitted=timezone.now()  # Use timezone.now() instead of datetime.now()
+                date_submitted=timezone.now()
             )
             
             print(f"Successfully created request with ID: {eligibility_request.id}")
             
-            # Generate a reference number for the user (since your model doesn't have id_number)
+            # Generate a reference number for the user
             reference_number = f"EC-{timezone.now().year}-{eligibility_request.id:03d}"
             
             return JsonResponse({
                 'success': True,
-                'message': 'Application submitted successfully!',
+                'message': 'Application submitted successfully! Check your email for confirmation.',  # ← UPDATED MESSAGE
                 'id_number': reference_number,  
                 'request_id': eligibility_request.id
             })
@@ -1376,3 +1390,2058 @@ def update_application_status(request):
             'success': False,
             'error': f'Server error: {str(e)}'
         }, status=500)
+    
+
+
+#REQUIREMENTS_MONITORING
+@login_required
+def requirements_monitoring(request):
+    """
+    Main requirements monitoring page with color-coded barangay status
+    """
+    user_profile = request.user.userprofile
+    
+    if user_profile.role == 'dilg staff':
+        messages.info(request, 'As DILG Admin, please use the Admin Submissions page.')
+        return redirect('admin_submissions')
+    
+    # Get all barangays
+    barangays = Barangay.objects.all()
+    
+    # Calculate status for each barangay
+    barangay_statuses = {}
+    today = date.today()
+    
+    for barangay in barangays:
+        # Get all submissions for this barangay
+        submissions = RequirementSubmission.objects.filter(barangay=barangay)
+        
+        if not submissions.exists():
+            # No requirements yet
+            barangay_statuses[barangay.id] = {
+                'status': 'no_data',
+                'color': 'gray',
+                'tooltip': 'No requirements assigned'
+            }
+            continue
+        
+        # Count different statuses
+        total = submissions.count()
+        overdue = submissions.filter(
+            Q(status__in=['pending', 'in_progress']) & Q(due_date__lt=today)
+        ).count()
+        pending = submissions.filter(status='pending').count()
+        in_progress = submissions.filter(status='in_progress').count()
+        accomplished = submissions.filter(status='accomplished').count()
+        
+        # Determine color based on priority
+        if overdue > 0:
+            status = 'overdue'
+            color = 'red'
+            tooltip = f'{overdue} overdue requirement(s)'
+        elif pending > 0 or in_progress > 0:
+            status = 'in_progress'
+            color = 'yellow'
+            tooltip = f'{pending} pending, {in_progress} in progress'
+        elif accomplished == total:
+            status = 'completed'
+            color = 'green'
+            tooltip = f'All {total} requirements completed!'
+        else:
+            status = 'partial'
+            color = 'blue'
+            tooltip = f'{accomplished}/{total} completed'
+        
+        barangay_statuses[barangay.id] = {
+            'status': status,
+            'color': color,
+            'tooltip': tooltip,
+            'counts': {
+                'total': total,
+                'overdue': overdue,
+                'pending': pending,
+                'in_progress': in_progress,
+                'accomplished': accomplished
+            }
+        }
+    
+    context = {
+        'barangays': barangays,
+        'barangay_statuses': barangay_statuses,
+        'user_role': user_profile.role,
+        'is_submitter': user_profile.role == 'barangay official',
+    }
+    return render(request, 'requirements_monitoring.html', context)
+
+
+import logging
+logger = logging.getLogger(__name__)
+@login_required
+def get_barangay_status(request, barangay_id):
+    """
+    API endpoint to get real-time barangay status
+    
+    Color Logic (FIXED):
+    - RED: Has overdue requirements (past due date and NOT approved/rejected)
+    - GREEN: All requirements completed AND approved
+    - YELLOW: Has in-progress requirements
+    - BLUE: Has pending requirements
+    - GRAY: No requirements assigned
+    """
+    try:
+        barangay = Barangay.objects.get(id=barangay_id)
+        submissions = RequirementSubmission.objects.filter(barangay=barangay)
+        today = date.today()
+        
+        if not submissions.exists():
+            return JsonResponse({
+                'status': 'no_data',
+                'color': 'gray',
+                'tooltip': f'{barangay.name}: No requirements assigned',
+                'counts': {
+                    'total': 0,
+                    'overdue': 0,
+                    'pending': 0,
+                    'in_progress': 0,
+                    'accomplished': 0,
+                    'approved': 0,
+                    'rejected': 0
+                }
+            })
+        
+        total = submissions.count()
+        
+        # FIXED: Overdue only counts items NOT approved/rejected
+        overdue = submissions.filter(
+            status__in=['pending', 'in_progress', 'accomplished'],
+            due_date__lt=today
+        ).count()
+        
+        pending = submissions.filter(status='pending').count()
+        in_progress = submissions.filter(status='in_progress').count()
+        accomplished = submissions.filter(status='accomplished').count()
+        approved = submissions.filter(status='approved').count()
+        rejected = submissions.filter(status='rejected').count()
+        
+        # Priority 1: If ANY requirements are overdue (and not approved/rejected) -> RED
+        if overdue > 0:
+            return JsonResponse({
+                'status': 'overdue',
+                'color': 'red',
+                'tooltip': f'{barangay.name}: {overdue} overdue requirement(s) ⚠️',
+                'counts': {
+                    'total': total,
+                    'overdue': overdue,
+                    'pending': pending,
+                    'in_progress': in_progress,
+                    'accomplished': accomplished,
+                    'approved': approved,
+                    'rejected': rejected
+                }
+            })
+        
+        # Priority 2: If ALL requirements are approved -> GREEN
+        elif approved == total:
+            return JsonResponse({
+                'status': 'completed',
+                'color': 'green',
+                'tooltip': f'{barangay.name}: All {total} requirements approved! ✓',
+                'counts': {
+                    'total': total,
+                    'overdue': 0,
+                    'pending': 0,
+                    'in_progress': 0,
+                    'accomplished': 0,
+                    'approved': approved,
+                    'rejected': rejected
+                }
+            })
+        
+        # Priority 3: If has in-progress or accomplished (waiting review) -> YELLOW
+        elif in_progress > 0 or accomplished > 0:
+            return JsonResponse({
+                'status': 'in_progress',
+                'color': 'yellow',
+                'tooltip': f'{barangay.name}: {in_progress} in progress, {accomplished} awaiting review',
+                'counts': {
+                    'total': total,
+                    'overdue': 0,
+                    'pending': pending,
+                    'in_progress': in_progress,
+                    'accomplished': accomplished,
+                    'approved': approved,
+                    'rejected': rejected
+                }
+            })
+        
+        # Priority 4: If only pending -> BLUE
+        elif pending > 0:
+            return JsonResponse({
+                'status': 'pending',
+                'color': 'blue',
+                'tooltip': f'{barangay.name}: {pending} pending requirements',
+                'counts': {
+                    'total': total,
+                    'overdue': 0,
+                    'pending': pending,
+                    'in_progress': 0,
+                    'accomplished': 0,
+                    'approved': approved,
+                    'rejected': rejected
+                }
+            })
+        
+        # Partially complete (some approved, some not)
+        else:
+            return JsonResponse({
+                'status': 'partial',
+                'color': 'blue',
+                'tooltip': f'{barangay.name}: {approved}/{total} approved',
+                'counts': {
+                    'total': total,
+                    'overdue': 0,
+                    'pending': pending,
+                    'in_progress': in_progress,
+                    'accomplished': accomplished,
+                    'approved': approved,
+                    'rejected': rejected
+                }
+            })
+            
+    except Barangay.DoesNotExist:
+        return JsonResponse({
+            'error': 'Barangay not found',
+            'status': 'error',
+            'color': 'gray'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error',
+            'color': 'gray'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_requirements_list(request):
+    """API endpoint to list requirements for a barangay"""
+    try:
+        barangay_id = request.GET.get('barangay_id')
+        period = request.GET.get('period', 'weekly')
+        week = request.GET.get('week', 1)
+        search = request.GET.get('search', '').strip()
+        
+        if not barangay_id:
+            return JsonResponse({'success': False, 'error': 'Barangay ID required'}, status=400)
+        
+        barangay = get_object_or_404(Barangay, id=barangay_id)
+        
+        # Get submissions for this barangay and period
+        submissions = RequirementSubmission.objects.filter(
+            barangay=barangay,
+            requirement__period=period,
+            requirement__is_active=True
+        )
+        
+        # Filter by week if period is weekly
+        if period == 'weekly':
+            submissions = submissions.filter(week_number=week)
+        
+        # Search filter
+        if search:
+            submissions = submissions.filter(
+                Q(requirement__title__icontains=search) |
+                Q(requirement__description__icontains=search)
+            )
+        
+        # Prepare response data
+        submissions_data = []
+        for sub in submissions:
+            submissions_data.append({
+                'id': sub.id,
+                'title': sub.requirement.title,
+                'description': sub.requirement.description,
+                'status': sub.status,
+                'status_display': sub.get_status_display(),
+                'due_date': sub.due_date.strftime('%B %d, %Y'),
+                'is_overdue': sub.is_overdue,
+                'last_update': sub.updated_at.strftime('%B %d, %Y at %I:%M %p'),
+                'update_text': sub.update_text,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'submissions': submissions_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["GET"])
+def api_submission_detail(request, submission_id):
+    """API endpoint to get submission details"""
+    try:
+        # Use select_related and prefetch_related for efficiency
+        submission = get_object_or_404(
+            RequirementSubmission.objects.select_related(
+                'requirement', 'barangay', 'submitted_by'
+            ).prefetch_related('attachments'),
+            id=submission_id
+        )
+        
+        # Get attachments safely
+        attachments = []
+        for att in submission.attachments.all():
+            try:
+                file_name = os.path.basename(att.file.name) if att.file else 'Unknown'
+                file_url = att.file.url if att.file else ''
+                file_size = att.file_size_kb if hasattr(att, 'file_size_kb') else round(att.file_size / 1024, 2)
+                
+                attachments.append({
+                    'id': att.id,
+                    'file_name': file_name,
+                    'file_size': file_size,
+                    'file_url': file_url,
+                    'uploaded_at': att.uploaded_at.strftime('%B %d, %Y at %I:%M %p'),
+                })
+            except Exception as att_error:
+                print(f"Error processing attachment {att.id}: {att_error}")
+                continue
+        
+        data = {
+            'id': submission.id,
+            'requirement': {
+                'title': submission.requirement.title,
+                'description': submission.requirement.description,
+                'period': submission.requirement.period,
+            },
+            'barangay': {
+                'id': submission.barangay.id,
+                'name': submission.barangay.name,
+            },
+            'status': submission.status,
+            'status_display': submission.get_status_display(),
+            'due_date': submission.due_date.strftime('%B %d, %Y'),
+            'is_overdue': submission.is_overdue,
+            'update_text': submission.update_text or '',
+            'last_update': submission.updated_at.strftime('%B %d, %Y at %I:%M %p'),
+            'attachments': attachments,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'submission': data
+        })
+        
+    except RequirementSubmission.DoesNotExist:
+        return JsonResponse({
+            'success': False, 
+            'error': f'Submission with ID {submission_id} not found'
+        }, status=404)
+    except Exception as e:
+        # Log the full error for debugging
+        import traceback
+        print(f"=== ERROR in api_submission_detail ===")
+        print(f"Submission ID: {submission_id}")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False, 
+            'error': f'Internal server error: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def debug_submission(request, submission_id):
+    try:
+        sub = RequirementSubmission.objects.get(id=submission_id)
+        return JsonResponse({
+            'submission_exists': True,
+            'requirement_title': sub.requirement.title,
+            'barangay_name': sub.barangay.name,
+            'attachment_count': sub.attachments.count(),
+            'status': sub.status
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def api_submission_update(request, submission_id):
+    """API endpoint to update submission text"""
+    try:
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        update_text = request.POST.get('update_text', '').strip()
+        
+        if not update_text:
+            return JsonResponse({'success': False, 'error': 'Update text required'}, status=400)
+        
+        submission.update_text = update_text
+        submission.save()
+        
+        # Log the update
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE',
+            content_object=submission,
+            description=f"Updated requirement: {submission.requirement.title}"
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Update saved successfully',
+            'submission': {
+                'id': submission.id,
+                'update_text': submission.update_text,
+                'last_update': submission.updated_at.strftime('%B %d, %Y at %I:%M %p'),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def api_attachment_upload(request):
+    """API endpoint to upload file attachments"""
+    try:
+        # Debug logging
+        print("=== FILE UPLOAD DEBUG ===")
+        print(f"POST data: {request.POST}")
+        print(f"FILES data: {request.FILES}")
+        print(f"User: {request.user}")
+        
+        submission_id = request.POST.get('submission_id')
+        
+        if not submission_id:
+            print("ERROR: No submission_id provided")
+            return JsonResponse({
+                'success': False, 
+                'error': 'Submission ID required'
+            }, status=400)
+        
+        print(f"Looking for submission ID: {submission_id}")
+        
+        try:
+            submission = RequirementSubmission.objects.get(id=submission_id)
+            print(f"Found submission: {submission}")
+        except RequirementSubmission.DoesNotExist:
+            print(f"ERROR: Submission {submission_id} not found")
+            return JsonResponse({
+                'success': False, 
+                'error': f'Submission with ID {submission_id} not found'
+            }, status=404)
+        
+        if 'file' not in request.FILES:
+            print("ERROR: No file in request.FILES")
+            return JsonResponse({
+                'success': False, 
+                'error': 'No file uploaded'
+            }, status=400)
+        
+        file = request.FILES['file']
+        print(f"File received: {file.name}, size: {file.size}, type: {file.content_type}")
+        
+        # Validate file type
+        if not file.content_type.startswith('image/'):
+            print(f"ERROR: Invalid file type: {file.content_type}")
+            return JsonResponse({
+                'success': False, 
+                'error': 'Only image files allowed'
+            }, status=400)
+        
+        # Validate file size (5MB limit)
+        if file.size > 5 * 1024 * 1024:
+            print(f"ERROR: File too large: {file.size} bytes")
+            return JsonResponse({
+                'success': False, 
+                'error': 'File size must be less than 5MB'
+            }, status=400)
+        
+        # Create attachment
+        print("Creating attachment...")
+        attachment = RequirementAttachment.objects.create(
+            submission=submission,
+            file=file,
+            file_type=file.content_type,
+            file_size=file.size,
+            uploaded_by=request.user
+        )
+        print(f"Attachment created with ID: {attachment.id}")
+        
+        # Log the upload
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE',
+                content_object=attachment,
+                description=f"Uploaded attachment for: {submission.requirement.title}"
+            )
+        except Exception as log_error:
+            print(f"Warning: Failed to create audit log: {log_error}")
+        
+        response_data = {
+            'success': True,
+            'message': 'File uploaded successfully',
+            'attachment': {
+                'id': attachment.id,
+                'file_name': os.path.basename(attachment.file.name),
+                'file_size': attachment.file_size_kb,
+                'file_url': attachment.file.url,
+                'uploaded_at': attachment.uploaded_at.strftime('%B %d, %Y at %I:%M %p'),
+            }
+        }
+        
+        print(f"SUCCESS: Returning response: {response_data}")
+        return JsonResponse(response_data)
+        
+    except Exception as e:
+        print(f"=== UPLOAD ERROR ===")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        import traceback
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False, 
+            'error': f'Upload failed: {str(e)}'
+        }, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def api_attachment_delete(request, attachment_id):
+    """API endpoint to delete attachment"""
+    try:
+        attachment = get_object_or_404(RequirementAttachment, id=attachment_id)
+        
+        # Check if user has permission to delete
+        if attachment.uploaded_by != request.user and not request.user.is_staff:
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        # Log before deletion
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            description=f"Deleted attachment: {os.path.basename(attachment.file.name)}"
+        )
+        
+        attachment.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'File removed successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def api_submission_submit(request, submission_id):
+    """
+    API endpoint to submit requirement to admin
+    When barangay official submits, DILG admin automatically sees it
+    """
+    try:
+        # 🔒 Access Control - Only Barangay Officials can submit
+        user_profile = request.user.userprofile
+        if user_profile.role not in ['barangay official', 'municipal officer']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Only Barangay Officials can submit requirements'
+            }, status=403)
+        
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        # Get update_text from POST
+        update_text = request.POST.get('update_text', '').strip()
+        
+        if update_text:
+            submission.update_text = update_text
+            submission.save()
+        
+        # Validate required fields
+        if not submission.update_text:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Please add update details before submitting'
+            }, status=400)
+        
+        if not submission.attachments.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Please upload at least one image before submitting'
+            }, status=400)
+        
+        # ✅ SUBMIT TO ADMIN - Change status to 'accomplished'
+        # This makes it visible to DILG admin immediately
+        submission.status = 'accomplished'
+        submission.submitted_by = request.user
+        submission.submitted_at = timezone.now()
+        submission.save()
+        
+        # 📧 Optional: Send email notification to DILG admin
+        # (You can add this if needed)
+        try:
+            from django.core.mail import send_mail
+            send_mail(
+                subject=f'New Requirement Submitted: {submission.requirement.title}',
+                message=f'{submission.barangay.name} submitted: {submission.requirement.title}',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[settings.EMAIL_HOST_USER],  # DILG admin email
+                fail_silently=True,
+            )
+        except:
+            pass  # Don't fail submission if email fails
+        
+        # Log the submission
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='UPDATE',
+                content_object=submission,
+                description=f"Submitted requirement to DILG Admin: {submission.requirement.title} from {submission.barangay.name}"
+            )
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': '✅ Successfully submitted to DILG Admin!',
+            'submission': {
+                'id': submission.id,
+                'status': submission.status,
+                'status_display': submission.get_status_display(),
+                'submitted_at': submission.submitted_at.strftime('%B %d, %Y at %I:%M %p')
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"=== SUBMIT ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
+        }, status=500)
+
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_submission_delete(request, submission_id):
+    """API endpoint to delete submission"""
+    try:
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        # Check if user has permission
+        if not request.user.is_staff:
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        # Log before deletion
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            description=f"Deleted submission: {submission.requirement.title} - {submission.barangay.name}"
+        )
+        
+        submission.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Requirement deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+def requirements_monitoring(request):
+    """
+    Requirements submission page - BARANGAY OFFICIALS ONLY
+    This is where barangay officials submit their requirements
+    """
+    user_profile = request.user.userprofile
+    
+    # 🔒 STRICT ACCESS CONTROL - Only Barangay Officials
+    if user_profile.role == 'dilg staff':
+        messages.warning(request, '⚠️ DILG Admin should use the Admin Submissions page to review submissions.')
+        return redirect('admin_submissions_page')  # Redirect to admin page
+    
+    if user_profile.role not in ['barangay official', 'municipal officer']:
+        messages.error(request, '🚫 Access Denied: This page is only for Barangay Officials.')
+        return redirect('dashboard')
+    
+    # Get barangays for barangay officials
+    barangays = Barangay.objects.all().order_by('id') 
+    
+    context = {
+        'barangays': barangays,
+        'user_role': user_profile.role,
+        'page_title': 'Submit Requirements',
+        'is_submitter': True,  # Flag to show this is submission page
+    }
+    return render(request, 'requirements_monitoring.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_requirements_list(request):
+    """AJAX endpoint to get requirements list for a barangay"""
+    try:
+        barangay_id = request.GET.get('barangay_id')
+        period = request.GET.get('period', 'weekly')
+        week = request.GET.get('week', 1)
+        search = request.GET.get('search', '')
+        
+        if not barangay_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Barangay ID is required'
+            }, status=400)
+        
+        barangay = get_object_or_404(Barangay, id=barangay_id)
+        
+        # Get current year and week
+        current_year = timezone.now().year
+        current_week = int(week)
+        
+        # Get requirements for this period
+        requirements = Requirement.objects.filter(
+            Q(period=period) & Q(is_active=True)
+        ).filter(
+            Q(applicable_barangays=barangay) | Q(applicable_barangays__isnull=True)
+        )
+        
+        # Apply search filter
+        if search:
+            requirements = requirements.filter(
+                Q(title__icontains=search) | Q(description__icontains=search)
+            )
+        
+        # Get or create submissions for these requirements
+        submissions_data = []
+        for req in requirements:
+            # Get or create submission for this week/period
+            submission, created = RequirementSubmission.objects.get_or_create(
+                requirement=req,
+                barangay=barangay,
+                week_number=current_week if period == 'weekly' else None,
+                year=current_year,
+                defaults={
+                    'due_date': calculate_due_date(period, current_week, current_year),
+                    'status': 'pending'
+                }
+            )
+            
+            submissions_data.append({
+                'id': submission.id,
+                'requirement_id': req.id,
+                'title': req.title,
+                'description': req.description,
+                'status': submission.status,
+                'status_display': submission.get_status_display(),
+                'due_date': submission.due_date.strftime('%B %d, %Y'),
+                'last_update': submission.updated_at.strftime('%B %d, %Y'),
+                'is_overdue': submission.is_overdue,
+                'has_attachments': submission.attachments.exists(),
+                'attachment_count': submission.attachments.count(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'submissions': submissions_data,
+            'barangay_name': barangay.name,
+            'period': period,
+            'week': current_week
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_submission_detail(request, submission_id):
+    """Get detailed information about a specific submission"""
+    try:
+        submission = get_object_or_404(
+            RequirementSubmission.objects.select_related(
+                'requirement', 'barangay', 'submitted_by', 'reviewed_by'
+            ).prefetch_related('attachments'),
+            id=submission_id
+        )
+        
+        # Get attachments
+        attachments = []
+        for attachment in submission.attachments.all():
+            attachments.append({
+                'id': attachment.id,
+                'file_url': attachment.file.url,
+                'file_name': attachment.file.name.split('/')[-1],
+                'file_size': attachment.file_size_kb,
+                'file_type': attachment.file_type,
+                'uploaded_at': attachment.uploaded_at.strftime('%B %d, %Y %I:%M %p')
+            })
+        
+        data = {
+            'id': submission.id,
+            'requirement': {
+                'title': submission.requirement.title,
+                'description': submission.requirement.description,
+                'period': submission.requirement.get_period_display()
+            },
+            'barangay': {
+                'name': submission.barangay.name,
+                'code': submission.barangay.code
+            },
+            'status': submission.status,
+            'status_display': submission.get_status_display(),
+            'due_date': submission.due_date.strftime('%B %d, %Y'),
+            'week_number': submission.week_number,
+            'year': submission.year,
+            'update_text': submission.update_text or '',
+            'is_overdue': submission.is_overdue,
+            'submitted_by': submission.submitted_by.get_full_name() if submission.submitted_by else None,
+            'submitted_at': submission.submitted_at.strftime('%B %d, %Y %I:%M %p') if submission.submitted_at else None,
+            'reviewed_by': submission.reviewed_by.get_full_name() if submission.reviewed_by else None,
+            'reviewed_at': submission.reviewed_at.strftime('%B %d, %Y %I:%M %p') if submission.reviewed_at else None,
+            'review_notes': submission.review_notes or '',
+            'attachments': attachments,
+            'last_update': submission.updated_at.strftime('%B %d, %Y %I:%M %p')
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'submission': data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_submission(request, submission_id):
+    """Update a requirement submission"""
+    try:
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        data = json.loads(request.body)
+        update_text = data.get('update_text', '').strip()
+        
+        if not update_text:
+            return JsonResponse({
+                'success': False,
+                'error': 'Update text is required'
+            }, status=400)
+        
+        # Update submission
+        submission.update_text = update_text
+        submission.status = 'in_progress'
+        submission.updated_at = timezone.now()
+        submission.save()
+        
+        # Log the update
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE',
+            content_object=submission,
+            description=f"Updated requirement submission: {submission.requirement.title}"
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Submission updated successfully',
+            'last_update': submission.updated_at.strftime('%B %d, %Y %I:%M %p')
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def upload_attachment(request, submission_id):
+    """Upload file attachments for a submission"""
+    try:
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        # Get uploaded files
+        files = request.FILES.getlist('files')
+        
+        if not files:
+            return JsonResponse({
+                'success': False,
+                'error': 'No files uploaded'
+            }, status=400)
+        
+        uploaded_files = []
+        
+        for file in files:
+            # Validate file size (max 5MB)
+            if file.size > 5 * 1024 * 1024:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'File {file.name} is too large (max 5MB)'
+                }, status=400)
+            
+            # Create attachment
+            attachment = RequirementAttachment.objects.create(
+                submission=submission,
+                file=file,
+                file_type=file.content_type,
+                file_size=file.size,
+                uploaded_by=request.user
+            )
+            
+            uploaded_files.append({
+                'id': attachment.id,
+                'file_name': file.name,
+                'file_size': attachment.file_size_kb,
+                'file_url': attachment.file.url
+            })
+        
+        # Log the upload
+        AuditLog.objects.create(
+            user=request.user,
+            action='CREATE',
+            content_object=submission,
+            description=f"Uploaded {len(files)} file(s) for requirement: {submission.requirement.title}"
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{len(files)} file(s) uploaded successfully',
+            'files': uploaded_files
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_attachment(request, attachment_id):
+    """Delete a file attachment"""
+    try:
+        attachment = get_object_or_404(RequirementAttachment, id=attachment_id)
+        submission = attachment.submission
+        
+        # Delete the file
+        attachment.delete()
+        
+        # Log the deletion
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            content_object=submission,
+            description=f"Deleted attachment for requirement: {submission.requirement.title}"
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Attachment deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def submit_to_admin(request, submission_id):
+    """Submit requirement to admin for review"""
+    try:
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        # Validate that there's content
+        if not submission.update_text:
+            return JsonResponse({
+                'success': False,
+                'error': 'Please add update details before submitting'
+            }, status=400)
+        
+        # Update submission status
+        submission.submit(request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Requirement submitted to admin successfully',
+            'new_status': submission.status,
+            'submitted_at': submission.submitted_at.strftime('%B %d, %Y %I:%M %p')
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_submission(request, submission_id):
+    """Delete a requirement submission"""
+    try:
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        # Only allow deletion if status is pending
+        if submission.status not in ['pending', 'in_progress']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cannot delete submitted or reviewed requirements'
+            }, status=400)
+        
+        requirement_title = submission.requirement.title
+        
+        # Log before deletion
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            description=f"Deleted requirement submission: {requirement_title}"
+        )
+        
+        # Delete submission (attachments will be deleted via cascade)
+        submission.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Requirement "{requirement_title}" deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+# Helper function
+def calculate_due_date(period, week_number, year):
+    """Calculate due date based on period and week number"""
+    if period == 'weekly':
+        # Calculate the last day of the specified week
+        jan_1 = datetime(year, 1, 1)
+        days_to_add = (week_number - 1) * 7 + (6 - jan_1.weekday())
+        return (jan_1 + timedelta(days=days_to_add)).date()
+    
+    elif period == 'monthly':
+        # Last day of current month
+        if timezone.now().month == 12:
+            return datetime(year + 1, 1, 1).date() - timedelta(days=1)
+        else:
+            return datetime(year, timezone.now().month + 1, 1).date() - timedelta(days=1)
+    
+    elif period == 'quarterly':
+        # End of current quarter
+        current_quarter = (timezone.now().month - 1) // 3
+        quarter_end_month = (current_quarter + 1) * 3
+        if quarter_end_month == 12:
+            return datetime(year, 12, 31).date()
+        else:
+            return datetime(year, quarter_end_month + 1, 1).date() - timedelta(days=1)
+    
+    elif period == 'semestral':
+        # End of semester (June 30 or December 31)
+        if timezone.now().month <= 6:
+            return datetime(year, 6, 30).date()
+        else:
+            return datetime(year, 12, 31).date()
+    
+    elif period == 'annually':
+        # End of year
+        return datetime(year, 12, 31).date()
+    
+    return timezone.now().date()
+
+
+#DILG ADMIN
+@login_required
+def admin_submissions_page(request):
+    """
+    Admin review page - DILG STAFF ONLY
+    This is where DILG admin reviews all submissions from all barangays
+    """
+    user_profile = request.user.userprofile
+    
+    # 🔒 STRICT ACCESS CONTROL - Only DILG Staff
+    if user_profile.role == 'barangay official':
+        messages.error(request, '🚫 Access Denied: Barangay Officials cannot access the admin review page.')
+        return redirect('requirements_monitoring')  # Redirect to submission page
+    
+    if user_profile.role != 'dilg staff':
+        messages.error(request, '🚫 Access Denied: This page is only accessible to DILG Admin.')
+        return redirect('dashboard')
+    
+    barangays = Barangay.objects.all().order_by('name')
+    
+    context = {
+        'barangays': barangays,
+        'page_title': 'Review Submissions',
+        'is_admin_view': True,  # Flag to show this is admin page
+    }
+    return render(request, 'admin_submissions.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_admin_submissions_list(request):
+    """
+    API endpoint to get all submissions for DILG admin review
+    ONLY accessible by DILG Staff
+    """
+    try:
+        # STRICT ACCESS CONTROL
+        user_profile = request.user.userprofile
+        if user_profile.role != 'dilg staff':
+            return JsonResponse({
+                'success': False,
+                'error': 'Unauthorized: Only DILG Admin can view submissions'
+            }, status=403)
+        
+        # Get filter parameters
+        barangay_id = request.GET.get('barangay_id', '')
+        status_filter = request.GET.get('status', '')
+        period_filter = request.GET.get('period', '')
+        search_query = request.GET.get('search', '').strip()
+        
+        # Base query - get ALL submissions from ALL barangays
+        submissions = RequirementSubmission.objects.select_related(
+            'requirement', 'barangay', 'submitted_by', 'reviewed_by'
+        ).prefetch_related('attachments')
+        
+        # Apply filters
+        if barangay_id:
+            submissions = submissions.filter(barangay_id=barangay_id)
+        
+        if status_filter:
+            submissions = submissions.filter(status=status_filter)
+        else:
+            # Default: show only submitted (accomplished) items awaiting review
+            submissions = submissions.filter(status='accomplished')
+        
+        if period_filter:
+            submissions = submissions.filter(requirement__period=period_filter)
+        
+        if search_query:
+            submissions = submissions.filter(
+                Q(requirement__title__icontains=search_query) |
+                Q(requirement__description__icontains=search_query) |
+                Q(barangay__name__icontains=search_query) |
+                Q(update_text__icontains=search_query)
+            )
+        
+        # Get statistics for all submissions
+        all_submissions = RequirementSubmission.objects.all()
+        
+        stats = {
+            'submitted': all_submissions.filter(status='accomplished').count(),
+            'approved': all_submissions.filter(status='approved').count(),
+            'rejected': all_submissions.filter(status='rejected').count(),
+            'overdue': all_submissions.filter(
+                due_date__lt=timezone.now().date(),
+                status__in=['pending', 'in_progress', 'accomplished']
+            ).count()
+        }
+        
+        # Prepare submissions data
+        submissions_data = []
+        for sub in submissions.order_by('-submitted_at', '-updated_at'):
+            # Get attachments
+            attachments = []
+            for att in sub.attachments.all():
+                try:
+                    attachments.append({
+                        'id': att.id,
+                        'file_name': os.path.basename(att.file.name) if att.file else 'Unknown',
+                        'file_url': att.file.url if att.file else '',
+                        'file_size': att.file_size_kb if hasattr(att, 'file_size_kb') else 
+                                   round(att.file_size / 1024, 2) if hasattr(att, 'file_size') else 0,
+                    })
+                except:
+                    continue
+            
+            submissions_data.append({
+                'id': sub.id,
+                'title': sub.requirement.title,
+                'description': sub.requirement.description,
+                'barangay_name': sub.barangay.name,
+                'barangay_id': sub.barangay.id,
+                'status': sub.status,
+                'status_display': sub.get_status_display(),
+                'period': sub.requirement.get_period_display(),
+                'due_date': sub.due_date.strftime('%B %d, %Y'),
+                'is_overdue': sub.is_overdue,
+                'update_text': sub.update_text or '',
+                'submitted_at': sub.submitted_at.strftime('%B %d, %Y') if sub.submitted_at else None,
+                'submitted_by': sub.submitted_by.get_full_name() if sub.submitted_by else None,
+                'reviewed_at': sub.reviewed_at.strftime('%B %d, %Y') if sub.reviewed_at else None,
+                'reviewed_by': sub.reviewed_by.get_full_name() if sub.reviewed_by else None,
+                'review_notes': sub.review_notes or '',
+                'attachments': attachments,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'submissions': submissions_data,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"=== API ADMIN SUBMISSIONS ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_admin_review_submission(request, submission_id):
+    """
+    FIXED: API endpoint for DILG admin to approve/reject submissions
+    ONLY accessible by DILG Staff
+    """
+    try:
+        # STRICT ACCESS CONTROL
+        user_profile = request.user.userprofile
+        if user_profile.role != 'dilg staff':
+            return JsonResponse({
+                'success': False,
+                'error': 'Unauthorized: Only DILG Admin can review submissions'
+            }, status=403)
+        
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        
+        data = json.loads(request.body)
+        action = data.get('action')  # 'approved' or 'rejected'
+        review_notes = data.get('review_notes', '').strip()
+        
+        if action not in ['approved', 'rejected']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid action. Must be "approved" or "rejected"'
+            }, status=400)
+        
+        # Update submission
+        submission.status = action
+        submission.reviewed_by = request.user
+        submission.reviewed_at = timezone.now()
+        submission.review_notes = review_notes
+        submission.save()
+        
+        # Log the review
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='UPDATE',
+                content_object=submission,
+                description=f"DILG Admin {action.upper()} submission: {submission.requirement.title} from {submission.barangay.name}"
+            )
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Submission {action} successfully',
+            'submission': {
+                'id': submission.id,
+                'status': submission.status,
+                'status_display': submission.get_status_display(),
+                'reviewed_by': request.user.get_full_name() or request.user.username,
+                'reviewed_at': submission.reviewed_at.strftime('%B %d, %Y %I:%M %p')
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        import traceback
+        print(f"=== REVIEW ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+def check_page_access(request, allowed_roles):
+    """
+    Reusable function to check if user has access to a page
+    Returns: (has_access: bool, redirect_url: str or None)
+    """
+    if not request.user.is_authenticated:
+        return False, 'login_page'
+    
+    try:
+        user_profile = request.user.userprofile
+        if user_profile.role in allowed_roles:
+            return True, None
+        
+        # Determine where to redirect based on role
+        if user_profile.role == 'dilg staff':
+            return False, 'admin_submissions_page'
+        elif user_profile.role == 'barangay official':
+            return False, 'requirements_monitoring'
+        else:
+            return False, 'dashboard'
+    except:
+        return False, 'dashboard'
+    
+
+@login_required
+@require_http_methods(["POST"])
+def api_create_requirement(request):
+    """
+    API endpoint for DILG Admin to create new requirements
+    ONLY accessible by DILG Staff
+    """
+    try:
+        # STRICT ACCESS CONTROL
+        user_profile = request.user.userprofile
+        if user_profile.role != 'dilg staff':
+            return JsonResponse({
+                'success': False,
+                'error': 'Unauthorized: Only DILG Admin can create requirements'
+            }, status=403)
+        
+        data = json.loads(request.body)
+        
+        title = data.get('title', '').strip()
+        description = data.get('description', '').strip()
+        period = data.get('period', '').strip()
+        barangay_ids = data.get('barangay_ids', [])  # Empty = all barangays
+        
+        # Validation
+        if not title:
+            return JsonResponse({'success': False, 'error': 'Title is required'}, status=400)
+        
+        if not description:
+            return JsonResponse({'success': False, 'error': 'Description is required'}, status=400)
+        
+        if not period:
+            return JsonResponse({'success': False, 'error': 'Period is required'}, status=400)
+        
+        valid_periods = ['weekly', 'monthly', 'quarterly', 'semestral', 'annually']
+        if period not in valid_periods:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid period. Must be one of: {valid_periods}'
+            }, status=400)
+        
+        # Create requirement
+        requirement = Requirement.objects.create(
+            title=title,
+            description=description,
+            period=period,
+            created_by=request.user,
+            is_active=True
+        )
+        
+        # Assign to specific barangays if provided, otherwise applies to all
+        if barangay_ids:
+            target_barangays = Barangay.objects.filter(id__in=barangay_ids)
+            requirement.applicable_barangays.set(target_barangays)
+        else:
+            # If no specific barangays, get all
+            target_barangays = Barangay.objects.all()
+        
+        # 🔥 FIX: AUTO-CREATE SUBMISSIONS FOR ALL BARANGAYS
+        current_year = timezone.now().year
+        submissions_created = 0
+        
+        for barangay in target_barangays:
+            if period == 'weekly':
+                # Create submissions for the next 4 weeks
+                for week_num in range(1, 5):
+                    RequirementSubmission.objects.create(
+                        requirement=requirement,
+                        barangay=barangay,
+                        week_number=week_num,
+                        year=current_year,
+                        due_date=calculate_due_date(period, week_num, current_year),
+                        status='pending'
+                    )
+                    submissions_created += 1
+            else:
+                # For monthly, quarterly, semestral, annually - create one submission
+                RequirementSubmission.objects.create(
+                    requirement=requirement,
+                    barangay=barangay,
+                    week_number=None,
+                    year=current_year,
+                    due_date=calculate_due_date(period, 1, current_year),
+                    status='pending'
+                )
+                submissions_created += 1
+        
+        print(f"✅ Created {submissions_created} submissions for requirement: {title}")
+        
+        # Log the creation
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE',
+                content_object=requirement,
+                description=f"DILG Admin created new requirement: {title} with {submissions_created} submissions"
+            )
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Requirement created successfully! {submissions_created} submissions created for barangays.',
+            'requirement': {
+                'id': requirement.id,
+                'title': requirement.title,
+                'description': requirement.description,
+                'period': requirement.period,
+                'period_display': requirement.get_period_display(),
+                'submissions_created': submissions_created,
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        import traceback
+        print(f"=== CREATE REQUIREMENT ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_edit_requirement(request, requirement_id):
+    """
+    API endpoint for DILG Admin to edit existing requirements
+    ONLY accessible by DILG Staff
+    """
+    try:
+        user_profile = request.user.userprofile
+        if user_profile.role != 'dilg staff':
+            return JsonResponse({
+                'success': False,
+                'error': 'Unauthorized: Only DILG Admin can edit requirements'
+            }, status=403)
+        
+        requirement = get_object_or_404(Requirement, id=requirement_id)
+        
+        data = json.loads(request.body)
+        
+        title = data.get('title', '').strip()
+        description = data.get('description', '').strip()
+        period = data.get('period', '').strip()
+        is_active = data.get('is_active', True)
+        
+        if title:
+            requirement.title = title
+        if description:
+            requirement.description = description
+        if period:
+            requirement.period = period
+        
+        requirement.is_active = is_active
+        requirement.save()
+        
+        # Log the update
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='UPDATE',
+                content_object=requirement,
+                description=f"DILG Admin updated requirement: {requirement.title}"
+            )
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Requirement updated successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def api_delete_requirement(request, requirement_id):
+    """
+    API endpoint for DILG Admin to delete requirements
+    ONLY accessible by DILG Staff
+    """
+    try:
+        user_profile = request.user.userprofile
+        if user_profile.role != 'dilg staff':
+            return JsonResponse({
+                'success': False,
+                'error': 'Unauthorized: Only DILG Admin can delete requirements'
+            }, status=403)
+        
+        requirement = get_object_or_404(Requirement, id=requirement_id)
+        title = requirement.title
+        
+        # Log before deletion
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='DELETE',
+                description=f"DILG Admin deleted requirement: {title}"
+            )
+        except:
+            pass
+        
+        requirement.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Requirement "{title}" deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_all_requirements(request):
+    """
+    API endpoint to get all requirements (for DILG Admin management)
+    ONLY accessible by DILG Staff
+    """
+    try:
+        user_profile = request.user.userprofile
+        if user_profile.role != 'dilg staff':
+            return JsonResponse({
+                'success': False,
+                'error': 'Unauthorized'
+            }, status=403)
+        
+        requirements = Requirement.objects.all().order_by('-created_at')
+        
+        requirements_data = []
+        for req in requirements:
+            applicable_barangays = list(req.applicable_barangays.values_list('name', flat=True))
+            
+            requirements_data.append({
+                'id': req.id,
+                'title': req.title,
+                'description': req.description,
+                'period': req.period,
+                'period_display': req.get_period_display(),
+                'is_active': req.is_active,
+                'applicable_barangays': applicable_barangays if applicable_barangays else ['All Barangays'],
+                'created_at': req.created_at.strftime('%B %d, %Y'),
+                'created_by': req.created_by.get_full_name() if req.created_by else 'System',
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'requirements': requirements_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_notifications(request):
+    """Get all notifications for the current user"""
+    try:
+        notifications = Notification.objects.filter(user=request.user)[:20]  # Last 20
+        unread_count = notifications.filter(is_read=False).count()
+        
+        notifications_data = []
+        for notif in notifications:
+            notifications_data.append({
+                'id': notif.id,
+                'type': notif.type,
+                'title': notif.title,
+                'message': notif.message,
+                'is_read': notif.is_read,
+                'time_ago': notif.time_ago(),
+                'submission_id': notif.submission.id if notif.submission else None,
+                'barangay_id': notif.barangay.id if notif.barangay else None,
+                'created_at': notif.created_at.isoformat()
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'notifications': notifications_data,
+            'unread_count': unread_count
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_notification_read(request, notification_id):
+    """Mark a single notification as read"""
+    try:
+        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification.is_read = True
+        notification.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Notification marked as read'
+        })
+    except Notification.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Notification not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_all_notifications_read(request):
+    """Mark all notifications as read for the current user"""
+    try:
+        updated_count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).update(is_read=True)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{updated_count} notifications marked as read'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+# Helper function to create notifications
+def create_notification(user, title, message, notification_type='info', submission=None, barangay=None):
+    """Helper function to create a notification"""
+    Notification.objects.create(
+        user=user,
+        type=notification_type,
+        title=title,
+        message=message,
+        submission=submission,
+        barangay=barangay
+    )
+
+
+# Add these to your existing views to trigger notifications
+
+# When a requirement becomes overdue
+def check_overdue_requirements():
+    """Check for overdue requirements and create notifications"""
+    from .models import RequirementSubmission
+    
+    overdue_submissions = RequirementSubmission.objects.filter(
+        status__in=['pending', 'in_progress'],
+        due_date__lt=timezone.now().date()
+    )
+    
+    for submission in overdue_submissions:
+        # Create notification for submitter
+        if submission.barangay.submitter:
+            create_notification(
+                user=submission.barangay.submitter,
+                title="Overdue Requirement",
+                message=f"{submission.requirement.title} for {submission.barangay.name} is overdue!",
+                notification_type='overdue',
+                submission=submission,
+                barangay=submission.barangay
+            )
+
+
+# When a requirement is due soon (within 3 days)
+def check_upcoming_requirements():
+    """Check for requirements due soon"""
+    from .models import RequirementSubmission
+    
+    three_days_from_now = timezone.now().date() + timedelta(days=3)
+    
+    upcoming_submissions = RequirementSubmission.objects.filter(
+        status__in=['pending', 'in_progress'],
+        due_date__lte=three_days_from_now,
+        due_date__gte=timezone.now().date()
+    )
+    
+    for submission in upcoming_submissions:
+        # Check if notification already exists
+        existing = Notification.objects.filter(
+            user=submission.barangay.submitter,
+            submission=submission,
+            type='upcoming',
+            created_at__gte=timezone.now() - timedelta(days=1)
+        ).exists()
+        
+        if not existing and submission.barangay.submitter:
+            create_notification(
+                user=submission.barangay.submitter,
+                title="Upcoming Deadline",
+                message=f"{submission.requirement.title} for {submission.barangay.name} is due on {submission.due_date}",
+                notification_type='upcoming',
+                submission=submission,
+                barangay=submission.barangay
+            )
+
+
+# When a requirement is submitted
+def notify_requirement_submitted(submission):
+    """Notify admin when requirement is submitted"""
+    from django.contrib.auth.models import User
+    
+    # Get all admin users
+    admin_users = User.objects.filter(is_staff=True)
+    
+    for admin in admin_users:
+        create_notification(
+            user=admin,
+            title="New Submission",
+            message=f"{submission.barangay.name} submitted {submission.requirement.title}",
+            notification_type='completed',
+            submission=submission,
+            barangay=submission.barangay
+        )
+
+@login_required
+def notifications_page(request):
+    return render(request, 'notifications.html')
+
+@login_required
+@require_http_methods(["POST"])
+def create_announcement(request):
+    """Create announcement and notify all barangay officials"""
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        title = data.get('title')
+        content = data.get('content')
+        priority = data.get('priority', 'medium')
+        send_notification = data.get('send_notification', True)
+        
+        if not title or not content:
+            return JsonResponse({
+                'success': False,
+                'error': 'Title and content are required'
+            }, status=400)
+        
+        # Create the announcement (assuming you have an Announcement model)
+        from .models import Announcement
+        announcement = Announcement.objects.create(
+            title=title,
+            content=content,
+            priority=priority,
+            posted_by=request.user
+        )
+        
+        # Send notifications to all barangay officials if enabled
+        if send_notification:
+            # Get all barangay submitters/officials
+            from .models import Barangay
+            barangays = Barangay.objects.filter(submitter__isnull=False)
+            
+            notification_type = 'info'
+            if priority == 'high':
+                notification_type = 'urgent'
+            elif priority == 'medium':
+                notification_type = 'info'
+            else:
+                notification_type = 'reminder'
+            
+            # Create notifications for each barangay official
+            for barangay in barangays:
+                if barangay.submitter:
+                    Notification.objects.create(
+                        user=barangay.submitter,
+                        type=notification_type,
+                        title=f"📢 New Announcement: {title}",
+                        message=content[:200] + ('...' if len(content) > 200 else ''),
+                        barangay=barangay
+                    )
+            
+            notified_count = barangays.count()
+        else:
+            notified_count = 0
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Announcement posted and {notified_count} officials notified',
+            'announcement': {
+                'id': announcement.id,
+                'title': announcement.title,
+                'content': announcement.content,
+                'priority': announcement.priority,
+                'notified_count': notified_count
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_announcement(request, announcement_id):
+    """Update announcement and optionally notify users"""
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        from .models import Announcement
+        announcement = Announcement.objects.get(id=announcement_id)
+        
+        announcement.title = data.get('title', announcement.title)
+        announcement.content = data.get('content', announcement.content)
+        announcement.priority = data.get('priority', announcement.priority)
+        announcement.save()
+        
+        # Send update notification if requested
+        if data.get('send_notification', False):
+            from .models import Barangay
+            barangays = Barangay.objects.filter(submitter__isnull=False)
+            
+            for barangay in barangays:
+                if barangay.submitter:
+                    Notification.objects.create(
+                        user=barangay.submitter,
+                        type='info',
+                        title=f"📝 Updated: {announcement.title}",
+                        message=f"An announcement has been updated. Please check for new information.",
+                        barangay=barangay
+                    )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Announcement updated successfully'
+        })
+        
+    except Announcement.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Announcement not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    """Get all notifications for the current user"""
+    try:
+        notifications = Notification.objects.filter(user=request.user)[:20]  # Last 20
+        unread_count = notifications.filter(is_read=False).count()
+        
+        notifications_data = []
+        for notif in notifications:
+            notifications_data.append({
+                'id': notif.id,
+                'type': notif.type,
+                'title': notif.title,
+                'message': notif.message,
+                'is_read': notif.is_read,
+                'time_ago': notif.time_ago(),
+                'submission_id': notif.submission.id if notif.submission else None,
+                'barangay_id': notif.barangay.id if notif.barangay else None,
+                'created_at': notif.created_at.isoformat()
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'notifications': notifications_data,
+            'unread_count': unread_count
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def mark_notification_read(request, notification_id):
+    """Mark a single notification as read"""
+    try:
+        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification.is_read = True
+        notification.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Notification marked as read'
+        })
+    except Notification.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Notification not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_all_notifications_read(request):
+    """Mark all notifications as read for the current user"""
+    try:
+        updated_count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).update(is_read=True)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{updated_count} notifications marked as read'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+# Helper function to create notifications
+def create_notification(user, title, message, notification_type='info', submission=None, barangay=None):
+    """Helper function to create a notification"""
+    Notification.objects.create(
+        user=user,
+        type=notification_type,
+        title=title,
+        message=message,
+        submission=submission,
+        barangay=barangay
+    )
+
+
+# Add these to your existing views to trigger notifications
+
+# When a requirement becomes overdue
+def check_overdue_requirements():
+    """Check for overdue requirements and create notifications"""
+    from .models import RequirementSubmission
+    
+    overdue_submissions = RequirementSubmission.objects.filter(
+        status__in=['pending', 'in_progress'],
+        due_date__lt=timezone.now().date()
+    )
+    
+    for submission in overdue_submissions:
+        # Create notification for submitter
+        if submission.barangay.submitter:
+            create_notification(
+                user=submission.barangay.submitter,
+                title="Overdue Requirement",
+                message=f"{submission.requirement.title} for {submission.barangay.name} is overdue!",
+                notification_type='overdue',
+                submission=submission,
+                barangay=submission.barangay
+            )
+
+
+# When a requirement is due soon (within 3 days)
+def check_upcoming_requirements():
+    """Check for requirements due soon"""
+    from .models import RequirementSubmission
+    
+    three_days_from_now = timezone.now().date() + timedelta(days=3)
+    
+    upcoming_submissions = RequirementSubmission.objects.filter(
+        status__in=['pending', 'in_progress'],
+        due_date__lte=three_days_from_now,
+        due_date__gte=timezone.now().date()
+    )
+    
+    for submission in upcoming_submissions:
+        # Check if notification already exists
+        existing = Notification.objects.filter(
+            user=submission.barangay.submitter,
+            submission=submission,
+            type='upcoming',
+            created_at__gte=timezone.now() - timedelta(days=1)
+        ).exists()
+        
+        if not existing and submission.barangay.submitter:
+            create_notification(
+                user=submission.barangay.submitter,
+                title="Upcoming Deadline",
+                message=f"{submission.requirement.title} for {submission.barangay.name} is due on {submission.due_date}",
+                notification_type='upcoming',
+                submission=submission,
+                barangay=submission.barangay
+            )
+
+
+# When a requirement is submitted
+def notify_requirement_submitted(submission):
+    """Notify admin when requirement is submitted"""
+    from django.contrib.auth.models import User
+    
+    # Get all admin users
+    admin_users = User.objects.filter(is_staff=True)
+    
+    for admin in admin_users:
+        create_notification(
+            user=admin,
+            title="New Submission",
+            message=f"{submission.barangay.name} submitted {submission.requirement.title}",
+            notification_type='completed',
+            submission=submission,
+            barangay=submission.barangay
+        )

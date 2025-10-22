@@ -1,0 +1,2261 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DILG Admin - Requirements Management</title>
+  <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100vh;
+      height: 100vh;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .main-container {
+      display: flex;
+      gap: 0;
+      width: 100%;
+      height: 100vh;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+    }
+
+    .sidebar {
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+      width: 220px;
+      padding: 20px;
+      border-right: 1px solid #ccc;
+      border-radius: 0 30px 30px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo {
+      width: 100px;
+      margin-bottom: 20px;
+    }
+
+    .nav-section h3 {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: #4b5563;
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: #f3f4f6;
+    }
+
+    .nav-item.active {
+      background: #2456f3;
+      color: white;
+      font-weight: 600;
+    }
+
+    .content-area {
+      flex: 1;
+      background: white;
+      border-radius: 0;
+      padding: 30px 40px;
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      height: 100vh;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+    }
+
+    .content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .content-header h1 {
+      font-size: 28px;
+      color: #1a202c;
+      font-weight: 700;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #2456f3;
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: #4338ca;
+      transform: scale(1.05);
+    }
+
+    .back-btn {
+      background: #2456f3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: #4338ca;
+      transform: translateX(-2px);
+    }
+
+    .add-requirement-btn {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-requirement-btn:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+
+    .search-container {
+      position: relative;
+      margin-bottom: 25px;
+    }
+
+    .search-input {
+      width: 40%;
+      padding: 12px 16px 12px 45px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #2456f3;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-size: 16px;
+    }
+
+    .view-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    .view-tab {
+      padding: 12px 24px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #6b7280;
+      transition: all 0.2s;
+    }
+
+    .view-tab:hover {
+      background: #e5e7eb;
+    }
+
+    .view-tab.active {
+      background: #2456f3;
+      color: white;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .filter-group label {
+      display: block;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+    }
+
+    .filter-group select:focus,
+    .filter-group input:focus {
+      outline: none;
+      border-color: #2456f3;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .submissions-container {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 10px;
+      max-height: calc(100vh - 400px);
+    }
+
+    .submissions-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .submissions-container::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+
+    .submission-card {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: all 0.2s;
+    }
+
+    .submission-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .submission-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+
+    .submission-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 5px;
+    }
+
+    .submission-barangay {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .status-badge {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .status-badge.accomplished {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.approved {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status-badge.rejected {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-badge.active {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.inactive {
+      background: #e5e7eb;
+      color: #6b7280;
+    }
+
+    .submission-info {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      padding: 15px 0;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+      margin: 15px 0;
+    }
+
+    .info-item {
+      font-size: 13px;
+    }
+
+    .info-label {
+      color: #6b7280;
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .info-value {
+      color: #1a202c;
+      font-weight: 600;
+    }
+
+    .submission-update {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      font-size: 14px;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+
+    .attachments {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 15px 0;
+    }
+
+    .attachment-badge {
+      background: #e5e7eb;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #1a202c;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .attachment-badge:hover {
+      background: #d1d5db;
+      transform: scale(1.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-approve {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-approve:hover {
+      background: #059669;
+    }
+
+    .btn-reject {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-reject:hover {
+      background: #dc2626;
+    }
+
+    .btn-edit {
+      background: #2456f3;
+      color: white;
+    }
+
+    .btn-edit:hover {
+      background: #2456f3;
+    }
+
+    .btn-delete {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #dc2626;
+    }
+
+    .btn-deactivate {
+      background: #6b7280;
+      color: white;
+    }
+
+    .btn-deactivate:hover {
+      background: #4b5563;
+    }
+
+    .btn-cancel {
+      background: #e5e7eb;
+      color: #1a202c;
+    }
+
+    .btn-cancel:hover {
+      background: #d1d5db;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #6b7280;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #2456f3;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+      font-size: 22px;
+      color: #1a202c;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #6b7280;
+      line-height: 1;
+    }
+
+    .close-btn:hover {
+      color: #1a202c;
+    }
+
+    .modal-body label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1a202c;
+      font-size: 14px;
+    }
+
+    .modal-body input,
+    .modal-body select,
+    .modal-body textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .modal-body textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .modal-body input:focus,
+    .modal-body select:focus,
+    .modal-body textarea:focus {
+      outline: none;
+      border-color: #2456f3;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1a202c;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 2000;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .toast.show {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.success {
+      background: #10b981;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .requirement-card {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: all 0.2s;
+    }
+
+    .requirement-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .requirement-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+
+    .requirement-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 5px;
+    }
+
+    .requirement-info {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      padding: 15px 0;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 15px;
+    }
+
+    .calendar-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      overflow-y: auto;
+      max-height: calc(100vh - 200px);
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .calendar-header h2 {
+      font-size: 20px;
+      color: #1a202c;
+      font-weight: 700;
+    }
+
+    .calendar-nav {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .calendar-nav button {
+      background: #f3f4f6;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .calendar-nav button:hover {
+      background: #e5e7eb;
+    }
+
+    .calendar-nav .today-btn {
+      background: #2456f3;
+      color: white;
+    }
+
+    .calendar-nav .today-btn:hover {
+      background: #1e40af;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: #e5e7eb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .calendar-day-header {
+      background: #f9fafb;
+      padding: 12px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+
+    .calendar-day {
+      background: white;
+      min-height: 100px;
+      padding: 8px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .calendar-day:hover {
+      background: #f9fafb;
+    }
+
+    .calendar-day.other-month {
+      background: #fafafa;
+      opacity: 0.5;
+    }
+
+    .calendar-day.today {
+      background: #eff6ff;
+      border: 2px solid #2456f3;
+    }
+
+    .day-number {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 4px;
+    }
+
+    .calendar-day.today .day-number {
+      color: #2456f3;
+    }
+
+    .day-events {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .event-dot {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .event-dot:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .event-dot.due {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .event-dot.submitted {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .event-dot.approved {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .calendar-legend {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .event-details-modal .modal-content {
+      max-width: 500px;
+    }
+
+    .event-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .event-item {
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid;
+    }
+
+    .event-item.due {
+      background: #fef2f2;
+      border-color: #ef4444;
+    }
+
+    .event-item.submitted {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+
+    .event-item.approved {
+      background: #f0fdf4;
+      border-color: #10b981;
+    }
+
+    .event-item-title {
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 4px;
+    }
+
+    .event-item-details {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .announcements-container {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 10px;
+      max-height: calc(100vh - 220px);
+    }
+
+    .announcements-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .announcements-container::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+
+    .announcement-card {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .announcement-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .announcement-card.priority-high {
+      border-left: 4px solid #ef4444;
+    }
+
+    .announcement-card.priority-medium {
+      border-left: 4px solid #f59e0b;
+    }
+
+    .announcement-card.priority-low {
+      border-left: 4px solid #10b981;
+    }
+
+    .announcement-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .announcement-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 5px;
+    }
+
+    .announcement-meta {
+      display: flex;
+      gap: 15px;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    .announcement-meta span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .announcement-content {
+      color: #4b5563;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 15px 0;
+      white-space: pre-wrap;
+    }
+
+    .announcement-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .priority-badge {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .priority-badge.high {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .priority-badge.medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .priority-badge.low {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .announcement-actions {
+      display: flex;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast"></div>
+
+  <div class="modal" id="reviewModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Review Submission</h2>
+        <button class="close-btn" onclick="closeReviewModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="reviewNotes">Review Notes (Optional)</label>
+        <textarea id="reviewNotes" placeholder="Add any comments or feedback..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeReviewModal()">Cancel</button>
+        <button class="btn" id="confirmReviewBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="eventDetailsModal">
+    <div class="modal-content event-details-modal">
+      <div class="modal-header">
+        <h2 id="eventModalTitle">Events for <span id="eventModalDate"></span></h2>
+        <button class="close-btn" onclick="closeEventModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="event-list" id="eventsList"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeEventModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="requirementModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="requirementModalTitle">Add New Requirement</h2>
+        <button class="close-btn" onclick="closeRequirementModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="reqTitle">Title *</label>
+        <input type="text" id="reqTitle" placeholder="Enter requirement title" required>
+
+        <label for="reqDescription">Description *</label>
+        <textarea id="reqDescription" placeholder="Enter detailed description" required></textarea>
+
+        <label for="reqPeriod">Period *</label>
+        <select id="reqPeriod" required>
+          <option value="">Select Period</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="semestral">Semestral</option>
+          <option value="annually">Annually</option>
+        </select>
+
+        <label>
+          <input type="checkbox" id="applyToAll" checked> Apply to all barangays
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeRequirementModal()">Cancel</button>
+        <button class="btn btn-approve" onclick="saveRequirement()">Save Requirement</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="announcementModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="announcementModalTitle">Create Announcement</h2>
+        <button class="close-btn" onclick="closeAnnouncementModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="announcementTitle">Title *</label>
+        <input type="text" id="announcementTitle" placeholder="Enter announcement title" required>
+
+        <label for="announcementContent">Content *</label>
+        <textarea id="announcementContent" placeholder="Enter announcement content..." required style="min-height: 150px;"></textarea>
+
+        <label for="announcementPriority">Priority *</label>
+        <select id="announcementPriority" required>
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+
+        <label>
+          <input type="checkbox" id="sendNotification" checked> Send notification to all barangays
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeAnnouncementModal()">Cancel</button>
+        <button class="btn btn-approve" onclick="saveAnnouncement()">Post Announcement</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <div class="logo-container">
+        <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      </div>
+      
+      <nav class="nav-section">
+        <h3>Menu</h3>
+        <ul class="nav-list">
+          <li class="nav-item" onclick="switchToView('submissions')">Dashboard</li>
+          <li class="nav-item active">Requirements</li>
+          <li class="nav-item" onclick="switchToView('calendar')">Calendar</li>
+          <li class="nav-item" onclick="switchToView('announcements')">Announcements</li>
+          <li class="nav-item">Reports</li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="content-area">
+      <div class="content-header">
+        <h1>Requirements Monitoring</h1>
+        <div class="header-actions">
+          <button class="add-requirement-btn" onclick="openAddRequirementModal()">
+            <i class="fa-solid fa-plus"></i> Add New Requirement
+          </button>
+          <button class="icon-btn" title="Notifications" style="background:none; border:none; cursor:pointer;">
+          <i class="fa-solid fa-bell" style="color:#0b1a50; font-size:22px;"></i></button>
+          <button class="back-btn" onclick="window.history.back()">← Back</button>
+        </div>
+      </div>
+
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="searchBox" placeholder="Search" onkeyup="loadSubmissions()">
+      </div>
+
+      <div class="view-tabs">
+        <button class="view-tab active" onclick="switchView('submissions')">Review Submissions</button>
+        <button class="view-tab" onclick="switchView('requirements')">Manage Requirements</button>
+      </div>
+
+      <div id="submissionsView">
+        <div class="filters">
+          <div class="filter-group">
+            <label>Barangay</label>
+            <select id="filterBarangay" onchange="loadSubmissions()">
+              <option value="">All Barangays</option>
+              <option value="1">Barangay 1</option>
+              <option value="2">Barangay 2</option>
+              <option value="3">Barangay 3</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Status</label>
+            <select id="filterStatus" onchange="loadSubmissions()">
+              <option value="">All Statuses</option>
+              <option value="accomplished" selected>Awaiting Review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Period</label>
+            <select id="filterPeriod" onchange="loadSubmissions()">
+              <option value="">All Periods</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Week</label>
+            <select>
+              <option>Week 25</option>
+              <option>Week 24</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="submissions-container" id="submissionsContainer">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading submissions...</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="requirementsView" class="hidden">
+        <div class="submissions-container" id="requirementsContainer">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading requirements...</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="calendarView" class="hidden">
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <h2 id="calendarMonthYear">October 2025</h2>
+            <div class="calendar-nav">
+              <button onclick="previousMonth()">← Previous</button>
+              <button class="today-btn" onclick="goToToday()">Today</button>
+              <button onclick="nextMonth()">Next →</button>
+            </div>
+          </div>
+          
+          <div class="calendar-grid" id="calendarGrid">
+            <!-- Calendar will be generated by JavaScript -->
+          </div>
+
+          <div class="calendar-legend">
+            <div class="legend-item">
+              <div class="legend-color" style="background: #fee2e2;"></div>
+              <span>Due Date</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: #dbeafe;"></div>
+              <span>Submitted</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: #d1fae5;"></div>
+              <span>Approved</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="announcementsView" class="hidden">
+        <div class="announcements-container" id="announcementsContainer">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading announcements...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let currentReviewId = null;
+    let currentReviewAction = null;
+    let currentView = 'submissions';
+    let currentEditingReqId = null;
+    let currentEditingAnnouncementId = null;
+    let currentDate = new Date(2025, 9, 21);
+    let calendarEvents = [];
+
+    const demoSubmissions = [
+      {
+        id: 1,
+        title: "Barangay Road Cleanup Operation (BARCO)",
+        barangay_name: "Barangay 1",
+        status: "accomplished",
+        status_display: "Awaiting Review",
+        due_date: "2025-10-22",
+        submitted_at: "May 5, 2025",
+        submitted_by: "Juan Dela Cruz",
+        period: "Weekly",
+        update_text: "Road cleanup completed successfully. All areas covered.",
+        attachments: [
+          { file_name: "cleanup-report.pdf", file_url: "#" }
+        ]
+      },
+      {
+        id: 2,
+        title: "Kasambahay Registration",
+        barangay_name: "Barangay 2",
+        status: "approved",
+        status_display: "Approved",
+        due_date: "2025-10-25",
+        submitted_at: "October 20, 2025",
+        submitted_by: "Maria Santos",
+        period: "Monthly",
+        update_text: "All kasambahay in the barangay have been registered.",
+        attachments: [
+          { file_name: "kasambahay-list.pdf", file_url: "#" }
+        ]
+      },
+      {
+        id: 3,
+        title: "Barangay Road Cleanup Operation (BARCO)",
+        barangay_name: "Barangay 3",
+        status: "accomplished",
+        status_display: "Awaiting Review",
+        due_date: "2025-10-28",
+        submitted_at: "October 26, 2025",
+        submitted_by: "Pedro Cruz",
+        period: "Weekly",
+        update_text: "Weekly cleanup completed on schedule.",
+        attachments: []
+      },
+      {
+        id: 4,
+        title: "Monthly Health Report",
+        barangay_name: "Barangay 1",
+        status: "accomplished",
+        status_display: "Awaiting Review",
+        due_date: "2025-11-01",
+        submitted_at: "October 28, 2025",
+        submitted_by: "Dr. Ana Reyes",
+        period: "Monthly",
+        update_text: "Health statistics compiled for the month.",
+        attachments: [
+          { file_name: "health-report.pdf", file_url: "#" }
+        ]
+      }
+    ];
+
+    const demoRequirements = [
+      {
+        id: 1,
+        title: "Barangay Road Cleanup Operation (BARCO)",
+        description: "Weekly road cleanup and maintenance operation",
+        period: "weekly",
+        period_display: "Weekly",
+        is_active: true,
+        applicable_barangays: ["Barangay 1", "Barangay 2", "Barangay 3"],
+        created_at: "May 5, 2025",
+        created_by: "Admin User"
+      },
+      {
+        id: 2,
+        title: "Kasambahay Registration",
+        description: "Monthly registration and monitoring of domestic workers in the barangay",
+        period: "monthly",
+        period_display: "Monthly",
+        is_active: true,
+        applicable_barangays: ["Barangay 1", "Barangay 2"],
+        created_at: "June 10, 2025",
+        created_by: "Admin User"
+      },
+      {
+        id: 3,
+        title: "Monthly Health Report",
+        description: "Compilation of health statistics and disease monitoring",
+        period: "monthly",
+        period_display: "Monthly",
+        is_active: true,
+        applicable_barangays: ["All Barangays"],
+        created_at: "July 15, 2025",
+        created_by: "Admin User"
+      },
+      {
+        id: 4,
+        title: "Disaster Preparedness Drill",
+        description: "Quarterly disaster preparedness and response training",
+        period: "quarterly",
+        period_display: "Quarterly",
+        is_active: true,
+        applicable_barangays: ["All Barangays"],
+        created_at: "August 1, 2025",
+        created_by: "Admin User"
+      }
+    ];
+
+    const demoAnnouncements = [
+      {
+        id: 1,
+        title: "Upcoming DILG Regional Conference",
+        content: "All barangay officials are invited to attend the DILG Regional Conference on November 15, 2025. Please confirm your attendance by November 1st. The conference will cover new guidelines and best practices for barangay governance.",
+        priority: "high",
+        priority_display: "High",
+        posted_by: "Admin User",
+        posted_at: "October 18, 2025",
+        views: 45,
+        sent_to_barangays: 33
+      },
+      {
+        id: 2,
+        title: "New Reporting Format for Monthly Submissions",
+        content: "Starting November 2025, all monthly reports must use the updated format. The new template can be downloaded from the Requirements section. Training sessions will be held on October 25th and 28th.",
+        priority: "medium",
+        priority_display: "Medium",
+        posted_by: "Admin User",
+        posted_at: "October 15, 2025",
+        views: 38,
+        sent_to_barangays: 33
+      },
+      {
+        id: 3,
+        title: "Holiday Schedule Notice",
+        content: "Please be informed that the DILG office will be closed from December 24-26, 2025 for the Christmas holidays. All urgent matters should be coordinated before December 23rd.",
+        priority: "low",
+        priority_display: "Low",
+        posted_by: "Admin User",
+        posted_at: "October 10, 2025",
+        views: 52,
+        sent_to_barangays: 33
+      },
+      {
+        id: 4,
+        title: "Budget Planning Workshop",
+        content: "A budget planning workshop for all barangays will be conducted on November 5, 2025 at 9:00 AM. This is mandatory for all barangay treasurers. Topics include 2026 budget allocation and financial management.",
+        priority: "high",
+        priority_display: "High",
+        posted_by: "Finance Department",
+        posted_at: "October 8, 2025",
+        views: 41,
+        sent_to_barangays: 33
+      }
+    ];
+
+    let announcementsData = [...demoAnnouncements];
+
+    function generateCalendarEvents() {
+      calendarEvents = [];
+      
+      demoSubmissions.forEach(sub => {
+        calendarEvents.push({
+          date: sub.due_date,
+          title: sub.title,
+          type: 'due',
+          barangay: sub.barangay_name
+        });
+        
+        if (sub.status === 'accomplished' || sub.status === 'approved') {
+          const submittedDate = new Date(sub.submitted_at);
+          if (!isNaN(submittedDate.getTime())) {
+            const formattedDate = submittedDate.toISOString().split('T')[0];
+            calendarEvents.push({
+              date: formattedDate,
+              title: sub.title,
+              type: 'submitted',
+              barangay: sub.barangay_name
+            });
+          }
+        }
+        
+        if (sub.status === 'approved') {
+          const approvedDate = new Date(sub.submitted_at);
+          approvedDate.setDate(approvedDate.getDate() + 2);
+          const formattedDate = approvedDate.toISOString().split('T')[0];
+          calendarEvents.push({
+            date: formattedDate,
+            title: sub.title,
+            type: 'approved',
+            barangay: sub.barangay_name
+          });
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      generateCalendarEvents();
+      loadSubmissions();
+      setupNavigation();
+    });
+
+    function setupNavigation() {
+      const navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(item => {
+        item.addEventListener('click', function() {
+          navItems.forEach(nav => nav.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+    }
+
+    function switchToView(view) {
+      if (view === 'calendar') {
+        document.getElementById('submissionsView').classList.add('hidden');
+        document.getElementById('requirementsView').classList.add('hidden');
+        document.getElementById('calendarView').classList.remove('hidden');
+        document.getElementById('announcementsView').classList.add('hidden');
+        
+        document.querySelector('.view-tabs').style.display = 'none';
+        document.querySelector('.search-container').style.display = 'none';
+        
+        document.querySelector('.content-header h1').textContent = 'Calendar - Requirements Deadlines';
+        
+        document.querySelector('.add-requirement-btn').style.display = 'none';
+        
+        renderCalendar();
+      } else if (view === 'announcements') {
+        document.getElementById('submissionsView').classList.add('hidden');
+        document.getElementById('requirementsView').classList.add('hidden');
+        document.getElementById('calendarView').classList.add('hidden');
+        document.getElementById('announcementsView').classList.remove('hidden');
+        
+        document.querySelector('.view-tabs').style.display = 'none';
+        document.querySelector('.search-container').style.display = 'none';
+        
+        document.querySelector('.content-header h1').textContent = 'Announcements';
+        
+        const addBtn = document.querySelector('.add-requirement-btn');
+        addBtn.style.display = 'flex';
+        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> New Announcement';
+        addBtn.onclick = openAddAnnouncementModal;
+        
+        loadAnnouncements();
+      } else if (view === 'submissions') {
+        document.getElementById('submissionsView').classList.remove('hidden');
+        document.getElementById('requirementsView').classList.add('hidden');
+        document.getElementById('calendarView').classList.add('hidden');
+        document.getElementById('announcementsView').classList.add('hidden');
+        
+        document.querySelector('.view-tabs').style.display = 'flex';
+        document.querySelector('.search-container').style.display = 'block';
+        
+        document.querySelector('.content-header h1').textContent = 'Requirements Monitoring';
+        
+        const addBtn = document.querySelector('.add-requirement-btn');
+        addBtn.style.display = 'flex';
+        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add New Requirement';
+        addBtn.onclick = openAddRequirementModal;
+        
+        document.querySelectorAll('.view-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.view-tab')[0].classList.add('active');
+        
+        loadSubmissions();
+      }
+    }
+
+    function switchView(view) {
+      currentView = view;
+      
+      const tabs = document.querySelectorAll('.view-tab');
+      tabs.forEach(tab => tab.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      if (view === 'submissions') {
+        document.getElementById('submissionsView').classList.remove('hidden');
+        document.getElementById('requirementsView').classList.add('hidden');
+        document.getElementById('calendarView').classList.add('hidden');
+        loadSubmissions();
+      } else if (view === 'requirements') {
+        document.getElementById('submissionsView').classList.add('hidden');
+        document.getElementById('requirementsView').classList.remove('hidden');
+        document.getElementById('calendarView').classList.add('hidden');
+        loadRequirements();
+      } else if (view === 'calendar') {
+        document.getElementById('submissionsView').classList.add('hidden');
+        document.getElementById('requirementsView').classList.add('hidden');
+        document.getElementById('calendarView').classList.remove('hidden');
+        renderCalendar();
+      }
+    }
+
+    function loadSubmissions() {
+      setTimeout(() => {
+        renderSubmissions(demoSubmissions);
+      }, 500);
+    }
+
+    function renderSubmissions(submissions) {
+      const container = document.getElementById('submissionsContainer');
+
+      if (submissions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>No submissions found</h3>
+            <p>Try adjusting your filters or check back later</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      submissions.forEach(sub => {
+        const card = document.createElement('div');
+        card.className = 'submission-card';
+
+        const attachmentsBadges = sub.attachments.map(att => 
+          `<div class="attachment-badge" onclick="window.open('${att.file_url}', '_blank')">
+            📎 ${att.file_name}
+          </div>`
+        ).join('');
+
+        card.innerHTML = `
+          <div class="submission-header">
+            <div>
+              <div class="submission-title">${sub.title}</div>
+              <div class="submission-barangay">📍 ${sub.barangay_name}</div>
+            </div>
+            <span class="status-badge ${sub.status}">${sub.status_display}</span>
+          </div>
+
+          <div class="submission-info">
+            <div class="info-item">
+              <span class="info-label">Status</span>
+              <span class="info-value">${sub.status_display}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Due date</span>
+              <span class="info-value">${sub.due_date}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Submitted</span>
+              <span class="info-value">${sub.submitted_at}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Last Update</span>
+              <span class="info-value">${sub.submitted_at}</span>
+            </div>
+          </div>
+
+          ${sub.update_text ? `
+            <div class="submission-update">
+              <strong style="display: block; margin-bottom: 8px;">Updates:</strong>
+              ${sub.update_text}
+            </div>
+          ` : ''}
+
+          ${sub.attachments.length > 0 ? `
+            <div>
+              <strong style="display: block; margin-bottom: 8px; font-size: 13px; color: #6b7280;">Attachments (${sub.attachments.length}):</strong>
+              <div class="attachments">${attachmentsBadges}</div>
+            </div>
+          ` : ''}
+
+          <div class="actions">
+            <button class="btn btn-approve" onclick="openReviewModal(${sub.id}, 'approved')">✓ Approve</button>
+            <button class="btn btn-reject" onclick="openReviewModal(${sub.id}, 'rejected')">✗ Reject</button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function openReviewModal(submissionId, action) {
+      currentReviewId = submissionId;
+      currentReviewAction = action;
+
+      const modal = document.getElementById('reviewModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const confirmBtn = document.getElementById('confirmReviewBtn');
+
+      document.getElementById('reviewNotes').value = '';
+
+      if (action === 'approved') {
+        modalTitle.textContent = 'Approve Submission';
+        confirmBtn.textContent = 'Approve';
+        confirmBtn.className = 'btn btn-approve';
+      } else {
+        modalTitle.textContent = 'Reject Submission';
+        confirmBtn.textContent = 'Reject';
+        confirmBtn.className = 'btn btn-reject';
+      }
+
+      modal.classList.add('show');
+      confirmBtn.onclick = () => confirmReview();
+    }
+
+    function closeReviewModal() {
+      document.getElementById('reviewModal').classList.remove('show');
+      currentReviewId = null;
+      currentReviewAction = null;
+    }
+
+    function confirmReview() {
+      showToast(`Submission ${currentReviewAction} successfully!`, 'success');
+      closeReviewModal();
+      
+      setTimeout(() => {
+        loadSubmissions();
+      }, 500);
+    }
+
+    function loadRequirements() {
+      setTimeout(() => {
+        renderRequirements(demoRequirements);
+      }, 500);
+    }
+
+    function renderRequirements(requirements) {
+      const container = document.getElementById('requirementsContainer');
+
+      if (requirements.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>No requirements found</h3>
+            <p>Click "Add New Requirement" to create one</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      requirements.forEach(req => {
+        const card = document.createElement('div');
+        card.className = 'requirement-card';
+
+        const barangayList = req.applicable_barangays.join(', ');
+
+        card.innerHTML = `
+          <div class="requirement-header">
+            <div>
+              <div class="requirement-title">${req.title}</div>
+              <div class="submission-barangay">📍 ${barangayList}</div>
+            </div>
+            <span class="status-badge ${req.is_active ? 'active' : 'inactive'}">
+              ${req.is_active ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+
+          <div class="submission-update" style="background: white; padding: 0; margin: 10px 0;">
+            ${req.description}
+          </div>
+
+          <div class="requirement-info">
+            <div class="info-item">
+              <span class="info-label">Period</span>
+              <span class="info-value">${req.period_display}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Created</span>
+              <span class="info-value">${req.created_at}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Created By</span>
+              <span class="info-value">${req.created_by}</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-edit" onclick="editRequirement(${req.id})">Edit</button>
+            <button class="btn ${req.is_active ? 'btn-deactivate' : 'btn-approve'}" 
+                    onclick="toggleRequirement(${req.id}, ${req.is_active})">
+              ${req.is_active ? 'Deactivate' : '✓ Activate'}
+            </button>
+            <button class="btn btn-delete" onclick="deleteRequirement(${req.id}, '${req.title}')">Delete</button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function openAddRequirementModal() {
+      currentEditingReqId = null;
+      document.getElementById('requirementModalTitle').textContent = 'Add New Requirement';
+      document.getElementById('reqTitle').value = '';
+      document.getElementById('reqDescription').value = '';
+      document.getElementById('reqPeriod').value = '';
+      document.getElementById('applyToAll').checked = true;
+      document.getElementById('requirementModal').classList.add('show');
+    }
+
+    function closeRequirementModal() {
+      document.getElementById('requirementModal').classList.remove('show');
+      currentEditingReqId = null;
+    }
+
+    function saveRequirement() {
+      const title = document.getElementById('reqTitle').value.trim();
+      const description = document.getElementById('reqDescription').value.trim();
+      const period = document.getElementById('reqPeriod').value;
+
+      if (!title || !description || !period) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+      }
+
+      showToast('Requirement saved successfully!', 'success');
+      closeRequirementModal();
+      
+      setTimeout(() => {
+        if (currentView === 'requirements') {
+          loadRequirements();
+        }
+      }, 500);
+    }
+
+    function editRequirement(reqId) {
+      showToast('Edit functionality - Opening edit modal', 'success');
+    }
+
+    function toggleRequirement(reqId, isActive) {
+      const action = isActive ? 'deactivated' : 'activated';
+      showToast(`Requirement ${action} successfully!`, 'success');
+      
+      setTimeout(() => {
+        loadRequirements();
+      }, 500);
+    }
+
+    function deleteRequirement(reqId, title) {
+      if (!confirm(`Are you sure you want to delete "${title}"?`)) {
+        return;
+      }
+
+      showToast('Requirement deleted successfully!', 'success');
+      
+      setTimeout(() => {
+        loadRequirements();
+      }, 500);
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function renderCalendar() {
+      generateCalendarEvents();
+      
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                         'July', 'August', 'September', 'October', 'November', 'December'];
+      document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+      
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const daysInPrevMonth = new Date(year, month, 0).getDate();
+      
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      
+      const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayHeaders.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
+      });
+      
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const cell = createDayCell(day, month - 1, year, true);
+        grid.appendChild(cell);
+      }
+      
+      const today = new Date();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = day === today.getDate() && 
+                       month === today.getMonth() && 
+                       year === today.getFullYear();
+        const cell = createDayCell(day, month, year, false, isToday);
+        grid.appendChild(cell);
+      }
+      
+      const remainingCells = 42 - (firstDay + daysInMonth);
+      for (let day = 1; day <= remainingCells; day++) {
+        const cell = createDayCell(day, month + 1, year, true);
+        grid.appendChild(cell);
+      }
+    }
+
+    function createDayCell(day, month, year, isOtherMonth, isToday = false) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-day';
+      
+      if (isOtherMonth) {
+        cell.classList.add('other-month');
+      }
+      if (isToday) {
+        cell.classList.add('today');
+      }
+      
+      const dayNumber = document.createElement('div');
+      dayNumber.className = 'day-number';
+      dayNumber.textContent = day;
+      cell.appendChild(dayNumber);
+      
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayEvents = calendarEvents.filter(e => e.date === dateStr);
+      
+      if (dayEvents.length > 0) {
+        const eventsContainer = document.createElement('div');
+        eventsContainer.className = 'day-events';
+        
+        dayEvents.forEach(event => {
+          const eventDot = document.createElement('div');
+          eventDot.className = `event-dot ${event.type}`;
+          eventDot.textContent = event.title;
+          eventDot.title = `${event.title} - ${event.barangay}`;
+          eventsContainer.appendChild(eventDot);
+        });
+        
+        cell.appendChild(eventsContainer);
+        cell.onclick = () => showDayEvents(dateStr, dayEvents);
+      }
+      
+      return cell;
+    }
+
+    function showDayEvents(dateStr, events) {
+      const modal = document.getElementById('eventDetailsModal');
+      const dateObj = new Date(dateStr + 'T00:00:00');
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      const formattedDate = dateObj.toLocaleDateString('en-US', options);
+      
+      document.getElementById('eventModalDate').textContent = formattedDate;
+      
+      const eventsList = document.getElementById('eventsList');
+      eventsList.innerHTML = '';
+      
+      if (events.length === 0) {
+        eventsList.innerHTML = '<p style="text-align: center; color: #6b7280;">No events for this day</p>';
+      } else {
+        events.forEach(event => {
+          const eventItem = document.createElement('div');
+          eventItem.className = `event-item ${event.type}`;
+          
+          let statusText = '';
+          if (event.type === 'due') statusText = 'Due Date';
+          else if (event.type === 'submitted') statusText = 'Submitted';
+          else if (event.type === 'approved') statusText = 'Approved';
+          
+          eventItem.innerHTML = `
+            <div class="event-item-title">${event.title}</div>
+            <div class="event-item-details">
+              <strong>${statusText}</strong> • ${event.barangay}
+            </div>
+          `;
+          
+          eventsList.appendChild(eventItem);
+        });
+      }
+      
+      modal.classList.add('show');
+    }
+
+    function closeEventModal() {
+      document.getElementById('eventDetailsModal').classList.remove('show');
+    }
+
+    function previousMonth() {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentDate.setMonth(currentDate.getMonth() + 1);
+      renderCalendar();
+    }
+
+    function goToToday() {
+      currentDate = new Date(2025, 9, 21);
+      renderCalendar();
+    }
+
+    function loadAnnouncements() {
+      setTimeout(() => {
+        renderAnnouncements(announcementsData);
+      }, 500);
+    }
+
+    function renderAnnouncements(announcements) {
+      const container = document.getElementById('announcementsContainer');
+
+      if (announcements.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>No announcements yet</h3>
+            <p>Click "New Announcement" to post an update to all barangays</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      announcements.forEach(announcement => {
+        const card = document.createElement('div');
+        card.className = `announcement-card priority-${announcement.priority}`;
+
+        card.innerHTML = `
+          <div class="announcement-header">
+            <div style="flex: 1;">
+              <div class="announcement-title">${announcement.title}</div>
+              <div class="announcement-meta">
+                <span>👤 ${announcement.posted_by}</span>
+                <span>📅 ${announcement.posted_at}</span>
+                <span>👁️ ${announcement.views} views</span>
+                <span>📨 Sent to ${announcement.sent_to_barangays} barangays</span>
+              </div>
+            </div>
+            <span class="priority-badge ${announcement.priority}">${announcement.priority_display} Priority</span>
+          </div>
+
+          <div class="announcement-content">${announcement.content}</div>
+
+          <div class="announcement-footer">
+            <div class="priority-badge ${announcement.priority}" style="font-size: 10px; padding: 3px 10px;">
+              Priority: ${announcement.priority_display}
+            </div>
+            <div class="announcement-actions">
+              <button class="btn btn-edit" onclick="editAnnouncement(${announcement.id})" style="padding: 8px 16px; font-size: 12px;">
+                <i class="fa-solid fa-edit"></i> Edit
+              </button>
+              <button class="btn btn-delete" onclick="deleteAnnouncement(${announcement.id}, '${announcement.title.replace(/'/g, "\\'")}')" style="padding: 8px 16px; font-size: 12px;">
+                <i class="fa-solid fa-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function openAddAnnouncementModal() {
+      currentEditingAnnouncementId = null;
+      document.getElementById('announcementModalTitle').textContent = 'Create Announcement';
+      document.getElementById('announcementTitle').value = '';
+      document.getElementById('announcementContent').value = '';
+      document.getElementById('announcementPriority').value = 'medium';
+      document.getElementById('sendNotification').checked = true;
+      document.getElementById('announcementModal').classList.add('show');
+    }
+
+    function closeAnnouncementModal() {
+      document.getElementById('announcementModal').classList.remove('show');
+      currentEditingAnnouncementId = null;
+    }
+
+    function saveAnnouncement() {
+  const title = document.getElementById('announcementTitle').value.trim();
+  const content = document.getElementById('announcementContent').value.trim();
+  const priority = document.getElementById('announcementPriority').value;
+  const sendNotif = document.getElementById('sendNotification').checked;
+
+  if (!title || !content) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+
+  // Prepare data for API
+  const announcementData = {
+    title: title,
+    content: content,
+    priority: priority,
+    send_notification: sendNotif
+  };
+
+  // Show loading state
+  const submitBtn = event.target;
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = 'Posting...';
+  submitBtn.disabled = true;
+
+  // Determine if creating or updating
+  const isUpdate = currentEditingAnnouncementId !== null;
+  const url = isUpdate 
+    ? `/api/announcements/${currentEditingAnnouncementId}/update/`
+    : '/api/announcements/create/';
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify(announcementData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Show success message
+      const notifMsg = sendNotif && data.announcement?.notified_count 
+        ? ` and ${data.announcement.notified_count} officials notified` 
+        : '';
+      
+      const action = isUpdate ? 'updated' : 'posted';
+      showToast(`Announcement ${action} successfully${notifMsg}!`, 'success');
+      
+      // Close modal and reload
+      closeAnnouncementModal();
+      loadAnnouncements();
+      
+      // If using demo mode (no real backend), fall back to local storage
+    } else {
+      showToast(data.error || 'Failed to save announcement', 'error');
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    
+    // Fallback to demo mode if API is not available
+    const priorityDisplay = priority.charAt(0).toUpperCase() + priority.slice(1);
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    if (currentEditingAnnouncementId) {
+      // Update existing announcement in demo data
+      const index = announcementsData.findIndex(a => a.id === currentEditingAnnouncementId);
+      if (index !== -1) {
+        announcementsData[index] = {
+          ...announcementsData[index],
+          title: title,
+          content: content,
+          priority: priority,
+          priority_display: priorityDisplay
+        };
+      }
+      const notifMsg = sendNotif ? ' and notifications sent to all barangays' : '';
+      showToast(`Announcement updated${notifMsg}! (Demo mode)`, 'success');
+    } else {
+      // Create new announcement in demo data
+      const newId = Math.max(...announcementsData.map(a => a.id)) + 1;
+      const newAnnouncement = {
+        id: newId,
+        title: title,
+        content: content,
+        priority: priority,
+        priority_display: priorityDisplay,
+        posted_by: "Admin User",
+        posted_at: currentDate,
+        views: 0,
+        sent_to_barangays: 33
+      };
+      announcementsData.unshift(newAnnouncement);
+      const notifMsg = sendNotif ? ' and notifications sent to all barangays' : '';
+      showToast(`Announcement posted${notifMsg}! (Demo mode)`, 'success');
+    }
+    
+    closeAnnouncementModal();
+    loadAnnouncements();
+    
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+  });
+}
+
+    function editAnnouncement(announcementId) {
+      const announcement = announcementsData.find(a => a.id === announcementId);
+      
+      if (!announcement) {
+        showToast('Announcement not found', 'error');
+        return;
+      }
+
+      currentEditingAnnouncementId = announcementId;
+      document.getElementById('announcementModalTitle').textContent = 'Edit Announcement';
+      document.getElementById('announcementTitle').value = announcement.title;
+      document.getElementById('announcementContent').value = announcement.content;
+      document.getElementById('announcementPriority').value = announcement.priority;
+      document.getElementById('sendNotification').checked = true;
+      document.getElementById('announcementModal').classList.add('show');
+    }
+
+    function deleteAnnouncement(announcementId, title) {
+      if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis will remove the announcement from all 33 barangays.`)) {
+        return;
+      }
+
+      const index = announcementsData.findIndex(a => a.id === announcementId);
+      if (index !== -1) {
+        announcementsData.splice(index, 1);
+        showToast('Announcement deleted successfully from all barangays!', 'success');
+        loadAnnouncements();
+      } else {
+        showToast('Announcement not found', 'error');
+      }
+    }
+
+    window.onclick = function(event) {
+      const reviewModal = document.getElementById('reviewModal');
+      const reqModal = document.getElementById('requirementModal');
+      const eventModal = document.getElementById('eventDetailsModal');
+      const announcementModal = document.getElementById('announcementModal');
+      
+      if (event.target === reviewModal) {
+        closeReviewModal();
+      }
+      if (event.target === reqModal) {
+        closeRequirementModal();
+      }
+      if (event.target === eventModal) {
+        closeEventModal();
+      }
+      if (event.target === announcementModal) {
+        closeAnnouncementModal();
+      }
+    }
+    function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+function loadAdminNotifications() {
+  fetch('/api/notifications/', {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Update notification badge if you have one for admin
+      updateAdminNotificationBadge(data.unread_count);
+    }
+  })
+  .catch(error => {
+    console.error('Error loading admin notifications:', error);
+  });
+}
+
+function updateAdminNotificationBadge(count) {
+  const badge = document.getElementById('notificationBadge');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+// Initialize admin notifications
+document.addEventListener('DOMContentLoaded', function() {
+  // Load admin notifications on page load
+  loadAdminNotifications();
+  
+  // Poll for new notifications every 30 seconds
+  setInterval(loadAdminNotifications, 30000);
+});
+  </script>
+</body>
+</html>

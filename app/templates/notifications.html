@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications - Requirements Monitoring</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #e5e7eb 0%, #93a5cf 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    .header {
+      background: white;
+      padding: 25px 30px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #1a202c;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .back-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .back-btn:hover {
+      background: #4338CA;
+    }
+
+    .filter-bar {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .filter-btn.active {
+      background: #007bff;
+      color: white;
+      border-color: #007bff;
+    }
+
+    .notifications-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .notification-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex;
+      gap: 15px;
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .notification-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+
+    .notification-card.unread {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .notification-card.unread::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      background: #3b82f6;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .notif-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .notif-icon.overdue {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .notif-icon.upcoming {
+      background: #fef3c7;
+      color: #f59e0b;
+    }
+
+    .notif-icon.completed {
+      background: #d1fae5;
+      color: #10b981;
+    }
+
+    .notif-icon.info {
+      background: #dbeafe;
+      color: #3b82f6;
+    }
+
+    .notif-content {
+      flex: 1;
+    }
+
+    .notif-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 8px;
+    }
+
+    .notif-title {
+      font-weight: 600;
+      color: #1a202c;
+      font-size: 16px;
+    }
+
+    .notif-time {
+      color: #9ca3af;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .notif-message {
+      color: #4a5568;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .notif-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .notif-action-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mark-read-btn {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .mark-read-btn:hover {
+      background: #e5e7eb;
+    }
+
+    .view-btn {
+      background: #007bff;
+      color: white;
+    }
+
+    .view-btn:hover {
+      background: #4338CA;
+    }
+
+    .empty-state {
+      background: white;
+      padding: 60px 40px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-text {
+      color: #6b7280;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .empty-subtext {
+      color: #9ca3af;
+      font-size: 14px;
+    }
+
+    .loading-spinner {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .spinner {
+      border: 4px solid #f3f4f6;
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: translateY(-50%) scale(1.2);
+      }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1a202c;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 2000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    .toast.success {
+      background: #10b981;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px 10px;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+      }
+
+      .notification-card {
+        flex-direction: column;
+      }
+
+      .notif-header {
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1>
+        <i class="fa-solid fa-bell"></i>
+        Notifications
+      </h1>
+      <button class="back-btn" onclick="goBack()">
+        <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+      </button>
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterNotifications('all')">All</button>
+      <button class="filter-btn" onclick="filterNotifications('unread')">Unread</button>
+      <button class="filter-btn" onclick="filterNotifications('overdue')">Overdue</button>
+      <button class="filter-btn" onclick="filterNotifications('upcoming')">Upcoming</button>
+      <button class="filter-btn" onclick="filterNotifications('completed')">Completed</button>
+      <button class="filter-btn" style="margin-left: auto;" onclick="markAllAsRead()">
+        <i class="fa-solid fa-check-double"></i> Mark All as Read
+      </button>
+    </div>
+
+    <div class="notifications-list" id="notificationsList">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Loading notifications...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    let allNotifications = [];
+    let currentFilter = 'all';
+
+    // Load notifications on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadNotifications();
+    });
+
+    // Load all notifications
+    function loadNotifications() {
+      fetch('/api/notifications/', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          allNotifications = data.notifications;
+          renderNotifications(allNotifications);
+        } else {
+          showError('Failed to load notifications');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showError('Network error');
+      });
+    }
+
+    // Render notifications
+    function renderNotifications(notifications) {
+      const container = document.getElementById('notificationsList');
+
+      if (notifications.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🔔</div>
+            <div class="empty-text">No notifications</div>
+            <div class="empty-subtext">You're all caught up!</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      notifications.forEach(notif => {
+        const card = document.createElement('div');
+        card.className = `notification-card ${notif.is_read ? '' : 'unread'}`;
+        card.setAttribute('data-id', notif.id);
+        card.setAttribute('data-type', notif.type);
+        card.setAttribute('data-read', notif.is_read);
+
+        const iconClass = getIconClass(notif.type);
+        const icon = getIcon(notif.type);
+
+        card.innerHTML = `
+          <div class="notif-icon ${iconClass}">
+            ${icon}
+          </div>
+          <div class="notif-content">
+            <div class="notif-header">
+              <div class="notif-title">${notif.title}</div>
+              <div class="notif-time">${notif.time_ago}</div>
+            </div>
+            <div class="notif-message">${notif.message}</div>
+            <div class="notif-actions">
+              ${!notif.is_read ? `
+                <button class="notif-action-btn mark-read-btn" onclick="markAsRead(event, ${notif.id})">
+                  <i class="fa-solid fa-check"></i> Mark as Read
+                </button>
+              ` : ''}
+              ${notif.submission_id ? `
+                <button class="notif-action-btn view-btn" onclick="viewSubmission(event, ${notif.submission_id})">
+                  <i class="fa-solid fa-eye"></i> View Details
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+
+        // Click on card to mark as read and navigate
+        card.addEventListener('click', (e) => {
+          if (!e.target.closest('.notif-actions')) {
+            if (!notif.is_read) {
+              markAsRead(e, notif.id);
+            }
+            if (notif.submission_id) {
+              setTimeout(() => {
+                window.location.href = `/requirements/?submission=${notif.submission_id}`;
+              }, 300);
+            }
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    // Get icon class based on type
+    function getIconClass(type) {
+      const classMap = {
+        'overdue': 'overdue',
+        'upcoming': 'upcoming',
+        'completed': 'completed',
+        'reminder': 'upcoming',
+        'info': 'info'
+      };
+      return classMap[type] || 'info';
+    }
+
+    // Get icon emoji
+    function getIcon(type) {
+      const iconMap = {
+        'overdue': '⚠️',
+        'upcoming': '⏰',
+        'completed': '✅',
+        'reminder': '🔔',
+        'info': 'ℹ️'
+      };
+      return iconMap[type] || '📌';
+    }
+
+    // Filter notifications
+    function filterNotifications(filter) {
+      currentFilter = filter;
+
+      // Update active button
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      let filtered = allNotifications;
+
+      switch(filter) {
+        case 'unread':
+          filtered = allNotifications.filter(n => !n.is_read);
+          break;
+        case 'overdue':
+          filtered = allNotifications.filter(n => n.type === 'overdue');
+          break;
+        case 'upcoming':
+          filtered = allNotifications.filter(n => n.type === 'upcoming');
+          break;
+        case 'completed':
+          filtered = allNotifications.filter(n => n.type === 'completed');
+          break;
+      }
+
+      renderNotifications(filtered);
+    }
+
+    // Mark single notification as read
+    function markAsRead(event, notificationId) {
+      event.stopPropagation();
+
+      fetch(`/api/notifications/${notificationId}/read/`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update UI
+          const card = document.querySelector(`.notification-card[data-id="${notificationId}"]`);
+          if (card) {
+            card.classList.remove('unread');
+            card.setAttribute('data-read', 'true');
+            
+            // Remove mark as read button
+            const markReadBtn = card.querySelector('.mark-read-btn');
+            if (markReadBtn) {
+              markReadBtn.remove();
+            }
+          }
+
+          // Update in-memory data
+          const notif = allNotifications.find(n => n.id === notificationId);
+          if (notif) {
+            notif.is_read = true;
+          }
+
+          showToast('Marked as read', 'success');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to mark as read', 'error');
+      });
+    }
+
+    // Mark all as read
+    function markAllAsRead() {
+      if (!confirm('Mark all notifications as read?')) {
+        return;
+      }
+
+      fetch('/api/notifications/mark-all-read/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('All notifications marked as read', 'success');
+          loadNotifications();
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to mark all as read', 'error');
+      });
+    }
+
+    // View submission details
+    function viewSubmission(event, submissionId) {
+      event.stopPropagation();
+      window.location.href = `/requirements/?submission=${submissionId}`;
+    }
+
+    // Go back to dashboard
+    function goBack() {
+      window.history.back();
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Show error state
+    function showError(message) {
+      const container = document.getElementById('notificationsList');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">❌</div>
+          <div class="empty-text">${message}</div>
+          <div class="empty-subtext">Please try again later</div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
