@@ -3,7 +3,9 @@
   justify-content: center;
   margin-bottom: 20px;
 }
-
+body{
+  height: 100vh;
+}
 .search-container {
   position: relative;
   width: 300px; 

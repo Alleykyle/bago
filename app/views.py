@@ -22,7 +22,7 @@ import openpyxl
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Q, Count, Avg, Sum  
-from .models import EligibilityRequest, Barangay, Requirement, RequirementSubmission, RequirementAttachment, Notification
+from .models import EligibilityRequest, Barangay, Requirement, RequirementSubmission, RequirementAttachment, Notification, Announcement
 from django.views.decorators.http import require_POST
 import os
 from datetime import date
@@ -32,6 +32,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from datetime import timedelta
+import traceback
 
 
 try:
@@ -1393,7 +1394,20 @@ def update_application_status(request):
     
 
 
-#REQUIREMENTS_MONITORING
+#-----------------REQUIREMENTS_MONITORING--------------
+@require_http_methods(["GET"])
+def user_profile(request):
+    return JsonResponse({
+        'success': True,
+        'user': {
+            'full_name': request.user.get_full_name(),
+            'email': request.user.email,
+            'username': request.user.username,
+            'role': request.user.groups.first().name if request.user.groups.exists() else 'User',
+            'barangay': request.user.profile.barangay.name if hasattr(request.user, 'profile') else 'Not assigned',
+            'member_since': request.user.date_joined.strftime('%B %d, %Y')
+        }
+    })
 @login_required
 def requirements_monitoring(request):
     """
@@ -2986,289 +3000,101 @@ def api_all_requirements(request):
 
 
 
+#-------------------ANNOUNCEMENTS AND NOTIFICATIONS------------
 @login_required
-@require_http_methods(["GET"])
-def get_notifications(request):
-    """Get all notifications for the current user"""
-    try:
-        notifications = Notification.objects.filter(user=request.user)[:20]  # Last 20
-        unread_count = notifications.filter(is_read=False).count()
-        
-        notifications_data = []
-        for notif in notifications:
-            notifications_data.append({
-                'id': notif.id,
-                'type': notif.type,
-                'title': notif.title,
-                'message': notif.message,
-                'is_read': notif.is_read,
-                'time_ago': notif.time_ago(),
-                'submission_id': notif.submission.id if notif.submission else None,
-                'barangay_id': notif.barangay.id if notif.barangay else None,
-                'created_at': notif.created_at.isoformat()
-            })
-        
-        return JsonResponse({
-            'success': True,
-            'notifications': notifications_data,
-            'unread_count': unread_count
-        })
-    except Exception as e:
+def delete_announcement(request, announcement_id):
+    """Delete an announcement"""
+    if request.method != 'POST':
         return JsonResponse({
             'success': False,
-            'error': str(e)
-        }, status=500)
-
-
-@login_required
-@require_http_methods(["POST"])
-def mark_notification_read(request, notification_id):
-    """Mark a single notification as read"""
+            'error': 'Only POST requests are allowed'
+        }, status=405)
+    
     try:
-        notification = Notification.objects.get(id=notification_id, user=request.user)
-        notification.is_read = True
-        notification.save()
+        print(f"Attempting to delete announcement with ID: {announcement_id}")
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Notification marked as read'
-        })
-    except Notification.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Notification not found'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-
-
-@login_required
-@require_http_methods(["POST"])
-def mark_all_notifications_read(request):
-    """Mark all notifications as read for the current user"""
-    try:
-        updated_count = Notification.objects.filter(
-            user=request.user,
-            is_read=False
-        ).update(is_read=True)
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'{updated_count} notifications marked as read'
-        })
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-
-
-# Helper function to create notifications
-def create_notification(user, title, message, notification_type='info', submission=None, barangay=None):
-    """Helper function to create a notification"""
-    Notification.objects.create(
-        user=user,
-        type=notification_type,
-        title=title,
-        message=message,
-        submission=submission,
-        barangay=barangay
-    )
-
-
-# Add these to your existing views to trigger notifications
-
-# When a requirement becomes overdue
-def check_overdue_requirements():
-    """Check for overdue requirements and create notifications"""
-    from .models import RequirementSubmission
-    
-    overdue_submissions = RequirementSubmission.objects.filter(
-        status__in=['pending', 'in_progress'],
-        due_date__lt=timezone.now().date()
-    )
-    
-    for submission in overdue_submissions:
-        # Create notification for submitter
-        if submission.barangay.submitter:
-            create_notification(
-                user=submission.barangay.submitter,
-                title="Overdue Requirement",
-                message=f"{submission.requirement.title} for {submission.barangay.name} is overdue!",
-                notification_type='overdue',
-                submission=submission,
-                barangay=submission.barangay
-            )
-
-
-# When a requirement is due soon (within 3 days)
-def check_upcoming_requirements():
-    """Check for requirements due soon"""
-    from .models import RequirementSubmission
-    
-    three_days_from_now = timezone.now().date() + timedelta(days=3)
-    
-    upcoming_submissions = RequirementSubmission.objects.filter(
-        status__in=['pending', 'in_progress'],
-        due_date__lte=three_days_from_now,
-        due_date__gte=timezone.now().date()
-    )
-    
-    for submission in upcoming_submissions:
-        # Check if notification already exists
-        existing = Notification.objects.filter(
-            user=submission.barangay.submitter,
-            submission=submission,
-            type='upcoming',
-            created_at__gte=timezone.now() - timedelta(days=1)
-        ).exists()
-        
-        if not existing and submission.barangay.submitter:
-            create_notification(
-                user=submission.barangay.submitter,
-                title="Upcoming Deadline",
-                message=f"{submission.requirement.title} for {submission.barangay.name} is due on {submission.due_date}",
-                notification_type='upcoming',
-                submission=submission,
-                barangay=submission.barangay
-            )
-
-
-# When a requirement is submitted
-def notify_requirement_submitted(submission):
-    """Notify admin when requirement is submitted"""
-    from django.contrib.auth.models import User
-    
-    # Get all admin users
-    admin_users = User.objects.filter(is_staff=True)
-    
-    for admin in admin_users:
-        create_notification(
-            user=admin,
-            title="New Submission",
-            message=f"{submission.barangay.name} submitted {submission.requirement.title}",
-            notification_type='completed',
-            submission=submission,
-            barangay=submission.barangay
-        )
-
-@login_required
-def notifications_page(request):
-    return render(request, 'notifications.html')
-
-@login_required
-@require_http_methods(["POST"])
-def create_announcement(request):
-    """Create announcement and notify all barangay officials"""
-    try:
-        import json
-        data = json.loads(request.body)
-        
-        title = data.get('title')
-        content = data.get('content')
-        priority = data.get('priority', 'medium')
-        send_notification = data.get('send_notification', True)
-        
-        if not title or not content:
-            return JsonResponse({
-                'success': False,
-                'error': 'Title and content are required'
-            }, status=400)
-        
-        # Create the announcement (assuming you have an Announcement model)
-        from .models import Announcement
-        announcement = Announcement.objects.create(
-            title=title,
-            content=content,
-            priority=priority,
-            posted_by=request.user
-        )
-        
-        # Send notifications to all barangay officials if enabled
-        if send_notification:
-            # Get all barangay submitters/officials
-            from .models import Barangay
-            barangays = Barangay.objects.filter(submitter__isnull=False)
-            
-            notification_type = 'info'
-            if priority == 'high':
-                notification_type = 'urgent'
-            elif priority == 'medium':
-                notification_type = 'info'
-            else:
-                notification_type = 'reminder'
-            
-            # Create notifications for each barangay official
-            for barangay in barangays:
-                if barangay.submitter:
-                    Notification.objects.create(
-                        user=barangay.submitter,
-                        type=notification_type,
-                        title=f"📢 New Announcement: {title}",
-                        message=content[:200] + ('...' if len(content) > 200 else ''),
-                        barangay=barangay
-                    )
-            
-            notified_count = barangays.count()
-        else:
-            notified_count = 0
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'Announcement posted and {notified_count} officials notified',
-            'announcement': {
-                'id': announcement.id,
-                'title': announcement.title,
-                'content': announcement.content,
-                'priority': announcement.priority,
-                'notified_count': notified_count
-            }
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-
-
-@login_required
-@require_http_methods(["POST"])
-def update_announcement(request, announcement_id):
-    """Update announcement and optionally notify users"""
-    try:
-        import json
-        data = json.loads(request.body)
-        
-        from .models import Announcement
+        # Get the announcement
         announcement = Announcement.objects.get(id=announcement_id)
+        print(f"Found announcement: {announcement.title}")
         
+        # Store info before deletion
+        title = announcement.title
+        
+        # Delete the announcement
+        announcement.delete()
+        print(f"Successfully deleted announcement: {title}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Announcement "{title}" deleted successfully'
+        })
+        
+    except Announcement.DoesNotExist:
+        print(f"Announcement with ID {announcement_id} does not exist")
+        return JsonResponse({
+            'success': False,
+            'error': 'Announcement not found'
+        }, status=404)
+        
+    except Exception as e:
+        # Log the full error for debugging
+        error_details = traceback.format_exc()
+        print(f"Error deleting announcement {announcement_id}:")
+        print(error_details)
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }, status=500)
+
+@login_required
+@require_POST
+def update_announcement(request, announcement_id):
+    """Update an existing announcement"""
+    try:
+        announcement = Announcement.objects.get(id=announcement_id)
+        data = json.loads(request.body)
+        
+        # Update fields
         announcement.title = data.get('title', announcement.title)
         announcement.content = data.get('content', announcement.content)
         announcement.priority = data.get('priority', announcement.priority)
         announcement.save()
         
-        # Send update notification if requested
-        if data.get('send_notification', False):
-            from .models import Barangay
-            barangays = Barangay.objects.filter(submitter__isnull=False)
+        notifications_sent = 0
+        send_notification = data.get('send_notification', False)
+        
+        # Send update notifications if enabled
+        if send_notification:
+            barangay_users = User.objects.filter(
+                userprofile__role='barangay official',
+                is_active=True
+            ).distinct()
             
-            for barangay in barangays:
-                if barangay.submitter:
-                    Notification.objects.create(
-                        user=barangay.submitter,
-                        type='info',
-                        title=f"📝 Updated: {announcement.title}",
-                        message=f"An announcement has been updated. Please check for new information.",
-                        barangay=barangay
+            notification_list = []
+            for user in barangay_users:
+                notification_list.append(
+                    Notification(
+                        user=user,
+                        title=f"📢 Updated: {announcement.title}",
+                        message=f"An announcement has been updated: {announcement.content[:100]}...",
+                        notification_type='info',
+                        created_at=timezone.now()
                     )
+                )
+            
+            Notification.objects.bulk_create(notification_list)
+            notifications_sent = len(notification_list)
         
         return JsonResponse({
             'success': True,
-            'message': 'Announcement updated successfully'
+            'announcement': {
+                'id': announcement.id,
+                'title': announcement.title,
+                'content': announcement.content,
+                'priority': announcement.priority
+            },
+            'notifications_sent': notifications_sent
         })
         
     except Announcement.DoesNotExist:
@@ -3277,35 +3103,125 @@ def update_announcement(request, announcement_id):
             'error': 'Announcement not found'
         }, status=404)
     except Exception as e:
+        import traceback
+        print(f"=== UPDATE ANNOUNCEMENT ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
-    """Get all notifications for the current user"""
+    
+@login_required
+@require_http_methods(["GET"])
+def get_announcements(request):
+    """Get all announcements"""
     try:
-        notifications = Notification.objects.filter(user=request.user)[:20]  # Last 20
-        unread_count = notifications.filter(is_read=False).count()
+        announcements = Announcement.objects.all().select_related('posted_by').order_by('-posted_at')
         
-        notifications_data = []
-        for notif in notifications:
-            notifications_data.append({
-                'id': notif.id,
-                'type': notif.type,
-                'title': notif.title,
-                'message': notif.message,
-                'is_read': notif.is_read,
-                'time_ago': notif.time_ago(),
-                'submission_id': notif.submission.id if notif.submission else None,
-                'barangay_id': notif.barangay.id if notif.barangay else None,
-                'created_at': notif.created_at.isoformat()
+        announcements_list = []
+        for announcement in announcements:
+            announcements_list.append({
+                'id': announcement.id,
+                'title': announcement.title,
+                'content': announcement.content,
+                'priority': announcement.priority,
+                'priority_display': announcement.get_priority_display(),
+                'posted_by': announcement.posted_by.get_full_name() or announcement.posted_by.username,
+                'posted_at': announcement.posted_at.strftime('%B %d, %Y'),
+                'views': announcement.views,
+                'sent_to_barangays': 33  
             })
         
         return JsonResponse({
             'success': True,
-            'notifications': notifications_data,
-            'unread_count': unread_count
+            'announcements': announcements_list
         })
+        
     except Exception as e:
+        import traceback
+        print(f"=== GET ANNOUNCEMENTS ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+@login_required
+def debug_users(request):
+    """Debug view to see all users and their roles"""
+    users = User.objects.all()
+    
+    user_list = []
+    for user in users:
+        try:
+            role = user.userprofile.role if hasattr(user, 'userprofile') else 'No profile'
+        except:
+            role = 'Error getting role'
+        
+        user_list.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'is_active': user.is_active,
+            'is_superuser': user.is_superuser,
+            'role': role
+        })
+    
+    return JsonResponse({
+        'total_users': users.count(),
+        'users': user_list
+    }, json_dumps_params={'indent': 2})
+
+#-----------------END OF ANNOUNCEMENTS AND NOTIFICATIONS--------
+
+#---------------NOTIFICATIONS----------------------
+@login_required
+@require_http_methods(["GET"])
+def get_notifications(request):
+    """Get all notifications for the current user"""
+    try:
+        notifications = Notification.objects.filter(
+            user=request.user
+        ).select_related('submission', 'submission__requirement', 'submission__barangay').order_by('-created_at')
+        
+        unread_count = notifications.filter(is_read=False).count()
+        
+        notification_list = []
+        for notif in notifications[:50]:
+            notification_data = {
+                'id': notif.id,
+                'title': notif.title,
+                'message': notif.message,
+                'type': notif.notification_type,
+                'is_read': notif.is_read,
+                'created_at': notif.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'time_ago': get_time_ago(notif.created_at),
+            }
+            
+            if notif.submission:
+                notification_data['submission'] = {
+                    'id': notif.submission.id,
+                    'requirement_name': notif.submission.requirement.title,
+                    'barangay_name': notif.submission.barangay.name,
+                    'status': notif.submission.status,
+                    'due_date': notif.submission.due_date.strftime('%Y-%m-%d'),
+                }
+            
+            notification_list.append(notification_data)
+        
+        return JsonResponse({
+            'success': True,
+            'notifications': notification_list,
+            'unread_count': unread_count,
+            'total_count': notifications.count()
+        })
+        
+    except Exception as e:
+        print(f"Error in get_notifications: {e}")
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -3316,7 +3232,10 @@ def update_announcement(request, announcement_id):
 def mark_notification_read(request, notification_id):
     """Mark a single notification as read"""
     try:
-        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification = Notification.objects.get(
+            id=notification_id,
+            user=request.user
+        )
         notification.is_read = True
         notification.save()
         
@@ -3324,6 +3243,7 @@ def mark_notification_read(request, notification_id):
             'success': True,
             'message': 'Notification marked as read'
         })
+        
     except Notification.DoesNotExist:
         return JsonResponse({
             'success': False,
@@ -3339,17 +3259,289 @@ def mark_notification_read(request, notification_id):
 @login_required
 @require_http_methods(["POST"])
 def mark_all_notifications_read(request):
-    """Mark all notifications as read for the current user"""
+    """Mark all notifications as read for current user"""
     try:
-        updated_count = Notification.objects.filter(
+        updated = Notification.objects.filter(
             user=request.user,
             is_read=False
         ).update(is_read=True)
         
         return JsonResponse({
             'success': True,
-            'message': f'{updated_count} notifications marked as read'
+            'message': f'{updated} notifications marked as read'
         })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_http_methods(["GET"])
+def get_unread_count(request):
+    """Get count of unread notifications"""
+    try:
+        count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
+        
+        return JsonResponse({
+            'success': True,
+            'unread_count': count
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+@login_required
+@require_POST
+def create_announcement(request):
+    """Create a new announcement and send notifications to barangays"""
+    try:
+        data = json.loads(request.body)
+        
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        priority = data.get('priority', 'medium')
+        send_notification = data.get('send_notification', False)
+        
+        # Validation
+        if not title or not content:
+            return JsonResponse({
+                'success': False,
+                'error': 'Title and content are required'
+            }, status=400)
+        
+        # Create announcement
+        announcement = Announcement.objects.create(
+            title=title,
+            content=content,
+            priority=priority,
+            posted_by=request.user,
+            posted_at=timezone.now()
+        )
+        
+        notifications_sent = 0
+        
+        # Send notifications to all barangay users if enabled
+        if send_notification:
+            # FIX: Get ALL active users (or all users with 'barangay official' role)
+            # Option 1: Send to all active users
+            barangay_users = User.objects.filter(
+                is_active=True,
+                is_superuser=False  # Exclude admin from notifications
+            ).exclude(
+                id=request.user.id  # Exclude the person posting
+            ).distinct()
+            
+            # Debug: Print how many users we found
+            print(f"📊 Found {barangay_users.count()} users to notify")
+            for user in barangay_users:
+                try:
+                    role = user.userprofile.role if hasattr(user, 'userprofile') else 'No role'
+                    print(f"   - {user.username}: {role}")
+                except:
+                    print(f"   - {user.username}: No profile")
+            
+            # Create notification for each user
+            notification_list = []
+            for user in barangay_users:
+                notification_list.append(
+                    Notification(
+                        user=user,
+                        title=f"📢 New Announcement: {title}",
+                        message=f"{content[:100]}..." if len(content) > 100 else content,
+                        notification_type='info',
+                        announcement=announcement,
+                        created_at=timezone.now()
+                    )
+                )
+            
+            # Bulk create notifications for efficiency
+            if notification_list:
+                Notification.objects.bulk_create(notification_list)
+                notifications_sent = len(notification_list)
+                print(f"✅ Created {notifications_sent} notifications")
+        
+        return JsonResponse({
+            'success': True,
+            'announcement': {
+                'id': announcement.id,
+                'title': announcement.title,
+                'content': announcement.content,
+                'priority': announcement.priority,
+                'posted_at': announcement.posted_at.strftime('%B %d, %Y'),
+                'posted_by': announcement.posted_by.get_full_name() or announcement.posted_by.username
+            },
+            'notifications_sent': notifications_sent
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"=== CREATE ANNOUNCEMENT ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+    
+@login_required
+@require_http_methods(["POST"])
+def submit_requirement_with_notification(request, submission_id):
+    """Handle requirement submission and create notifications"""
+    try:
+        submission = RequirementSubmission.objects.get(
+            id=submission_id,
+            barangay__user=request.user
+        )
+        
+        # Update submission status
+        submission.status = 'accomplished'
+        submission.submitted_at = timezone.now()
+        submission.save()
+        
+        # Create notification for admins
+        create_admin_notification(
+            title="New Submission for Review",
+            message=f"{submission.barangay.name} submitted {submission.requirement.title}",
+            notification_type='info',
+            submission=submission
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Requirement submitted successfully',
+            'submission': {
+                'id': submission.id,
+                'status': submission.status,
+                'status_display': submission.get_status_display(),
+                'submitted_at': submission.submitted_at.strftime('%B %d, %Y')
+            }
+        })
+        
+    except RequirementSubmission.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Submission not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def approve_submission_with_notification(request, submission_id):
+    """Approve submission and notify submitter"""
+    try:
+        # Check if user is admin
+        if not (request.user.groups.filter(name='Admin').exists() or request.user.is_superuser):
+            return JsonResponse({
+                'success': False,
+                'error': 'Permission denied'
+            }, status=403)
+        
+        submission = RequirementSubmission.objects.get(id=submission_id)
+        
+        # Get review notes if any
+        import json
+        data = json.loads(request.body) if request.body else {}
+        review_notes = data.get('review_notes', '')
+        
+        # Update submission
+        submission.status = 'approved'
+        submission.reviewed_by = request.user
+        submission.reviewed_at = timezone.now()
+        submission.review_notes = review_notes
+        submission.save()
+        
+        # Create notification for submitter
+        message = f"Your submission for {submission.requirement.title} has been approved"
+        if review_notes:
+            message += f". Admin notes: {review_notes}"
+        
+        create_notification(
+            user=submission.barangay.user,
+            title="Submission Approved",
+            message=message,
+            notification_type='completed',
+            submission=submission
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Submission approved successfully'
+        })
+        
+    except RequirementSubmission.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Submission not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def reject_submission_with_notification(request, submission_id):
+    """Reject submission and notify submitter"""
+    try:
+        # Check if user is admin
+        if not (request.user.groups.filter(name='Admin').exists() or request.user.is_superuser):
+            return JsonResponse({
+                'success': False,
+                'error': 'Permission denied'
+            }, status=403)
+        
+        submission = RequirementSubmission.objects.get(id=submission_id)
+        
+        # Get review notes
+        import json
+        data = json.loads(request.body) if request.body else {}
+        review_notes = data.get('review_notes', '')
+        
+        # Update submission
+        submission.status = 'rejected'
+        submission.reviewed_by = request.user
+        submission.reviewed_at = timezone.now()
+        submission.review_notes = review_notes
+        submission.save()
+        
+        # Create notification for submitter
+        message = f"Your submission for {submission.requirement.title} needs revision"
+        if review_notes:
+            message += f". Admin notes: {review_notes}"
+        
+        create_notification(
+            user=submission.barangay.user,
+            title="Submission Needs Revision",
+            message=message,
+            notification_type='overdue',
+            submission=submission
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Submission rejected successfully'
+        })
+        
+    except RequirementSubmission.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Submission not found'
+        }, status=404)
     except Exception as e:
         return JsonResponse({
             'success': False,
@@ -3357,91 +3549,73 @@ def mark_all_notifications_read(request):
         }, status=500)
 
 
-# Helper function to create notifications
-def create_notification(user, title, message, notification_type='info', submission=None, barangay=None):
-    """Helper function to create a notification"""
-    Notification.objects.create(
-        user=user,
-        type=notification_type,
-        title=title,
-        message=message,
-        submission=submission,
-        barangay=barangay
-    )
-
-
-# Add these to your existing views to trigger notifications
-
-# When a requirement becomes overdue
-def check_overdue_requirements():
-    """Check for overdue requirements and create notifications"""
-    from .models import RequirementSubmission
+def get_time_ago(datetime_obj):
+    """Convert datetime to 'time ago' format"""
+    from django.utils import timezone
+    now = timezone.now()
+    diff = now - datetime_obj
     
-    overdue_submissions = RequirementSubmission.objects.filter(
-        status__in=['pending', 'in_progress'],
-        due_date__lt=timezone.now().date()
-    )
+    seconds = diff.total_seconds()
     
-    for submission in overdue_submissions:
-        # Create notification for submitter
-        if submission.barangay.submitter:
-            create_notification(
-                user=submission.barangay.submitter,
-                title="Overdue Requirement",
-                message=f"{submission.requirement.title} for {submission.barangay.name} is overdue!",
-                notification_type='overdue',
-                submission=submission,
-                barangay=submission.barangay
-            )
+    if seconds < 60:
+        return "Just now"
+    elif seconds < 3600:
+        minutes = int(seconds / 60)
+        return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+    elif seconds < 86400:
+        hours = int(seconds / 3600)
+        return f"{hours} hour{'s' if hours > 1 else ''} ago"
+    elif seconds < 604800:
+        days = int(seconds / 86400)
+        return f"{days} day{'s' if days > 1 else ''} ago"
+    else:
+        weeks = int(seconds / 604800)
+        return f"{weeks} week{'s' if weeks > 1 else ''} ago"
 
-
-# When a requirement is due soon (within 3 days)
-def check_upcoming_requirements():
-    """Check for requirements due soon"""
-    from .models import RequirementSubmission
-    
-    three_days_from_now = timezone.now().date() + timedelta(days=3)
-    
-    upcoming_submissions = RequirementSubmission.objects.filter(
-        status__in=['pending', 'in_progress'],
-        due_date__lte=three_days_from_now,
-        due_date__gte=timezone.now().date()
-    )
-    
-    for submission in upcoming_submissions:
-        # Check if notification already exists
-        existing = Notification.objects.filter(
-            user=submission.barangay.submitter,
-            submission=submission,
-            type='upcoming',
-            created_at__gte=timezone.now() - timedelta(days=1)
-        ).exists()
-        
-        if not existing and submission.barangay.submitter:
-            create_notification(
-                user=submission.barangay.submitter,
-                title="Upcoming Deadline",
-                message=f"{submission.requirement.title} for {submission.barangay.name} is due on {submission.due_date}",
-                notification_type='upcoming',
-                submission=submission,
-                barangay=submission.barangay
-            )
-
-
-# When a requirement is submitted
-def notify_requirement_submitted(submission):
-    """Notify admin when requirement is submitted"""
-    from django.contrib.auth.models import User
-    
-    # Get all admin users
-    admin_users = User.objects.filter(is_staff=True)
-    
-    for admin in admin_users:
-        create_notification(
-            user=admin,
-            title="New Submission",
-            message=f"{submission.barangay.name} submitted {submission.requirement.title}",
-            notification_type='completed',
-            submission=submission,
-            barangay=submission.barangay
+def create_notification(user, title, message, notification_type, submission=None):
+    """Helper function to create notifications"""
+    try:
+        notification = Notification.objects.create(
+            user=user,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            submission=submission
         )
+        return notification
+    except Exception as e:
+        print(f"Error creating notification: {e}")
+        return None
+
+
+def create_admin_notification(title, message, notification_type, submission=None):
+    """Create notification for all admin users"""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        # Get all admin users
+        admin_users = User.objects.filter(
+            Q(is_superuser=True) | Q(groups__name='Admin')
+        ).distinct()
+        
+        # Create notification for each admin
+        notifications = []
+        for admin in admin_users:
+            notif = create_notification(
+                user=admin,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                submission=submission
+            )
+            if notif:
+                notifications.append(notif)
+        
+        return notifications
+        
+    except Exception as e:
+        print(f"Error creating admin notifications: {e}")
+        return []
+
+#----END OF NOTIFICATIONS HELPERS----

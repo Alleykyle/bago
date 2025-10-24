@@ -634,12 +634,12 @@
         <div class="sidebar">
             <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
             <ul class="nav-menu">
-                <li><a href="/dashboard/">Dashboard</a></li>
-                <li><a href="/application_request/">Application Request</a></li>
-                <li class="active"><a href="/history/">History</a></li>
-                <li><a href="/employees_profile/">Employees Profile</a></li>
-                <li><a href="/folder/">Folders</a></li>
-                <li><a href="/settings/">Settings</a></li>
+                <li><a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Dashboard</a></li>
+        <li><a href="{% url 'application_request' %}" {% if request.resolver_match.url_name == 'application_request' %}class="active"{% endif %}>Application Request</a></li>
+        <li><a href="{% url 'history' %}" {% if request.resolver_match.url_name == 'history' %}class="active"{% endif %}>History</a></li>
+        <li><a href="{% url 'employees_profile' %}" {% if request.resolver_match.url_name == 'employees_profile' %}class="active"{% endif %}>Employees Profile</a></li>
+        <li><a href="{% url 'folder' %}" {% if request.resolver_match.url_name == 'folder' %}class="active"{% endif %}>Folders</a></li>
+        <li><a href="{% url 'settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>Settings</a></li>
             </ul>
         </div>
 

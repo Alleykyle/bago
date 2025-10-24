@@ -32,6 +32,9 @@ INSTALLED_APPS = [
     'app',
     
 ]
+
+
+
 CRONJOBS = [
     ('0 8 * * *', 'django.core.management.call_command', ['send_notifications']),]
 

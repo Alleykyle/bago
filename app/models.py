@@ -626,7 +626,6 @@ def log_submission_status_change(sender, instance, created, **kwargs):
 
 
 
-
 class Notification(models.Model):
     NOTIFICATION_TYPES = [
         ('overdue', 'Overdue'),
@@ -634,16 +633,38 @@ class Notification(models.Model):
         ('completed', 'Completed'),
         ('reminder', 'Reminder'),
         ('info', 'Information'),
+        ('announcement', 'Announcement'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='info')
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=255)
     message = models.TextField()
-    submission = models.ForeignKey('RequirementSubmission', on_delete=models.CASCADE, null=True, blank=True)
-    barangay = models.ForeignKey('Barangay', on_delete=models.CASCADE, null=True, blank=True)
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='info')
     is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    # Optional: Link to related objects
+    submission = models.ForeignKey(
+        'RequirementSubmission', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='notifications'
+    )
+    announcement = models.ForeignKey(
+        'Announcement',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications'
+    )
+    barangay = models.ForeignKey(
+        'Barangay',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications'
+    )
     
     class Meta:
         ordering = ['-created_at']
@@ -653,26 +674,10 @@ class Notification(models.Model):
     
     def time_ago(self):
         """Return human-readable time difference"""
-        now = timezone.now()
-        diff = now - self.created_at
-        
-        if diff.days > 365:
-            years = diff.days // 365
-            return f"{years} year{'s' if years > 1 else ''} ago"
-        elif diff.days > 30:
-            months = diff.days // 30
-            return f"{months} month{'s' if months > 1 else ''} ago"
-        elif diff.days > 0:
-            return f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
-        elif diff.seconds > 3600:
-            hours = diff.seconds // 3600
-            return f"{hours} hour{'s' if hours > 1 else ''} ago"
-        elif diff.seconds > 60:
-            minutes = diff.seconds // 60
-            return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
-        else:
-            return "Just now"
-        
+        from django.utils.timesince import timesince
+        return f"{timesince(self.created_at, timezone.now())} ago"
+
+
 class Announcement(models.Model):
     PRIORITY_CHOICES = [
         ('low', 'Low'),

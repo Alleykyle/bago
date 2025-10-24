@@ -456,7 +456,7 @@ function refreshAnalytics() {
   refreshBtn.disabled = true;
   
   // Make AJAX request to refresh data
-  fetch('/refresh-analytics/')
+  fetch('/api/analytics/refresh/') 
     .then(response => response.json())
     .then(data => {
       if (data.success) {

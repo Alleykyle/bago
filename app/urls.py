@@ -15,11 +15,12 @@ urlpatterns = [
     # ============================================
     path('requirements_monitoring/', views.requirements_monitoring, name='requirements_monitoring'),
     path('civil_service_certification/', views.civil_service_certification, name='civil_service_certification'),
+    path('submit_eligibility_request/', views.submit_eligibility_request, name='submit_eligibility_request_legacy'),
     
     # ============================================
     # DILG ADMIN - REVIEW PAGES (Changed path!)
     # ============================================
-    # ✅ Changed from /admin/submissions/ to /dilg/submissions/
+    #  Changed from /admin/submissions/ to /dilg/submissions/
     path('dilg/submissions/', views.admin_submissions_page, name='admin_submissions_page'),
     path('dilg/application-requests/', views.application_request, name='application_request'),
     
@@ -31,6 +32,7 @@ urlpatterns = [
     path('employees/', views.employees_profile, name='employees_profile'),
     path('history/', views.history, name='history'),
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
+    path('api/analytics/refresh/', views.refresh_analytics, name='refresh_analytics'),
     
     # ============================================
     # API ENDPOINTS - REQUIREMENTS MONITORING
@@ -101,6 +103,23 @@ urlpatterns = [
     # Notification endpoints
     path('api/notifications/', views.get_notifications, name='get_notifications'),
     path('api/notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
+    path('api/notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_read'),
+    
+    # Enhanced submission endpoints with notifications
+    path('api/announcements/<int:announcement_id>/update/', views.update_announcement, name='update_announcement'),
+    path('api/announcements/create/', views.create_announcement, name='create_announcement'),
+    path('api/requirements/submission/<int:submission_id>/submit/', views.submit_requirement_with_notification, name='submit_requirement'),
+    path('api/requirements/submission/<int:submission_id>/approve/', views.approve_submission_with_notification, name='approve_submission'),
+    path('api/requirements/submission/<int:submission_id>/reject/', views.reject_submission_with_notification, name='reject_submission'),
+    path('api/notifications/', views.get_notifications, name='get_notifications'),
+    path('api/notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('api/notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
-    path('notifications/', views.notifications_page, name='notifications_page'),
+    path('api/notifications/unread-count/', views.get_unread_count, name='unread_count'),
+    path('api/announcements/create/', views.create_announcement, name='create_announcement'),
+
+    # Announcement APIs
+    path('api/announcements/', views.get_announcements, name='get_announcements'),
+    path('api/announcements/create/', views.create_announcement, name='create_announcement'),
+    path('api/announcements/<int:announcement_id>/update/', views.update_announcement, name='update_announcement'),
+    path('api/announcements/<int:announcement_id>/delete/', views.delete_announcement, name='delete_announcement'),
 ]

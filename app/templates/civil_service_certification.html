@@ -21,7 +21,6 @@
         <h1>Eligibility Certification</h1>
         <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
       </div>
-      <a href="{% url 'landing_menu' %}" class="back-btn">← Back</a>
     </div>
 
     <!-- Breadcrumb -->
@@ -192,8 +191,14 @@
           <h2 class="section-title">Elective Position Details</h2>
           <form>
             <label for="position_held">Position Held</label>
-            <input type="text" id="position_held" name="position_held" placeholder="e.g., Barangay Kagawad, SK Chairman" required>
-
+            <select id="position_held" name="position_held" required>
+              <option value="" disabled selected>Select position...</option>
+              <option value="Punong Barangay">Punong Barangay</option>
+              <option value="Sanguniang Barangay Member">Sanguniang Barangay Member</option>
+              <option value="Brgy Secretary">Brgy Secretary</option>
+              <option value="Brgy Treasurer">Brgy Treasurer</option>
+            </select>
+            
             <label for="election_from">Date of Election: From</label>
             <input type="date" id="election_from" name="election_from" required>
 

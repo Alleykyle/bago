@@ -1014,6 +1014,299 @@
       display: flex;
       gap: 8px;
     }
+
+    .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    animation: pulse 2s infinite;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      transform: scale(1.1);
+      box-shadow: 0 2px 12px rgba(239, 68, 68, 0.6);
+    }
+  }
+
+  .admin-notification-dropdown {
+    position: absolute;
+    top: 60px;
+    right: -50px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+    border: 1px solid #e5e7eb;
+    width: 420px;
+    max-height: 550px;
+    display: none;
+    z-index: 9999;
+    overflow: hidden;
+  }
+
+  .admin-notification-dropdown.show {
+    display: block;
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .notification-header {
+    padding: 18px 20px;
+    border-bottom: 2px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+  }
+
+  .notification-header h3 {
+    font-size: 18px;
+    color: #1a202c;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .mark-all-read {
+    background: none;
+    border: none;
+    color: #2456f3;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-weight: 600;
+  }
+
+  .mark-all-read:hover {
+    background: #e5e7eb;
+  }
+
+  .notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .notification-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .notification-list::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .notification-list::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+
+  .notification-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .notification-item:hover {
+    background: #f9fafb;
+  }
+
+  .notification-item.unread {
+    background: #eff6ff;
+  }
+
+  .notification-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: #3b82f6;
+    border-radius: 50%;
+  }
+
+  .notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+
+  .notification-icon.overdue {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .notification-icon.upcoming {
+    background: #fef3c7;
+    color: #f59e0b;
+  }
+
+  .notification-icon.completed {
+    background: #d1fae5;
+    color: #10b981;
+  }
+
+  .notification-icon.info {
+    background: #dbeafe;
+    color: #3b82f6;
+  }
+
+  .notification-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .notification-title {
+    font-weight: 600;
+    color: #1a202c;
+    font-size: 14px;
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .notification-message {
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .notification-time {
+    color: #9ca3af;
+    font-size: 12px;
+  }
+
+  .notification-empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: #9ca3af;
+    background: white;
+  }
+
+  .notification-empty-icon {
+    font-size: 64px;
+    margin-bottom: 15px;
+    opacity: 0.6;
+    filter: grayscale(50%);
+  }
+
+  .notification-empty p {
+    font-size: 16px;
+    color: #6b7280;
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .notification-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    background: #f9fafb;
+  }
+
+  .view-all-btn {
+    background: none;
+    border: none;
+    color: #2456f3;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .view-all-btn:hover {
+    background: #e5e7eb;
+  }
+
+  /* Highlight effect for notification-linked submissions */
+  .submission-card.notification-highlight {
+    border: 2px solid #2456f3 !important;
+    animation: highlightPulse 2s ease-in-out;
+  }
+
+  @keyframes highlightPulse {
+    0%, 100% {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    50% {
+      box-shadow: 0 8px 24px rgba(36, 86, 243, 0.3);
+    }
+  }
+
+  /* Mobile responsive adjustments */
+  @media (max-width: 768px) {
+    .admin-notification-dropdown {
+      width: 90vw;
+      max-width: 380px;
+      right: -20px;
+    }
+    
+    .notification-header h3 {
+      font-size: 16px;
+    }
+    
+    .mark-all-read {
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+  }
+
+  /* Fix bell icon positioning */
+  .icon-btn[title="Notifications"] {
+    position: relative;
+    overflow: visible;
+  }
+
+  .icon-btn[title="Notifications"]:hover {
+    transform: scale(1.05);
+  }
+
+  .icon-btn[title="Notifications"]:active {
+    transform: scale(0.95);
+  }
+
   </style>
 </head>
 <body>
@@ -1265,7 +1558,132 @@
     let currentEditingReqId = null;
     let currentEditingAnnouncementId = null;
     let currentDate = new Date(2025, 9, 21);
+    let adminNotificationInterval = null;
+    let adminNotificationDropdownOpen = false;
     let calendarEvents = [];
+    let announcementsCache = [];
+
+      // Poll for new notifications every 30 seconds
+    adminNotificationInterval = setInterval(loadAdminNotifications, 30000);
+    function setupAdminNotifications() {
+  const bellButton = document.querySelector('.icon-btn[title="Notifications"]');
+  
+  if (bellButton && !document.getElementById('adminNotificationDropdown')) {
+    bellButton.style.position = 'relative';
+    
+    // Add badge
+    const badge = document.createElement('span');
+    badge.id = 'adminNotificationBadge';
+    badge.className = 'notification-badge';
+    badge.style.display = 'none';
+    badge.textContent = '0';
+    bellButton.appendChild(badge);
+    
+    // Create dropdown
+    const dropdown = document.createElement('div');
+    dropdown.id = 'adminNotificationDropdown';
+    dropdown.className = 'admin-notification-dropdown';
+    dropdown.innerHTML = `
+      <div class="notification-header">
+        <h3>Notifications</h3>
+        <button class="mark-all-read" onclick="markAllAdminNotificationsRead()">Mark all as read</button>
+      </div>
+      
+      <div class="notification-list" id="adminNotificationList">
+        <div class="notification-empty">
+          <div class="notification-empty-icon">🔔</div>
+          <p>No notifications yet</p>
+        </div>
+      </div>
+      
+      <div class="notification-footer">
+        <button class="view-all-btn" onclick="viewAllAdminNotifications()">View All Notifications</button>
+      </div>
+    `;
+    
+    bellButton.parentElement.style.position = 'relative';
+    bellButton.parentElement.appendChild(dropdown);
+    
+    // Toggle on click
+    bellButton.onclick = function(e) {
+      e.stopPropagation();
+      toggleAdminNotifications();
+    };
+    
+    // Close when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#adminNotificationDropdown') && 
+          !e.target.closest('.icon-btn[title="Notifications"]')) {
+        closeAdminNotifications();
+      }
+    });
+  }
+}
+
+
+    // Toggle admin notification dropdown
+    function toggleAdminNotifications() {
+      const dropdown = document.getElementById('adminNotificationDropdown');
+      if (dropdown) {
+        adminNotificationDropdownOpen = !adminNotificationDropdownOpen;
+        
+        if (adminNotificationDropdownOpen) {
+          dropdown.classList.add('show');
+          loadAdminNotifications(); // Refresh when opening
+        } else {
+          dropdown.classList.remove('show');
+        }
+      }
+    }
+    // Close admin notification dropdown
+    function closeAdminNotifications() {
+      const dropdown = document.getElementById('adminNotificationDropdown');
+      if (dropdown) {
+        dropdown.classList.remove('show');
+        adminNotificationDropdownOpen = false;
+      }
+    }
+
+    // Mark all admin notifications as read
+    function markAllAdminNotificationsRead() {
+      fetch('/api/notifications/mark-all-read/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('All notifications marked as read', 'success');
+          loadAdminNotifications();
+        }
+      })
+      .catch(error => {
+        console.error('Error marking all as read:', error);
+      });
+    }
+
+    // View all admin notifications
+    function viewAllAdminNotifications() {
+      // Navigate to a dedicated notifications page or expand view
+      // For now, just close the dropdown
+      closeAdminNotifications();
+      showToast('Full notifications view - coming soon', 'success');
+    }
+
+    // Clean up interval on page unload
+    window.addEventListener('beforeunload', function() {
+      if (adminNotificationInterval) {
+        clearInterval(adminNotificationInterval);
+      }
+    });
+
+
+
 
     const demoSubmissions = [
       {
@@ -1422,7 +1840,7 @@
       }
     ];
 
-    let announcementsData = [...demoAnnouncements];
+    //let announcementsData = [...demoAnnouncements];
 
     function generateCalendarEvents() {
       calendarEvents = [];
@@ -1671,13 +2089,62 @@
       currentReviewAction = null;
     }
 
+    // Updated confirmReview function to create notifications
     function confirmReview() {
-      showToast(`Submission ${currentReviewAction} successfully!`, 'success');
-      closeReviewModal();
+      if (!currentReviewId || !currentReviewAction) {
+        showToast('Invalid review action', 'error');
+        return;
+      }
       
-      setTimeout(() => {
-        loadSubmissions();
-      }, 500);
+      const reviewNotes = document.getElementById('reviewNotes').value.trim();
+      
+      // Determine API endpoint
+      const endpoint = currentReviewAction === 'approved' 
+        ? `/api/requirements/submission/${currentReviewId}/approve/`
+        : `/api/requirements/submission/${currentReviewId}/reject/`;
+      
+      // Show loading state
+      const confirmBtn = document.getElementById('confirmReviewBtn');
+      const originalText = confirmBtn.textContent;
+      confirmBtn.textContent = 'Processing...';
+      confirmBtn.disabled = true;
+      
+      fetch(endpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          review_notes: reviewNotes
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const actionText = currentReviewAction === 'approved' ? 'approved' : 'rejected';
+          showToast(`Submission ${actionText} successfully! Barangay has been notified.`, 'success');
+          closeReviewModal();
+          
+          // Reload submissions after a short delay
+          setTimeout(() => {
+            loadSubmissions();
+            loadAdminNotifications(); // Refresh notifications
+          }, 500);
+        } else {
+          showToast(data.error || 'Failed to process review', 'error');
+          confirmBtn.textContent = originalText;
+          confirmBtn.disabled = false;
+        }
+      })
+      .catch(error => {
+        console.error('Error processing review:', error);
+        showToast('Network error during review', 'error');
+        confirmBtn.textContent = originalText;
+        confirmBtn.disabled = false;
+      });
     }
 
     function loadRequirements() {
@@ -1698,6 +2165,86 @@
         `;
         return;
       }
+      
+      // Update renderSubmissions to add data attributes for highlighting
+      function renderSubmissionsWithIds(submissions) {
+        const container = document.getElementById('submissionsContainer');
+
+        if (submissions.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h3>No submissions found</h3>
+              <p>Try adjusting your filters or check back later</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = '';
+
+        submissions.forEach(sub => {
+          const card = document.createElement('div');
+          card.className = 'submission-card';
+          card.setAttribute('data-submission-id', sub.id); // Add this for highlighting
+
+          const attachmentsBadges = sub.attachments.map(att => 
+            `<div class="attachment-badge" onclick="window.open('${att.file_url}', '_blank')">
+              📎 ${att.file_name}
+            </div>`
+          ).join('');
+
+          card.innerHTML = `
+            <div class="submission-header">
+              <div>
+                <div class="submission-title">${sub.title}</div>
+                <div class="submission-barangay">📍 ${sub.barangay_name}</div>
+              </div>
+              <span class="status-badge ${sub.status}">${sub.status_display}</span>
+            </div>
+
+            <div class="submission-info">
+              <div class="info-item">
+                <span class="info-label">Status</span>
+                <span class="info-value">${sub.status_display}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Due date</span>
+                <span class="info-value">${sub.due_date}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Submitted</span>
+                <span class="info-value">${sub.submitted_at}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Last Update</span>
+                <span class="info-value">${sub.submitted_at}</span>
+              </div>
+            </div>
+
+            ${sub.update_text ? `
+              <div class="submission-update">
+                <strong style="display: block; margin-bottom: 8px;">Updates:</strong>
+                ${sub.update_text}
+              </div>
+            ` : ''}
+
+            ${sub.attachments.length > 0 ? `
+              <div>
+                <strong style="display: block; margin-bottom: 8px; font-size: 13px; color: #6b7280;">Attachments (${sub.attachments.length}):</strong>
+                <div class="attachments">${attachmentsBadges}</div>
+              </div>
+            ` : ''}
+
+            <div class="actions">
+              <button class="btn btn-approve" onclick="openReviewModal(${sub.id}, 'approved')">✓ Approve</button>
+              <button class="btn btn-reject" onclick="openReviewModal(${sub.id}, 'rejected')">✗ Reject</button>
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
+      }
+
 
       container.innerHTML = '';
 
@@ -1751,16 +2298,19 @@
       });
     }
 
-    function openAddRequirementModal() {
-      currentEditingReqId = null;
-      document.getElementById('requirementModalTitle').textContent = 'Add New Requirement';
-      document.getElementById('reqTitle').value = '';
-      document.getElementById('reqDescription').value = '';
-      document.getElementById('reqPeriod').value = '';
-      document.getElementById('applyToAll').checked = true;
-      document.getElementById('requirementModal').classList.add('show');
-    }
-
+    function openAddAnnouncementModal() {
+  // Only reset if creating new (not editing)
+  if (currentEditingAnnouncementId === null) {
+    document.getElementById('announcementModalTitle').textContent = 'Create Announcement';
+    document.getElementById('announcementTitle').value = '';
+    document.getElementById('announcementContent').value = '';
+    document.getElementById('announcementPriority').value = 'medium';
+    document.getElementById('sendNotification').checked = true;
+  }
+  
+  // Open the modal
+  document.getElementById('announcementModal').classList.add('show');
+}
     function closeRequirementModal() {
       document.getElementById('requirementModal').classList.remove('show');
       currentEditingReqId = null;
@@ -1962,63 +2512,329 @@
       renderCalendar();
     }
 
-    function loadAnnouncements() {
-      setTimeout(() => {
-        renderAnnouncements(announcementsData);
-      }, 500);
+  
+// Update your renderAnnouncements to store the cache
+function renderAnnouncements(announcements) {
+  console.log('🎨 renderAnnouncements called with', announcements.length, 'items');
+  const container = document.getElementById('announcementsContainer');
+
+  // Store announcements in cache
+  announcementsCache = announcements;
+
+  if (!announcements || announcements.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>No announcements yet</h3>
+        <p>Click "New Announcement" to post an update to all barangays</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = '';
+
+  announcements.forEach(announcement => {
+    const card = document.createElement('div');
+    card.className = `announcement-card priority-${announcement.priority}`;
+
+    card.innerHTML = `
+      <div class="announcement-header">
+        <div style="flex: 1;">
+          <div class="announcement-title">${announcement.title}</div>
+          <div class="announcement-meta">
+            <span>👤 ${announcement.posted_by}</span>
+            <span>📅 ${announcement.posted_at}</span>
+            <span>👁️ ${announcement.views || 0} views</span>
+            <span>📨 Sent to ${announcement.sent_to_barangays || 33} barangays</span>
+          </div>
+        </div>
+        <span class="priority-badge ${announcement.priority}">${announcement.priority_display} Priority</span>
+      </div>
+
+      <div class="announcement-content">${announcement.content}</div>
+
+      <div class="announcement-footer">
+        <div class="priority-badge ${announcement.priority}" style="font-size: 10px; padding: 3px 10px;">
+          Priority: ${announcement.priority_display}
+        </div>
+        <div class="announcement-actions">
+          <button class="btn btn-edit" onclick="editAnnouncement(${announcement.id})" style="padding: 8px 16px; font-size: 12px;">
+            <i class="fa-solid fa-edit"></i> Edit
+          </button>
+          <button class="btn btn-delete" onclick="deleteAnnouncement(${announcement.id}, '${announcement.title.replace(/'/g, "\\'")}')" style="padding: 8px 16px; font-size: 12px;">
+            <i class="fa-solid fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+  
+  console.log('✅ Rendered', announcements.length, 'announcement cards');
+}
+
+// ADD THESE TWO FUNCTIONS:
+
+function editAnnouncement(id) {
+  console.log('✏️ Edit announcement:', id);
+  
+  // Find the announcement in cache
+  const announcement = announcementsCache.find(a => a.id === id);
+  
+  if (!announcement) {
+    console.error('❌ Announcement not found in cache');
+    showToast('Error: Could not find announcement data', 'error');
+    return;
+  }
+  
+  // Open the modal first
+  document.getElementById('announcementModal').classList.add('show');
+  
+  // FIXED: Use correct field IDs that match your HTML
+  document.getElementById('announcementTitle').value = announcement.title;
+  document.getElementById('announcementContent').value = announcement.content;
+  document.getElementById('announcementPriority').value = announcement.priority;  // Changed from 'priority'
+  
+  // Update modal title and button
+  document.getElementById('announcementModalTitle').textContent = 'Edit Announcement';
+  currentEditingAnnouncementId = id;
+}
+
+
+function deleteAnnouncement(id, title) {
+  console.log('🗑️ Delete announcement:', id, title);
+  
+  if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) {
+    return;
+  }
+  
+  // Show loading state
+  const container = document.getElementById('announcementsContainer');
+  container.style.opacity = '0.5';
+  container.style.pointerEvents = 'none';
+  
+  // FIXED URL - matches your urls.py pattern
+  fetch(`/api/announcements/${id}/delete/`, {
+    method: 'POST',  // Use POST since Django typically expects POST for deletes
+    credentials: 'same-origin',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest'
     }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('✅ Delete response:', data);
+    
+    if (data.success) {
+      showToast('Announcement deleted successfully!', 'success');
+      loadAnnouncements();
+    } else {
+      throw new Error(data.message || 'Failed to delete announcement');
+    }
+  })
+  .catch(error => {
+    console.error('❌ Delete error:', error);
+    showToast('Failed to delete announcement: ' + error.message, 'error');
+    container.style.opacity = '1';
+    container.style.pointerEvents = 'auto';
+  });
+}
 
-    function renderAnnouncements(announcements) {
-      const container = document.getElementById('announcementsContainer');
+// THEN your loadAnnouncements function
+function loadAnnouncements() {
+  console.log('🔄 loadAnnouncements called');
+  const container = document.getElementById('announcementsContainer');
+  
+  if (!container) {
+    console.error('❌ announcementsContainer not found!');
+    return;
+  }
+  
+  console.log('📦 Container found, showing loading state');
+  container.innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading announcements...</p>
+    </div>
+  `;
+  
+  console.log('🌐 Fetching from /api/announcements/');
+  fetch('/api/announcements/', {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    console.log('📡 Response received, status:', response.status);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('✅ Data parsed:', data);
+    if (data.success && data.announcements) {
+      console.log(`📢 Rendering ${data.announcements.length} announcements`);
+      renderAnnouncements(data.announcements);
+    } else {
+      console.error('❌ No success or no announcements:', data);
+      container.innerHTML = `
+        <div class="empty-state">
+          <h3>No announcements yet</h3>
+          <p>Click "New Announcement" to post an update to all barangays</p>
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('❌ Fetch error:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>Failed to load announcements</h3>
+        <p>${error.message}</p>
+        <button onclick="loadAnnouncements()" class="btn btn-approve" style="margin-top: 15px;">
+          🔄 Try Again
+        </button>
+      </div>
+    `;
+  });
+}
 
-      if (announcements.length === 0) {
+
+    // Render admin notifications
+    function renderAdminNotifications(notifications) {
+      const container = document.getElementById('adminNotificationList');
+      
+      if (!container) return;
+      
+      if (notifications.length === 0) {
         container.innerHTML = `
-          <div class="empty-state">
-            <h3>No announcements yet</h3>
-            <p>Click "New Announcement" to post an update to all barangays</p>
+          <div class="notification-empty">
+            <div class="notification-empty-icon">🔔</div>
+            <p>No notifications yet</p>
           </div>
         `;
         return;
       }
-
+      
       container.innerHTML = '';
-
-      announcements.forEach(announcement => {
-        const card = document.createElement('div');
-        card.className = `announcement-card priority-${announcement.priority}`;
-
-        card.innerHTML = `
-          <div class="announcement-header">
-            <div style="flex: 1;">
-              <div class="announcement-title">${announcement.title}</div>
-              <div class="announcement-meta">
-                <span>👤 ${announcement.posted_by}</span>
-                <span>📅 ${announcement.posted_at}</span>
-                <span>👁️ ${announcement.views} views</span>
-                <span>📨 Sent to ${announcement.sent_to_barangays} barangays</span>
-              </div>
+      
+      notifications.forEach(notif => {
+        const item = document.createElement('div');
+        item.className = `notification-item ${notif.is_read ? '' : 'unread'}`;
+        item.setAttribute('data-id', notif.id);
+        item.onclick = () => handleAdminNotificationClick(notif);
+        
+        const iconClass = getNotificationIconClass(notif.type);
+        const icon = getNotificationIcon(notif.type);
+        
+        item.innerHTML = `
+          <div style="display: flex; align-items: start;">
+            <div class="notification-icon ${iconClass}">
+              ${icon}
             </div>
-            <span class="priority-badge ${announcement.priority}">${announcement.priority_display} Priority</span>
-          </div>
-
-          <div class="announcement-content">${announcement.content}</div>
-
-          <div class="announcement-footer">
-            <div class="priority-badge ${announcement.priority}" style="font-size: 10px; padding: 3px 10px;">
-              Priority: ${announcement.priority_display}
-            </div>
-            <div class="announcement-actions">
-              <button class="btn btn-edit" onclick="editAnnouncement(${announcement.id})" style="padding: 8px 16px; font-size: 12px;">
-                <i class="fa-solid fa-edit"></i> Edit
-              </button>
-              <button class="btn btn-delete" onclick="deleteAnnouncement(${announcement.id}, '${announcement.title.replace(/'/g, "\\'")}')" style="padding: 8px 16px; font-size: 12px;">
-                <i class="fa-solid fa-trash"></i> Delete
-              </button>
+            <div class="notification-content">
+              <div class="notification-title">${notif.title}</div>
+              <div class="notification-message">${notif.message}</div>
+              <div class="notification-time">${notif.time_ago}</div>
             </div>
           </div>
         `;
+        
+        container.appendChild(item);
+      });
+    }
 
-        container.appendChild(card);
+    // Get notification icon based on type
+    function getNotificationIconClass(type) {
+      const iconMap = {
+        'overdue': 'overdue',
+        'upcoming': 'upcoming',
+        'completed': 'completed',
+        'reminder': 'upcoming',
+        'info': 'info'
+      };
+      return iconMap[type] || 'info';
+    }
+
+    function getNotificationIcon(type) {
+      const iconMap = {
+        'overdue': '⚠️',
+        'upcoming': '⏰',
+        'completed': '✅',
+        'reminder': '🔔',
+        'info': 'ℹ️'
+      };
+      return iconMap[type] || '📌';
+    }
+
+    // Handle admin notification click
+    function handleAdminNotificationClick(notif) {
+      // Mark as read
+      markAdminNotificationAsRead(notif.id);
+      
+      // Navigate to appropriate view based on notification
+      if (notif.submission_id) {
+        // Switch to submissions view and highlight the submission
+        switchToView('submissions');
+        setTimeout(() => {
+          const submissionCard = document.querySelector(`[data-submission-id="${notif.submission_id}"]`);
+          if (submissionCard) {
+            submissionCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            submissionCard.style.border = '2px solid #2456f3';
+            setTimeout(() => {
+              submissionCard.style.border = '';
+            }, 3000);
+          }
+        }, 500);
+      }
+      
+      // Close dropdown
+      closeAdminNotifications();
+    }
+
+    // Mark admin notification as read
+    function markAdminNotificationAsRead(notificationId) {
+      fetch(`/api/notifications/${notificationId}/read/`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update UI
+          const item = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+          if (item) {
+            item.classList.remove('unread');
+          }
+          
+          // Update badge
+          const badge = document.getElementById('adminNotificationBadge');
+          if (badge && badge.style.display !== 'none') {
+            const currentCount = parseInt(badge.textContent) || 0;
+            if (currentCount > 0) {
+              updateAdminNotificationBadge(currentCount - 1);
+            }
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error marking notification as read:', error);
       });
     }
 
@@ -2033,9 +2849,9 @@
     }
 
     function closeAnnouncementModal() {
-      document.getElementById('announcementModal').classList.remove('show');
-      currentEditingAnnouncementId = null;
-    }
+  document.getElementById('announcementModal').classList.remove('show');
+  currentEditingAnnouncementId = null;  // Reset editing state
+}
 
     function saveAnnouncement() {
   const title = document.getElementById('announcementTitle').value.trim();
@@ -2048,7 +2864,6 @@
     return;
   }
 
-  // Prepare data for API
   const announcementData = {
     title: title,
     content: content,
@@ -2056,42 +2871,36 @@
     send_notification: sendNotif
   };
 
-  // Show loading state
-  const submitBtn = event.target;
-  const originalText = submitBtn.textContent;
-  submitBtn.textContent = 'Posting...';
-  submitBtn.disabled = true;
-
   // Determine if creating or updating
   const isUpdate = currentEditingAnnouncementId !== null;
   const url = isUpdate 
     ? `/api/announcements/${currentEditingAnnouncementId}/update/`
     : '/api/announcements/create/';
   
+  // Show loading
+  const modal = document.getElementById('announcementModal');
+  const submitBtn = modal.querySelector('.btn-approve');
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = isUpdate ? 'Updating...' : 'Posting...';
+  submitBtn.disabled = true;
+  
   fetch(url, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
-      'X-CSRFToken': getCookie('csrftoken')
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest'
     },
     body: JSON.stringify(announcementData)
   })
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      // Show success message
-      const notifMsg = sendNotif && data.announcement?.notified_count 
-        ? ` and ${data.announcement.notified_count} officials notified` 
-        : '';
-      
       const action = isUpdate ? 'updated' : 'posted';
-      showToast(`Announcement ${action} successfully${notifMsg}!`, 'success');
-      
-      // Close modal and reload
+      showToast(`Announcement ${action} successfully!`, 'success');
       closeAnnouncementModal();
       loadAnnouncements();
-      
-      // If using demo mode (no real backend), fall back to local storage
     } else {
       showToast(data.error || 'Failed to save announcement', 'error');
       submitBtn.textContent = originalText;
@@ -2100,88 +2909,83 @@
   })
   .catch(error => {
     console.error('Error:', error);
-    
-    // Fallback to demo mode if API is not available
-    const priorityDisplay = priority.charAt(0).toUpperCase() + priority.slice(1);
-    const currentDate = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-
-    if (currentEditingAnnouncementId) {
-      // Update existing announcement in demo data
-      const index = announcementsData.findIndex(a => a.id === currentEditingAnnouncementId);
-      if (index !== -1) {
-        announcementsData[index] = {
-          ...announcementsData[index],
-          title: title,
-          content: content,
-          priority: priority,
-          priority_display: priorityDisplay
-        };
-      }
-      const notifMsg = sendNotif ? ' and notifications sent to all barangays' : '';
-      showToast(`Announcement updated${notifMsg}! (Demo mode)`, 'success');
-    } else {
-      // Create new announcement in demo data
-      const newId = Math.max(...announcementsData.map(a => a.id)) + 1;
-      const newAnnouncement = {
-        id: newId,
-        title: title,
-        content: content,
-        priority: priority,
-        priority_display: priorityDisplay,
-        posted_by: "Admin User",
-        posted_at: currentDate,
-        views: 0,
-        sent_to_barangays: 33
-      };
-      announcementsData.unshift(newAnnouncement);
-      const notifMsg = sendNotif ? ' and notifications sent to all barangays' : '';
-      showToast(`Announcement posted${notifMsg}! (Demo mode)`, 'success');
-    }
-    
-    closeAnnouncementModal();
-    loadAnnouncements();
-    
+    showToast('Network error during announcement posting', 'error');
     submitBtn.textContent = originalText;
     submitBtn.disabled = false;
   });
 }
 
-    function editAnnouncement(announcementId) {
-      const announcement = announcementsData.find(a => a.id === announcementId);
-      
-      if (!announcement) {
-        showToast('Announcement not found', 'error');
-        return;
-      }
+    function editAnnouncement(id) {
+  console.log('✏️ Edit announcement:', id);
+  
+  // Find the announcement in cache
+  const announcement = announcementsCache.find(a => a.id === id);
+  
+  if (!announcement) {
+    console.error('❌ Announcement not found in cache');
+    showToast('Error: Could not find announcement data', 'error');
+    return;
+  }
+  
+  // Set editing ID BEFORE opening modal
+  currentEditingAnnouncementId = id;
+  
+  // Open modal first - this ensures fields exist
+  openAddAnnouncementModal();
+  
+  // Now populate the fields (they exist because modal is open)
+  document.getElementById('announcementTitle').value = announcement.title;
+  document.getElementById('announcementContent').value = announcement.content;
+  document.getElementById('announcementPriority').value = announcement.priority;
+  
+  // Update modal title to show it's editing
+  document.getElementById('announcementModalTitle').textContent = 'Edit Announcement';
+}
 
-      currentEditingAnnouncementId = announcementId;
-      document.getElementById('announcementModalTitle').textContent = 'Edit Announcement';
-      document.getElementById('announcementTitle').value = announcement.title;
-      document.getElementById('announcementContent').value = announcement.content;
-      document.getElementById('announcementPriority').value = announcement.priority;
-      document.getElementById('sendNotification').checked = true;
-      document.getElementById('announcementModal').classList.add('show');
+    function deleteAnnouncement(id, title) {
+  console.log('🗑️ Delete announcement:', id, title);
+  
+  if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) {
+    return;
+  }
+  
+  // Show loading state
+  const container = document.getElementById('announcementsContainer');
+  container.style.opacity = '0.5';
+  container.style.pointerEvents = 'none';
+  
+  // FIXED: Add /delete/ to the URL
+  fetch(`/api/announcements/${id}/delete/`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest'
     }
-
-    function deleteAnnouncement(announcementId, title) {
-      if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis will remove the announcement from all 33 barangays.`)) {
-        return;
-      }
-
-      const index = announcementsData.findIndex(a => a.id === announcementId);
-      if (index !== -1) {
-        announcementsData.splice(index, 1);
-        showToast('Announcement deleted successfully from all barangays!', 'success');
-        loadAnnouncements();
-      } else {
-        showToast('Announcement not found', 'error');
-      }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-
+    return response.json();
+  })
+  .then(data => {
+    console.log('✅ Delete response:', data);
+    
+    if (data.success) {
+      showToast('Announcement deleted successfully!', 'success');
+      loadAnnouncements();
+    } else {
+      throw new Error(data.message || 'Failed to delete announcement');
+    }
+  })
+  .catch(error => {
+    console.error('❌ Delete error:', error);
+    showToast('Failed to delete announcement: ' + error.message, 'error');
+    container.style.opacity = '1';
+    container.style.pointerEvents = 'auto';
+  });
+}
     window.onclick = function(event) {
       const reviewModal = document.getElementById('reviewModal');
       const reqModal = document.getElementById('requirementModal');
@@ -2215,38 +3019,48 @@
   }
   return cookieValue;
 }
-function loadAdminNotifications() {
-  fetch('/api/notifications/', {
-    method: 'GET',
-    credentials: 'same-origin',
-    headers: {
-      'X-CSRFToken': getCookie('csrftoken'),
-      'X-Requested-With': 'XMLHttpRequest'
+    // Load admin notifications from server
+    function loadAdminNotifications() {
+      fetch('/api/notifications/', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          renderAdminNotifications(data.notifications);
+          updateAdminNotificationBadge(data.unread_count);
+        } else {
+          console.error('Failed to load notifications:', data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error loading admin notifications:', error);
+        // Don't show error to user, just log it
+      });
     }
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Update notification badge if you have one for admin
-      updateAdminNotificationBadge(data.unread_count);
-    }
-  })
-  .catch(error => {
-    console.error('Error loading admin notifications:', error);
-  });
-}
 
-function updateAdminNotificationBadge(count) {
-  const badge = document.getElementById('notificationBadge');
-  if (badge) {
-    if (count > 0) {
-      badge.textContent = count > 99 ? '99+' : count;
-      badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
+    // Update admin notification badge
+    function updateAdminNotificationBadge(count) {
+      const badge = document.getElementById('adminNotificationBadge');
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : count;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
     }
-  }
-}
 
 // Initialize admin notifications
 document.addEventListener('DOMContentLoaded', function() {
