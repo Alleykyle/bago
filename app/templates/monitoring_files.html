@@ -2,30 +2,354 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <meta charset="UTF-8">
-  <title>Brgy. Files Sorting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brgy. Monitoring Files</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
   <link rel="stylesheet" href="{% static 'CSS/folder.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/theme-system.css' %}">
   <link rel="stylesheet" href="{% static 'CSS/monitoring_files.css' %}">
   <link rel="stylesheet" href="{% static 'CSS/requirements_monitoring.css' %}">
+  <style>
+    /* Barangay Sidebar Styles */
+    .sidebar {
+      width: 250px;
+      background: white;
+      padding: 20px;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+
+    .sidebar h3 {
+      color: #1a202c;
+      margin-bottom: 20px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .barangay-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .barangay-list li {
+      padding: 12px 15px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+      border-left: 4px solid transparent;
+      background: #f9fafb;
+    }
+
+    .barangay-list li:hover {
+      background: #e5e7eb;
+      border-left-color: #2196F3;
+    }
+
+    .barangay-list li.active {
+      background: #2196F3;
+      color: white;
+      border-left-color: #1976D2;
+    }
+
+    /* Dashboard Container */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 30px;
+      background: #f5f7fa;
+    }
+
+    /* Same styling as certification_files but with barangay sidebar */
+    .file-browser-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .file-browser-modal.active {
+      display: flex;
+    }
+
+    .file-browser-content {
+      background: #1e1e1e;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .file-browser-header {
+      padding: 20px 30px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-browser-header h2 {
+      color: white;
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .close-browser {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+    }
+
+    .file-browser-toolbar {
+      padding: 15px 30px;
+      background: #252525;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      border-bottom: 1px solid #333;
+      flex-wrap: wrap;
+    }
+
+    .file-browser-toolbar select,
+    .file-browser-toolbar input {
+      padding: 8px 15px;
+      border: 1px solid #555;
+      border-radius: 6px;
+      background: #1e1e1e;
+      color: white;
+      font-size: 14px;
+    }
+
+    .file-browser-toolbar button {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar-refresh {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .toolbar-filter {
+      background: #2196F3;
+      color: white;
+    }
+
+    .file-browser-body {
+      padding: 30px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .file-card {
+      background: #252525;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+
+    .file-card:hover {
+      border-color: #2196F3;
+      transform: translateY(-5px);
+    }
+
+    .file-icon {
+      font-size: 64px;
+      margin-bottom: 15px;
+      color: #2196F3;
+    }
+
+    .file-card.image .file-icon {
+      color: #4CAF50;
+    }
+
+    .file-name {
+      color: white;
+      font-size: 14px;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+
+    .file-info {
+      color: #888;
+      font-size: 12px;
+    }
+
+    .file-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .file-actions button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn-view {
+      background: #2196F3;
+      color: white;
+    }
+
+    .btn-delete {
+      background: #f44336;
+      color: white;
+    }
+
+    .loading-spinner {
+      text-align: center;
+      padding: 40px;
+      color: white;
+    }
+
+    .loading-spinner i {
+      font-size: 48px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .no-files {
+      text-align: center;
+      padding: 60px;
+      color: #888;
+    }
+
+    .no-files i {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .preview-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10001;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preview-modal.active {
+      display: flex;
+    }
+
+    .preview-content {
+      max-width: 90%;
+      max-height: 90vh;
+      position: relative;
+    }
+
+    .preview-content img {
+      max-width: 100%;
+      max-height: 90vh;
+      border-radius: 8px;
+    }
+
+    .close-preview {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+    }
+  </style>
 </head>
 <body>
   <div class="dashboard-container">
-    <!-- Sidebar -->
-     <!-- Sidebar -->
-    <div class="sidebar">
-      <img src="{% static 'Pictures/logo1.png' %}" class="logo" alt="DILG Logo" />
-      <h3>Barangay</h3>
-      <ul class="barangay-list">
-        <li class="active">Barangay 1</li>
-        <li>Barangay 2</li>
-        <li>Barangay 3</li>
-        <li>Barangay 4</li>
-        <li>Barangay 5</li>
+    <!-- Sidebar with Barangays -->
+    <div class="sidebar" style="display: block !important; visibility: visible !important; position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;">
+      <img src="{% static 'Pictures/logo1.png' %}" class="logo" alt="DILG Logo" style="width: 80px; display: block; margin: 0 auto 20px;" />
+      <h3>Select Barangay</h3>
+      <ul class="barangay-list" style="max-height: calc(100vh - 200px); overflow-y: auto;">
+        <!-- Numeric Barangays -->
+        <li onclick="selectBarangay(6, 'Barangay I')">Barangay I</li>
+        <li onclick="selectBarangay(7, 'Barangay II')">Barangay II</li>
+        <li onclick="selectBarangay(8, 'Barangay III')">Barangay III</li>
+        <li onclick="selectBarangay(9, 'Barangay IV')">Barangay IV</li>
+        <li onclick="selectBarangay(10, 'Barangay V')">Barangay V</li>
+        <li onclick="selectBarangay(11, 'Barangay VI')">Barangay VI</li>
+        <li onclick="selectBarangay(12, 'Barangay VII')">Barangay VII</li>
+        <li onclick="selectBarangay(13, 'Barangay VIII')">Barangay VIII</li>
+        <li onclick="selectBarangay(14, 'Barangay IX')">Barangay IX</li>
+        <li onclick="selectBarangay(15, 'Barangay X')">Barangay X</li>
+        <li onclick="selectBarangay(16, 'Barangay XI')">Barangay XI</li>
+        
+        <!-- Named Barangays -->
+        <li onclick="selectBarangay(17, 'Barra')">Barra</li>
+        <li onclick="selectBarangay(18, 'Bocohan')">Bocohan</li>
+        <li onclick="selectBarangay(19, 'Cotta')">Cotta</li>
+        <li onclick="selectBarangay(20, 'Dalahican')">Dalahican</li>
+        <li onclick="selectBarangay(21, 'Domoit')">Domoit</li>
+        <li onclick="selectBarangay(22, 'Gulang-Gulang')">Gulang-Gulang</li>
+        <li onclick="selectBarangay(23, 'Ibabang Dupay')">Ibabang Dupay</li>
+        <li onclick="selectBarangay(24, 'Ibabang Iyam')">Ibabang Iyam</li>
+        <li onclick="selectBarangay(25, 'Ibabang Talim')">Ibabang Talim</li>
+        <li onclick="selectBarangay(26, 'Ilayang Dupay')">Ilayang Dupay</li>
+        <li onclick="selectBarangay(27, 'Ilayang Iyam')">Ilayang Iyam</li>
+        <li onclick="selectBarangay(28, 'Ilayang Talim')">Ilayang Talim</li>
+        <li onclick="selectBarangay(29, 'Isabang')">Isabang</li>
+        <li onclick="selectBarangay(30, 'Market View')">Market View</li>
+        <li onclick="selectBarangay(31, 'Mayao Castillo')">Mayao Castillo</li>
+        <li onclick="selectBarangay(32, 'Mayao Crossing')">Mayao Crossing</li>
+        <li onclick="selectBarangay(33, 'Mayao Kanluran')">Mayao Kanluran</li>
+        <li onclick="selectBarangay(34, 'Mayao Parada')">Mayao Parada</li>
+        <li onclick="selectBarangay(35, 'Mayao Silangan')">Mayao Silangan</li>
+        <li onclick="selectBarangay(36, 'Ransohan')">Ransohan</li>
+        <li onclick="selectBarangay(37, 'Salinas')">Salinas</li>
+        <li onclick="selectBarangay(38, 'Talao-Talao')">Talao-Talao</li>
       </ul>
-    
     </div>
 
     <!-- Main Content -->
@@ -35,265 +359,338 @@
         <a href="/folder/" class="back-button">← Back</a>
       </div>
       
-      <!-- Action Buttons with Search -->
+      <!-- Selected Barangay Display -->
+      <div style="padding: 20px; background: #f5f5f5; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #333;">Selected Barangay: <span id="selectedBarangayName">Select a barangay</span></h3>
+      </div>
+      
+      <!-- Action Buttons -->
       <div class="action-buttons">
         <div class="buttons-left"> 
-          <button class="create-button">
+          <button class="create-button" onclick="showUploadModal()">
             <i class="fas fa-plus"></i> Create
           </button>
-          <button class="upload-button">
+          <button class="upload-button" onclick="showUploadModal()">
             <i class="fas fa-upload"></i> Upload
           </button>
         </div>
         <div class="search-container">
-          <input type="text" class="search-bar" placeholder="Search">
+          <input type="text" class="search-bar" placeholder="Search" id="globalSearch">
         </div>
       </div>
       
       <!-- Folder Cards -->
       <div class="card-grid">
-        {% for folder in folders %}
-        <div class="profile-card">
-          <div class="folder-icon"><i class="fas fa-folder"></i></div>
-          <h3>{{ folder.name }}</h3>
-          <p>{{ folder.description }}</p>
-        </div>
-        {% endfor %}
-        
-        <div class="profile-card">
+        <div class="profile-card" onclick="openFolder('weekly')">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
           <h3>Weekly</h3>
           <p>Requirements</p>
-          <a href="/monitoring_files/" class="edit-button">Open</a>
+          <p id="count-weekly">0 files</p>
+          <button class="edit-button">Open</button>
         </div>
         
-        <div class="profile-card">
+        <div class="profile-card" onclick="openFolder('monthly')">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
           <h3>Monthly</h3>
           <p>Requirements</p>
+          <p id="count-monthly">0 files</p>
           <button class="edit-button">Open</button>
         </div>
 
-        <div class="profile-card">
+        <div class="profile-card" onclick="openFolder('quarterly')">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
           <h3>Quarterly</h3>
           <p>Requirements</p>
+          <p id="count-quarterly">0 files</p>
           <button class="edit-button">Open</button>
         </div>
 
-         <div class="profile-card">
+        <div class="profile-card" onclick="openFolder('semestral')">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
           <h3>Semestral</h3>
           <p>Requirements</p>
+          <p id="count-semestral">0 files</p>
           <button class="edit-button">Open</button>
         </div>
 
-         <div class="profile-card">
+        <div class="profile-card" onclick="openFolder('annually')">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
-          <h3>Anually</h3>
+          <h3>Annual</h3>
           <p>Requirements</p>
+          <p id="count-annually">0 files</p>
           <button class="edit-button">Open</button>
         </div>
-
+      </div>
     </div>
-
   </div>
+
+  <!-- File Browser Modal -->
+  <div class="file-browser-modal" id="fileBrowser">
+    <div class="file-browser-content">
+      <div class="file-browser-header">
+        <h2 id="browserTitle">Files</h2>
+        <button class="close-browser" onclick="closeFileBrowser()">×</button>
+      </div>
+      
+      <div class="file-browser-toolbar">
+        <select id="filterBarangay">
+          <option value="">All Barangays</option>
+          {% for barangay in barangays %}
+          <option value="{{ barangay.id }}">{{ barangay.name }}</option>
+          {% endfor %}
+        </select>
+        
+        <input type="date" id="filterDateFrom" placeholder="Date From">
+        <input type="date" id="filterDateTo" placeholder="Date To">
+        
+        <button class="toolbar-filter" onclick="applyFilters()">
+          <i class="fas fa-filter"></i> Filter
+        </button>
+        
+        <button class="toolbar-refresh" onclick="refreshFiles()">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+      
+      <div class="file-browser-body" id="filesContainer">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner"></i>
+          <p>Loading files...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Preview Modal -->
+  <div class="preview-modal" id="previewModal">
+    <div class="preview-content">
+      <button class="close-preview" onclick="closePreview()">×</button>
+      <img id="previewImage" src="" alt="Preview">
+    </div>
+  </div>
+
   <script>
-    // Global Theme Management System
-    class GlobalThemeManager {
-      constructor() {
-        this.currentTheme = 'light';
-        this.currentFontSize = 'medium';
-        this.currentAnimationSpeed = 'normal';
-        this.init();
-      }
+    const csrfToken = '{{ csrf_token }}';
+    let currentCategory = null;
+    let selectedBarangayId = null;
 
-      init() {
-        // Load saved preferences on every page load
-        this.loadPreferences();
-        // Apply saved theme immediately
-        this.applyTheme(this.currentTheme);
-        this.applyFontSize(this.currentFontSize);
-        this.applyAnimationSpeed(this.currentAnimationSpeed);
-        // Listen for system theme changes
-        this.watchSystemTheme();
-      }
+    // Load file counts on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadFileCounts();
+    });
 
-      loadPreferences() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
-        this.currentFontSize = localStorage.getItem('fontSize') || 'medium';
-        this.currentAnimationSpeed = localStorage.getItem('animationSpeed') || 'normal';
-      }
+    // Select barangay
+    function selectBarangay(barangayId, barangayName) {
+      selectedBarangayId = barangayId;
+      document.getElementById('selectedBarangayName').textContent = barangayName;
+      
+      // Highlight selected barangay
+      document.querySelectorAll('.barangay-list li').forEach(li => {
+        li.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      loadFileCounts();
+    }
 
-      applyTheme(theme) {
-        const html = document.documentElement;
-        
-        // Add transition class for smooth theme switching
-        html.classList.add('theme-transition');
-        
-        // Set theme attribute
-        html.setAttribute('data-theme', theme);
-        
-        // Store current theme
-        this.currentTheme = theme;
-        localStorage.setItem('theme', theme);
-
-        // Remove transition class after animation
-        setTimeout(() => {
-          html.classList.remove('theme-transition');
-        }, 300);
-
-        // Update theme selector if it exists on the page
-        const themeSelector = document.getElementById('change-theme');
-        if (themeSelector) {
-          themeSelector.value = theme;
+    // Load file counts
+    function loadFileCounts() {
+      const categories = ['weekly', 'monthly', 'quarterly', 'semestral', 'annually'];
+      
+      categories.forEach(category => {
+        let url = `/api/files/category/${category}/?page=1`;
+        if (selectedBarangayId) {
+          url += `&barangay_id=${selectedBarangayId}`;
         }
-      }
-
-      applyFontSize(size) {
-        const root = document.documentElement;
-        const sizeMap = {
-          'small': '14px',
-          'medium': '15px',
-          'large': '16px'
-        };
         
-        
-        root.style.fontSize = sizeMap[size];
-        this.currentFontSize = size;
-        localStorage.setItem('fontSize', size);
-
-        // Update font size selector if it exists
-        const fontSizeSelector = document.getElementById('font-size');
-        if (fontSizeSelector) {
-          fontSizeSelector.value = size;
-        }
-      }
-
-      applyAnimationSpeed(speed) {
-        const root = document.documentElement;
-        const speedMap = {
-          'slow': '0.6s',
-          'normal': '0.3s',
-          'fast': '0.15s',
-          'none': '0s'
-        };
-        
-        root.style.setProperty('--transition-duration', speedMap[speed]);
-        this.currentAnimationSpeed = speed;
-        localStorage.setItem('animationSpeed', speed);
-
-        // Update all transition durations
-        const style = document.createElement('style');
-        style.textContent = `
-          .theme-transition * {
-            transition-duration: ${speedMap[speed]} !important;
+        fetch(url, {
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
           }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const countElement = document.getElementById(`count-${category}`);
+            if (countElement) {
+              countElement.textContent = `${data.total_count} file${data.total_count !== 1 ? 's' : ''}`;
+            }
+          }
+        })
+        .catch(error => {
+          console.error(`Error loading count for ${category}:`, error);
+        });
+      });
+    }
+
+    // Open folder
+    function openFolder(category) {
+      currentCategory = category;
+      const titles = {
+        'weekly': 'Weekly Requirements',
+        'monthly': 'Monthly Requirements',
+        'quarterly': 'Quarterly Requirements',
+        'semestral': 'Semestral Requirements',
+        'annually': 'Annual Requirements'
+      };
+      
+      document.getElementById('browserTitle').textContent = titles[category] || 'Files';
+      
+      // Set barangay filter if one is selected
+      if (selectedBarangayId) {
+        document.getElementById('filterBarangay').value = selectedBarangayId;
+      }
+      
+      document.getElementById('fileBrowser').classList.add('active');
+      loadFiles(category);
+    }
+
+    // Load files
+    function loadFiles(category) {
+      const container = document.getElementById('filesContainer');
+      container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i><p>Loading files...</p></div>';
+      
+      let url = `/api/files/category/${category}/`;
+      const params = new URLSearchParams();
+      
+      const barangayFilter = document.getElementById('filterBarangay').value;
+      const dateFrom = document.getElementById('filterDateFrom').value;
+      const dateTo = document.getElementById('filterDateTo').value;
+      
+      if (barangayFilter) params.append('barangay_id', barangayFilter);
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
+      
+      if (params.toString()) {
+        url += '?' + params.toString();
+      }
+      
+      fetch(url, {
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          renderFiles(data.files);
+        } else {
+          container.innerHTML = `<div class="no-files"><i class="fas fa-exclamation-circle"></i><p>Error loading files</p></div>`;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        container.innerHTML = `<div class="no-files"><i class="fas fa-exclamation-circle"></i><p>Error loading files</p></div>`;
+      });
+    }
+
+    // Render files
+    function renderFiles(files) {
+      const container = document.getElementById('filesContainer');
+      
+      if (files.length === 0) {
+        container.innerHTML = '<div class="no-files"><i class="fas fa-folder-open"></i><p>No files in this folder</p></div>';
+        return;
+      }
+      
+      const grid = document.createElement('div');
+      grid.className = 'files-grid';
+      
+      files.forEach(file => {
+        const card = document.createElement('div');
+        card.className = `file-card ${file.file_type}`;
+        
+        const icon = file.file_type === 'image' ? 
+          '<i class="fas fa-file-image"></i>' : 
+          '<i class="fas fa-file"></i>';
+        
+        card.innerHTML = `
+          <div class="file-icon">${icon}</div>
+          <div class="file-name">${file.filename}</div>
+          <div class="file-info">${file.barangay || 'N/A'}</div>
+          <div class="file-info">${file.file_size} MB</div>
+          <div class="file-info">${file.uploaded_at}</div>
+          <div class="file-actions">
+            <button class="btn-view" onclick="viewFile('${file.file_url}', '${file.file_type}')">
+              <i class="fas fa-eye"></i> View
+            </button>
+            <button class="btn-delete" onclick="deleteFile(${file.id})">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
         `;
         
-        // Remove previous speed style if exists
-        const oldStyle = document.getElementById('animation-speed-style');
-        if (oldStyle) oldStyle.remove();
-        
-        style.id = 'animation-speed-style';
-        document.head.appendChild(style);
+        grid.appendChild(card);
+      });
+      
+      container.innerHTML = '';
+      container.appendChild(grid);
+    }
 
-        // Update animation speed selector if it exists
-        const animationSpeedSelector = document.getElementById('animation-speed');
-        if (animationSpeedSelector) {
-          animationSpeedSelector.value = speed;
-        }
-      }
-
-      watchSystemTheme() {
-        if (window.matchMedia) {
-          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-          mediaQuery.addListener((e) => {
-            if (this.currentTheme === 'auto') {
-              // Force re-application of auto theme
-              this.applyTheme('auto');
-            }
-          });
-        }
-      }
-
-      // Method to change theme programmatically
-      setTheme(theme) {
-        this.applyTheme(theme);
-      }
-
-      // Method to get current theme
-      getTheme() {
-        return this.currentTheme;
-      }
-
-      // Method to toggle between light and dark
-      toggleTheme() {
-        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-        this.applyTheme(newTheme);
-        return newTheme;
-      }
-
-      showSuccessMessage(message) {
-        // Remove existing message if any
-        const existing = document.querySelector('.success-message');
-        if (existing) existing.remove();
-
-        // Create new message
-        const messageEl = document.createElement('div');
-        messageEl.className = 'success-message';
-        messageEl.textContent = message;
-        document.body.appendChild(messageEl);
-
-        // Show message
-        setTimeout(() => messageEl.classList.add('show'), 100);
-
-        // Hide and remove message
-        setTimeout(() => {
-          messageEl.classList.remove('show');
-          setTimeout(() => messageEl.remove(), 300);
-        }, 3000);
+    // Apply filters
+    function applyFilters() {
+      if (currentCategory) {
+        loadFiles(currentCategory);
       }
     }
 
-    // Initialize global theme manager
-    let globalThemeManager;
+    // View file
+    function viewFile(url, type) {
+      if (type === 'image') {
+        document.getElementById('previewImage').src = url;
+        document.getElementById('previewModal').classList.add('active');
+      } else {
+        window.open(url, '_blank');
+      }
+    }
 
-    // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      globalThemeManager = new GlobalThemeManager();
+    // Close preview
+    function closePreview() {
+      document.getElementById('previewModal').classList.remove('active');
+    }
+
+    // Delete file
+    function deleteFile(fileId) {
+      if (!confirm('Are you sure you want to delete this file?')) {
+        return;
+      }
       
-      // Add event listeners if theme controls exist on current page
-      const themeSelector = document.getElementById('change-theme');
-      if (themeSelector) {
-        themeSelector.addEventListener('change', function(e) {
-          globalThemeManager.setTheme(e.target.value);
-        });
-      }
+      fetch(`/api/files/${fileId}/delete/`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('File deleted successfully');
+          refreshFiles();
+          loadFileCounts();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      });
+    }
 
-      const fontSizeSelector = document.getElementById('font-size');
-      if (fontSizeSelector) {
-        fontSizeSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyFontSize(e.target.value);
-        });
+    // Refresh files
+    function refreshFiles() {
+      if (currentCategory) {
+        loadFiles(currentCategory);
       }
+    }
 
-      const animationSpeedSelector = document.getElementById('animation-speed');
-      if (animationSpeedSelector) {
-        animationSpeedSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyAnimationSpeed(e.target.value);
-        });
-      }
-    });
+    // Close file browser
+    function closeFileBrowser() {
+      document.getElementById('fileBrowser').classList.remove('active');
+    }
 
-    // Make theme manager globally accessible
-    window.globalThemeManager = globalThemeManager;
-
-    // Global functions
-    function toggleTheme() {
-      if (window.globalThemeManager) {
-        return window.globalThemeManager.toggleTheme();
-      }
+    // Upload modal placeholder
+    function showUploadModal() {
+      alert('Upload feature: Please use Requirements Monitoring page to upload files for specific requirements.');
     }
   </script>
 </body>

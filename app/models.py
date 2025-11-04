@@ -702,3 +702,284 @@ class Announcement(models.Model):
     def increment_views(self):
         self.views += 1
         self.save(update_fields=['views'])
+
+
+#--------categorization--------
+class FileCategory(models.Model):
+    """Model for file categories"""
+    CATEGORY_CHOICES = [
+        ('certificates', 'Certificates'),
+        ('ids', 'Identification Documents'),
+        ('signatures', 'Signatures'),
+        ('weekly', 'Weekly Reports'),
+        ('monthly', 'Monthly Reports'),
+        ('quarterly', 'Quarterly Reports'),
+        ('semestral', 'Semestral Reports'),
+        ('annually', 'Annual Reports'),
+        ('general', 'General Documents'),
+    ]
+    
+    name = models.CharField(max_length=50, choices=CATEGORY_CHOICES, unique=True)
+    display_name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    folder_path = models.CharField(max_length=200)  # e.g., 'certificates/approved/'
+    icon = models.CharField(max_length=50, default='fa-folder')
+    file_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'File Category'
+        verbose_name_plural = 'File Categories'
+    
+    def __str__(self):
+        return self.display_name
+    
+    def update_file_count(self):
+        """Update the file count for this category"""
+        self.file_count = CategorizedFile.objects.filter(category=self).count()
+        self.save()
+
+
+class CategorizedFile(models.Model):
+    """Model for categorized files with metadata"""
+    FILE_SOURCE_CHOICES = [
+        ('eligibility', 'Eligibility Request'),
+        ('requirement', 'Requirement Submission'),
+        ('manual', 'Manual Upload'),
+    ]
+    
+    FILE_TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('pdf', 'PDF Document'),
+        ('document', 'Document'),
+        ('other', 'Other'),
+    ]
+    
+    # File information
+    file = models.FileField(upload_to='categorized/%Y/%m/')
+    original_filename = models.CharField(max_length=255)
+    file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES)
+    file_size = models.BigIntegerField()  # in bytes
+    mime_type = models.CharField(max_length=100)
+    
+    # Categorization
+    category = models.ForeignKey(FileCategory, on_delete=models.CASCADE, related_name='files')
+    source = models.CharField(max_length=20, choices=FILE_SOURCE_CHOICES)
+    
+    # Auto-detected metadata
+    detected_content = models.CharField(max_length=100, blank=True)  # e.g., 'ID Front', 'Signature'
+    barangay = models.ForeignKey(Barangay, on_delete=models.SET_NULL, null=True, blank=True)
+    period = models.CharField(max_length=20, blank=True)  # weekly, monthly, etc.
+    
+    # Relations to source objects
+    eligibility_request = models.ForeignKey(
+        EligibilityRequest, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='categorized_files'
+    )
+    requirement_submission = models.ForeignKey(
+        RequirementSubmission, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='categorized_files'
+    )
+    requirement_attachment = models.OneToOneField(
+        RequirementAttachment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='categorized_file'
+    )
+    
+    # User tracking
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    uploaded_at = models.DateTimeField(default=timezone.now)
+    
+    # Tags for searching
+    tags = models.CharField(max_length=500, blank=True)  # comma-separated tags
+    
+    # Status
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['category', 'uploaded_at']),
+            models.Index(fields=['barangay', 'period']),
+            models.Index(fields=['source', 'file_type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.original_filename} - {self.category.display_name}"
+    
+    @property
+    def file_size_kb(self):
+        return round(self.file_size / 1024, 2)
+    
+    @property
+    def file_size_mb(self):
+        return round(self.file_size / (1024 * 1024), 2)
+    
+    def get_thumbnail_url(self):
+        """Return thumbnail URL for images"""
+        if self.file_type == 'image':
+            return self.file.url
+        return None
+    
+    def add_tag(self, tag):
+        """Add a tag to the file"""
+        tags_list = [t.strip() for t in self.tags.split(',') if t.strip()]
+        if tag not in tags_list:
+            tags_list.append(tag)
+            self.tags = ', '.join(tags_list)
+            self.save()
+    
+    def archive(self):
+        """Archive this file"""
+        self.is_archived = True
+        self.archived_at = timezone.now()
+        self.save()
+
+
+# Signal to auto-categorize files when EligibilityRequest is saved
+@receiver(post_save, sender=EligibilityRequest)
+def categorize_eligibility_files(sender, instance, created, **kwargs):
+    """Auto-categorize files from eligibility requests"""
+    if created:
+        # Categorize ID Front
+        if instance.id_front:
+            category = FileCategory.objects.get_or_create(
+                name='ids',
+                defaults={
+                    'display_name': 'Identification Documents',
+                    'folder_path': 'ids/',
+                    'description': 'Government-issued IDs and identification documents'
+                }
+            )[0]
+            
+            CategorizedFile.objects.create(
+                file=instance.id_front,
+                original_filename=os.path.basename(instance.id_front.name),
+                file_type='image',
+                file_size=instance.id_front.size,
+                mime_type='image/jpeg',
+                category=category,
+                source='eligibility',
+                detected_content='ID Front',
+                eligibility_request=instance,
+                uploaded_by=None,
+                tags=f"{instance.first_name} {instance.last_name}, ID Front"
+            )
+        
+        # Categorize ID Back
+        if instance.id_back:
+            category = FileCategory.objects.get_or_create(
+                name='ids',
+                defaults={
+                    'display_name': 'Identification Documents',
+                    'folder_path': 'ids/',
+                }
+            )[0]
+            
+            CategorizedFile.objects.create(
+                file=instance.id_back,
+                original_filename=os.path.basename(instance.id_back.name),
+                file_type='image',
+                file_size=instance.id_back.size,
+                mime_type='image/jpeg',
+                category=category,
+                source='eligibility',
+                detected_content='ID Back',
+                eligibility_request=instance,
+                uploaded_by=None,
+                tags=f"{instance.first_name} {instance.last_name}, ID Back"
+            )
+        
+        # Categorize Signature
+        if instance.signature:
+            category = FileCategory.objects.get_or_create(
+                name='signatures',
+                defaults={
+                    'display_name': 'Signatures',
+                    'folder_path': 'signatures/',
+                    'description': 'Digital signatures and sign-offs'
+                }
+            )[0]
+            
+            CategorizedFile.objects.create(
+                file=instance.signature,
+                original_filename=os.path.basename(instance.signature.name),
+                file_type='image',
+                file_size=instance.signature.size,
+                mime_type='image/png',
+                category=category,
+                source='eligibility',
+                detected_content='Signature',
+                eligibility_request=instance,
+                uploaded_by=None,
+                tags=f"{instance.first_name} {instance.last_name}, Signature"
+            )
+        
+        # When approved, categorize certificate
+        if instance.status == 'approved':
+            category = FileCategory.objects.get_or_create(
+                name='certificates',
+                defaults={
+                    'display_name': 'Certificates',
+                    'folder_path': 'certificates/approved/',
+                    'description': 'Approved eligibility certificates'
+                }
+            )[0]
+
+
+# Signal to auto-categorize requirement attachments
+@receiver(post_save, sender=RequirementAttachment)
+def categorize_requirement_files(sender, instance, created, **kwargs):
+    """Auto-categorize files from requirement submissions"""
+    if created:
+        submission = instance.submission
+        period = submission.requirement.period
+        
+        # Get or create category based on period
+        category_name = period  # 'weekly', 'monthly', etc.
+        display_names = {
+            'weekly': 'Weekly Reports',
+            'monthly': 'Monthly Reports',
+            'quarterly': 'Quarterly Reports',
+            'semestral': 'Semestral Reports',
+            'annually': 'Annual Reports',
+        }
+        
+        category = FileCategory.objects.get_or_create(
+            name=category_name,
+            defaults={
+                'display_name': display_names.get(category_name, category_name.title()),
+                'folder_path': f'requirements/{category_name}/',
+                'description': f'{display_names.get(category_name)} from barangays'
+            }
+        )[0]
+        
+        CategorizedFile.objects.create(
+            file=instance.file,
+            original_filename=os.path.basename(instance.file.name),
+            file_type=instance.file_type.split('/')[0] if '/' in instance.file_type else 'other',
+            file_size=instance.file_size,
+            mime_type=instance.file_type,
+            category=category,
+            source='requirement',
+            detected_content=submission.requirement.title,
+            barangay=submission.barangay,
+            period=period,
+            requirement_submission=submission,
+            requirement_attachment=instance,
+            uploaded_by=instance.uploaded_by,
+            tags=f"{submission.barangay.name}, {submission.requirement.title}, {period}"
+        )
+        
+        # Update category file count
+        category.update_file_count()

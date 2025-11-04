@@ -811,7 +811,7 @@ def monitoring_filess(request):
 
 
 def certification_filess(request):
-    return render(request, 'certification_filess.html')
+    return render(request, 'certification_files.html')
 
 
 
@@ -3619,3 +3619,401 @@ def create_admin_notification(title, message, notification_type, submission=None
         return []
 
 #----END OF NOTIFICATIONS HELPERS----
+
+
+
+#----CATEGORIZATION----
+
+@login_required
+def folder_view(request):
+    """Main folder view showing all categories"""
+    categories = FileCategory.objects.all()
+    
+    # Calculate file counts for each category
+    for category in categories:
+        category.file_count = CategorizedFile.objects.filter(
+            category=category,
+            is_archived=False
+        ).count()
+    
+    context = {
+        'categories': categories,
+    }
+    return render(request, 'folder.html', context)
+
+
+@login_required
+def certification_files_view(request):
+    """View for certification files"""
+    # Get certificate-related categories
+    categories = FileCategory.objects.filter(
+        name__in=['certificates', 'ids', 'signatures']
+    )
+    
+    for category in categories:
+        category.file_count = CategorizedFile.objects.filter(
+            category=category,
+            is_archived=False
+        ).count()
+    
+    context = {
+        'categories': categories,
+        'page_title': 'Certification Files',
+    }
+    return render(request, 'certification_filess.html', context)
+
+
+@login_required
+def monitoring_files_view(request):
+    """View for monitoring/requirements files"""
+    barangays = Barangay.objects.all()
+    
+    # Get requirement-related categories
+    categories = FileCategory.objects.filter(
+        name__in=['weekly', 'monthly', 'quarterly', 'semestral', 'annually']
+    )
+    
+    for category in categories:
+        category.file_count = CategorizedFile.objects.filter(
+            category=category,
+            is_archived=False
+        ).count()
+    
+    context = {
+        'barangays': barangays,
+        'categories': categories,
+        'page_title': 'Monitoring Files',
+    }
+    return render(request, 'monitoring_files.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_category_files(request, category_name):
+    """API endpoint to get files by category"""
+    try:
+        category = get_object_or_404(FileCategory, name=category_name)
+        
+        # Get filter parameters
+        barangay_id = request.GET.get('barangay_id')
+        search_query = request.GET.get('search', '').strip()
+        file_type = request.GET.get('file_type', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        
+        # Base query
+        files = CategorizedFile.objects.filter(
+            category=category,
+            is_archived=False
+        ).select_related('barangay', 'uploaded_by')
+        
+        # Apply filters
+        if barangay_id:
+            files = files.filter(barangay_id=barangay_id)
+        
+        if search_query:
+            files = files.filter(
+                Q(original_filename__icontains=search_query) |
+                Q(detected_content__icontains=search_query) |
+                Q(tags__icontains=search_query)
+            )
+        
+        if file_type:
+            files = files.filter(file_type=file_type)
+        
+        if date_from:
+            files = files.filter(uploaded_at__date__gte=date_from)
+        
+        if date_to:
+            files = files.filter(uploaded_at__date__lte=date_to)
+        
+        # Paginate
+        paginator = Paginator(files, 20)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        # Prepare response data
+        files_data = []
+        for file in page_obj:
+            files_data.append({
+                'id': file.id,
+                'filename': file.original_filename,
+                'file_url': file.file.url,
+                'file_type': file.file_type,
+                'file_size': file.file_size_mb,
+                'detected_content': file.detected_content,
+                'barangay': file.barangay.name if file.barangay else None,
+                'period': file.period,
+                'uploaded_at': file.uploaded_at.strftime('%B %d, %Y %I:%M %p'),
+                'uploaded_by': file.uploaded_by.get_full_name() if file.uploaded_by else 'System',
+                'tags': file.tags,
+                'thumbnail': file.get_thumbnail_url(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'files': files_data,
+            'total_count': paginator.count,
+            'page': page_obj.number,
+            'total_pages': paginator.num_pages,
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_upload_file(request):
+    """API endpoint for manual file upload"""
+    try:
+        category_name = request.POST.get('category')
+        barangay_id = request.POST.get('barangay_id')
+        period = request.POST.get('period', '')
+        tags = request.POST.get('tags', '')
+        
+        if not category_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Category is required'
+            }, status=400)
+        
+        if 'file' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'No file uploaded'
+            }, status=400)
+        
+        uploaded_file = request.FILES['file']
+        
+        # Get category
+        category = get_object_or_404(FileCategory, name=category_name)
+        
+        # Determine file type
+        mime_type = uploaded_file.content_type
+        if mime_type.startswith('image/'):
+            file_type = 'image'
+        elif mime_type == 'application/pdf':
+            file_type = 'pdf'
+        elif mime_type.startswith('application/'):
+            file_type = 'document'
+        else:
+            file_type = 'other'
+        
+        # Create categorized file
+        categorized_file = CategorizedFile.objects.create(
+            file=uploaded_file,
+            original_filename=uploaded_file.name,
+            file_type=file_type,
+            file_size=uploaded_file.size,
+            mime_type=mime_type,
+            category=category,
+            source='manual',
+            barangay_id=barangay_id if barangay_id else None,
+            period=period,
+            uploaded_by=request.user,
+            tags=tags,
+        )
+        
+        # Update category file count
+        category.update_file_count()
+        
+        # Log the upload
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE',
+                content_object=categorized_file,
+                description=f"Uploaded file to {category.display_name}: {uploaded_file.name}"
+            )
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'File uploaded successfully',
+            'file': {
+                'id': categorized_file.id,
+                'filename': categorized_file.original_filename,
+                'file_url': categorized_file.file.url,
+                'file_size': categorized_file.file_size_mb,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def api_delete_file(request, file_id):
+    """API endpoint to delete a categorized file"""
+    try:
+        file = get_object_or_404(CategorizedFile, id=file_id)
+        
+        # Check permissions
+        if not request.user.is_staff and file.uploaded_by != request.user:
+            return JsonResponse({
+                'success': False,
+                'error': 'Permission denied'
+            }, status=403)
+        
+        filename = file.original_filename
+        category = file.category
+        
+        # Delete the file
+        file.file.delete(save=False)
+        file.delete()
+        
+        # Update category count
+        category.update_file_count()
+        
+        # Log deletion
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='DELETE',
+                description=f"Deleted file from {category.display_name}: {filename}"
+            )
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'File "{filename}" deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_archive_file(request, file_id):
+    """API endpoint to archive a file"""
+    try:
+        file = get_object_or_404(CategorizedFile, id=file_id)
+        
+        file.archive()
+        
+        # Update category count
+        file.category.update_file_count()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'File archived successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_move_file(request, file_id):
+    """API endpoint to move file to different category"""
+    try:
+        file = get_object_or_404(CategorizedFile, id=file_id)
+        
+        data = json.loads(request.body)
+        new_category_name = data.get('category')
+        
+        if not new_category_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Category is required'
+            }, status=400)
+        
+        new_category = get_object_or_404(FileCategory, name=new_category_name)
+        old_category = file.category
+        
+        file.category = new_category
+        file.save()
+        
+        # Update both category counts
+        old_category.update_file_count()
+        new_category.update_file_count()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'File moved to {new_category.display_name}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def api_file_statistics(request):
+    """API endpoint to get file statistics"""
+    try:
+        stats = {
+            'total_files': CategorizedFile.objects.filter(is_archived=False).count(),
+            'total_size_mb': round(
+                CategorizedFile.objects.filter(is_archived=False).aggregate(
+                    total=Sum('file_size')
+                )['total'] / (1024 * 1024), 2
+            ) if CategorizedFile.objects.exists() else 0,
+            'by_category': [],
+            'by_type': [],
+            'recent_uploads': [],
+        }
+        
+        # Stats by category
+        for category in FileCategory.objects.all():
+            count = CategorizedFile.objects.filter(
+                category=category,
+                is_archived=False
+            ).count()
+            if count > 0:
+                stats['by_category'].append({
+                    'name': category.display_name,
+                    'count': count
+                })
+        
+        # Stats by file type
+        type_counts = CategorizedFile.objects.filter(
+            is_archived=False
+        ).values('file_type').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        stats['by_type'] = list(type_counts)
+        
+        # Recent uploads
+        recent = CategorizedFile.objects.filter(
+            is_archived=False
+        ).order_by('-uploaded_at')[:5]
+        
+        for file in recent:
+            stats['recent_uploads'].append({
+                'filename': file.original_filename,
+                'category': file.category.display_name,
+                'uploaded_at': file.uploaded_at.strftime('%B %d, %Y'),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
