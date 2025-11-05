@@ -196,7 +196,7 @@
     function viewApplication(id) {
       // Since you don't have sampleApplications, we'll fetch from server
       // For now, showing a basic modal with available info
-      const row = document.querySelector(`tr[data-id="${id}"]`);
+      const row = document.querySelector(tr[data-id="${id}"]);
       if (!row) {
         showErrorMessage('Application not found.');
         return;
@@ -247,7 +247,7 @@
     
     // Application Request Management Functions
     function saveChanges(rowId) {
-      const row = document.querySelector(`tr[data-id="${rowId}"]`);
+      const row = document.querySelector(tr[data-id="${rowId}"]);
       const statusSelect = row.querySelector('.status-select');
       const approvedByCell = row.querySelector('.approved-by');
       
@@ -298,7 +298,7 @@
     }
     
     function cancelChanges(rowId) {
-      const row = document.querySelector(`tr[data-id="${rowId}"]`);
+      const row = document.querySelector(tr[data-id="${rowId}"]);
       const statusSelect = row.querySelector('.status-select');
       const originalStatus = statusSelect.dataset.original;
       
