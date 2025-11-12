@@ -73,44 +73,142 @@
       background: #333;
     }
 
-    .file-browser-toolbar {
-      padding: 15px 30px;
-      background: #252525;
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      border-bottom: 1px solid #333;
-    }
+   /* Updated toolbar styles */
+  .file-browser-toolbar {
+    padding: 15px 30px;
+    background: #252525;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    justify-content: space-between; /* Space between left and right sections */
+    border-bottom: 1px solid #333;
+  }
 
-    .file-browser-toolbar button {
-      padding: 8px 20px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+  .toolbar-left {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
 
-    .toolbar-refresh {
-      background: #4CAF50;
-      color: white;
-    }
+  .toolbar-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex: 0 0 auto; /* Don't grow, don't shrink */
+  }
 
-    .toolbar-refresh:hover {
-      background: #45a049;
-    }
 
-    .toolbar-filter {
-      background: #2196F3;
-      color: white;
-    }
+  .file-browser-toolbar button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-    .toolbar-filter:hover {
-      background: #0b7dda;
-    }
+  .toolbar-refresh {
+    background: #4CAF50;
+    color: white;
+  }
+
+  .toolbar-refresh:hover {
+    background: #45a049;
+  }
+
+  /* Search input styles */
+  .toolbar-search {
+    position: relative;
+    min-width: 300px;
+    max-width: 400px;
+  }
+
+  .toolbar-search input {
+    width: 100%;
+    padding: 10px 45px 10px 45px; /* Space for both icons */
+    border: 2px solid transparent;
+    border-radius: 25px; /* More rounded like your main search */
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Add depth */
+  }
+
+  .toolbar-search input:focus {
+    outline: none;
+    border-color: #2196F3;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  }
+
+  .toolbar-search input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 300;
+  }
+
+  /* Search icon on the left */
+  .toolbar-search .search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    pointer-events: none;
+    font-size: 16px;
+    z-index: 1;
+  }
+
+ /* Clear button on the right */
+  .search-clear {
+    position: absolute;
+    right: 8px; /* Moved closer to edge */
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(244, 67, 54, 0.2);
+    border: none;
+    color: #f44336;
+    cursor: pointer;
+    padding: 0;
+    display: none;
+    font-size: 11px;
+    border-radius: 50%;
+    width: 28px; /* Slightly larger */
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1;
+  }
+
+  .search-clear:hover {
+    background: rgba(244, 67, 54, 0.3);
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  .search-clear:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  /* Show clear button when input has value */
+  .toolbar-search input:not(:placeholder-shown) ~ .search-clear {
+    display: flex;
+  }
+
+  /* Animation when typing */
+  .toolbar-search input:focus ~ .search-icon {
+    color: #2196F3;
+    animation: pulse 0.5s ease;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.1); }
+  }
 
     .file-browser-body {
       padding: 30px;
@@ -147,8 +245,10 @@
     }
 
     .file-card.image .file-icon {
-      color: #4CAF50;
-    }
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+}
 
     .file-card.pdf .file-icon {
       color: #f44336;
@@ -330,46 +430,62 @@
 
     /* File Preview Modal */
     .preview-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.95);
-      z-index: 10001;
-      align-items: center;
-      justify-content: center;
-    }
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10001;
+    align-items: center;
+    justify-content: center;
+}
 
     .preview-modal.active {
       display: flex;
     }
 
     .preview-content {
-      max-width: 90%;
-      max-height: 90vh;
-      position: relative;
-    }
+    max-width: 90%;
+    max-height: 90vh;
+    position: relative;
+    background: white; /* ✅ White background */
+    padding: 20px;
+    border-radius: 12px;
+}
 
     .preview-content img {
-      max-width: 100%;
-      max-height: 90vh;
-      border-radius: 8px;
-    }
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 8px;
+    background: white !important; /* ✅ Force white background */
+    display: block;
+}
 
     .close-preview {
-      position: absolute;
-      top: -40px;
-      right: 0;
-      background: white;
-      border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 20px;
-    }
+    position: absolute;
+    top: -50px;
+    right: 0;
+    background: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+}
+
+.close-preview:hover {
+    background: #f0f0f0;
+    transform: scale(1.1);
+}
+     .logo {
+    width: 100px;
+    margin-bottom: 20px;
+  }
   </style>
 </head>
 <body>
@@ -401,13 +517,32 @@
         </div>
       </div>
       
+      
+
       <!-- Folder Cards -->
       <div class="card-grid">
-        <div class="profile-card" onclick="openFolder('certificates')">
-          <div class="folder-icon"><i class="fas fa-folder"></i></div>
-          <h3>Approved Certificates</h3>
-          <p id="count-certificates">0 files</p>
-          <button class="edit-button">Open</button>
+        <div class="profile-card" data-category="appointive_certificates" onclick="openFolder('appointive_certificates')">
+          <div class="folder-icon">
+              <i class="fas fa-folder" ></i>
+          </div>
+          <div class="folder-info">
+              <h3>Appointive Certificates</h3>
+              <p class="file-count">Loading...</p>
+          </div>
+          <button class="edit-button"></i> Open</button>
+        </div>
+
+
+
+        <div class="profile-card" data-category="elective_certificates" onclick="openFolder('elective_certificates')">
+          <div class="folder-icon">
+              <i class="fas fa-folder" ></i>
+          </div>
+          <div class="folder-info">
+              <h3>Elective Certificates</h3>
+              <p class="file-count">Loading...</p>
+          </div>
+          <button class="edit-button"></i> Open</button>
         </div>
         
         <div class="profile-card" onclick="openFolder('ids')">
@@ -435,14 +570,29 @@
         <button class="close-browser" onclick="closeFileBrowser()">×</button>
       </div>
       
-      <div class="file-browser-toolbar">
-        <button class="toolbar-refresh" onclick="refreshFiles()">
-          <i class="fas fa-sync-alt"></i> Refresh
-        </button>
-        <button class="toolbar-filter" onclick="showUploadModal()">
-          <i class="fas fa-upload"></i> Upload
-        </button>
-      </div>
+      <!-- Updated toolbar HTML -->
+    <div class="file-browser-toolbar">
+  <div class="toolbar-left">
+    <button class="toolbar-refresh" onclick="refreshFiles()">
+      <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+  </div>
+  
+  <div class="toolbar-right">
+    <div class="toolbar-search">
+      <i class="fas fa-search search-icon"></i>
+      <input 
+        type="text" 
+        id="fileSearchInput" 
+        placeholder="Search files by name..."
+        onkeyup="searchFiles()"
+      >
+      <button class="search-clear" onclick="clearSearch()" title="Clear search">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+</div>
       
       <div class="file-browser-body" id="filesContainer">
         <div class="loading-spinner">
@@ -503,59 +653,25 @@
   <script>
     const csrfToken = '{{ csrf_token }}';
     let currentCategory = null;
-    let selectedFile = null;
+    let allFiles = [];
 
     // Load file counts on page load
     document.addEventListener('DOMContentLoaded', function() {
+      console.log(' Page loaded, loading file counts...');
       loadFileCounts();
     });
 
-    // Load file counts for each category
-    function loadFileCounts() {
-      const categories = ['certificates', 'ids', 'signatures'];
-      
-      categories.forEach(category => {
-        fetch(`/api/files/category/${category}/?page=1`, {
-          headers: {
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            const countElement = document.getElementById(`count-${category}`);
-            if (countElement) {
-              countElement.textContent = `${data.total_count} file${data.total_count !== 1 ? 's' : ''}`;
-            }
-          }
-        })
-        .catch(error => {
-          console.error(`Error loading count for ${category}:`, error);
-        });
-      });
-    }
+    // Load file counts for each category (NOW WITH 4 CATEGORIES)
+  function loadFileCounts() {
+    const categories = ['appointive_certificates', 'elective_certificates', 'ids', 'signatures'];
+    
+    console.log('📊 Loading file counts for categories:', categories);
+    
+    categories.forEach(category => {
 
-    // Open folder
-    function openFolder(category) {
-      currentCategory = category;
-      const titles = {
-        'certificates': 'Approved Certificates',
-        'ids': 'Identification Images',
-        'signatures': 'Signatures'
-      };
+      const apiUrl = `/api/certificate-files/category/${category}/`;
       
-      document.getElementById('browserTitle').textContent = titles[category] || 'Files';
-      document.getElementById('fileBrowser').classList.add('active');
-      loadFiles(category);
-    }
-
-    // Load files for category
-    function loadFiles(category) {
-      const container = document.getElementById('filesContainer');
-      container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i><p>Loading files...</p></div>';
-      
-      fetch(`/api/files/category/${category}/`, {
+      fetch(apiUrl, {
         headers: {
           'X-CSRFToken': csrfToken,
           'X-Requested-With': 'XMLHttpRequest'
@@ -564,123 +680,363 @@
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          renderFiles(data.files);
-        } else {
-          container.innerHTML = `<div class="no-files"><i class="fas fa-exclamation-circle"></i><p>Error loading files</p></div>`;
+          const countElement = document.getElementById(`count-${category}`);
+          if (countElement) {
+            const count = data.total_count || 0;
+            countElement.textContent = `${count} file${count !== 1 ? 's' : ''}`;
+            console.log(`  ✓ ${category}: ${count} files`);
+          }
         }
       })
       .catch(error => {
-        console.error('Error:', error);
-        container.innerHTML = `<div class="no-files"><i class="fas fa-exclamation-circle"></i><p>Error loading files</p></div>`;
+        console.error(`  ✗ Error loading count for ${category}:`, error);
       });
-    }
+    });
+  }
 
-    // Render files
+    // Open folder with proper titles
+  function openFolder(category) {
+    currentCategory = category;
+    
+    const titles = {
+      'appointive_certificates': 'Appointive Certificates',
+      'elective_certificates': 'Elective Certificates',
+      'ids': 'Identification Images',
+      'signatures': 'Signatures'
+    };
+    
+    console.log(`\n Opening folder: ${category}`);
+    
+    document.getElementById('browserTitle').textContent = titles[category] || 'Files';
+    document.getElementById('fileBrowser').classList.add('active');
+    loadFiles(category);
+  }
+    function loadFileCounts() {
+  const categories = ['appointive_certificates', 'elective_certificates', 'ids', 'signatures'];
+  
+  categories.forEach(category => {
+    fetch(`/api/certificate-files/category/${category}/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const countElement = document.getElementById(`count-${category}`);
+          if (countElement) {
+            countElement.textContent = `${data.total_count} file${data.total_count !== 1 ? 's' : ''}`;
+          }
+        }
+      })
+      .catch(error => console.error(`Error loading ${category}:`, error));
+  });
+}
+    // Update loadFiles to use new renderFiles
+function loadFiles(category) {
+    const container = document.getElementById('filesContainer');
+    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i><p>Loading files...</p></div>';
+    
+    const apiUrl = `/api/certificate-files/category/${category}/`;
+    
+    console.log(` Loading files from: ${apiUrl}`);
+    
+    fetch(apiUrl, {
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log(`Response status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Received data:', data);
+        
+        if (data.success) {
+            console.log(` Found ${data.files.length} files`);
+            renderFiles(data.files); // This now stores files in allFiles
+            
+            // Clear search input when loading new category
+            const searchInput = document.getElementById('fileSearchInput');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+        } else {
+            console.error(' API returned error:', data.error);
+            container.innerHTML = `<div class="no-files"><i class="fas fa-exclamation-circle"></i><p>Error loading files: ${data.error}</p></div>`;
+        }
+    })
+    .catch(error => {
+        console.error(' Fetch error:', error);
+        container.innerHTML = `<div class="no-files"><i class="fas fa-exclamation-circle"></i><p>Error loading files</p></div>`;
+    });
+}
+
+// Optional: Add keyboard shortcut (Ctrl+F or Cmd+F)
+document.addEventListener('keydown', function(e) {
+    // Check if file browser is open
+    const fileBrowser = document.getElementById('fileBrowser');
+    if (!fileBrowser || !fileBrowser.classList.contains('active')) {
+        return;
+    }
+    
+    // Ctrl+F or Cmd+F
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = document.getElementById('fileSearchInput');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+    
+    // Escape to clear search
+    if (e.key === 'Escape') {
+        const searchInput = document.getElementById('fileSearchInput');
+        if (searchInput && searchInput.value) {
+            clearSearch();
+        }
+    }
+});
+    
     function renderFiles(files) {
-      const container = document.getElementById('filesContainer');
-      
-      if (files.length === 0) {
+    const container = document.getElementById('filesContainer');
+      allFiles = files; // Store files globally for search
+      displayFiles(files);   
+    
+    if (!files || files.length === 0) {
         container.innerHTML = '<div class="no-files"><i class="fas fa-folder-open"></i><p>No files in this folder</p></div>';
         return;
-      }
-      
-      const grid = document.createElement('div');
-      grid.className = 'files-grid';
-      
-      files.forEach(file => {
+    }
+    
+    console.log(`📋 Rendering ${files.length} files`);
+    
+    const grid = document.createElement('div');
+    grid.className = 'files-grid';
+    
+    files.forEach((file, index) => {
         const card = document.createElement('div');
         card.className = `file-card ${file.file_type}`;
+        card.setAttribute('data-type', file.file_type); // ✅ Add data attribute
         
         const icon = getFileIcon(file.file_type);
         
         card.innerHTML = `
-          <div class="file-icon">${icon}</div>
-          <div class="file-name">${file.filename}</div>
-          <div class="file-info">${file.file_size} MB</div>
-          <div class="file-info">${file.uploaded_at}</div>
-          <div class="file-actions">
-            <button class="btn-view" onclick="viewFile('${file.file_url}', '${file.file_type}')">
-              <i class="fas fa-eye"></i> View
-            </button>
-            <button class="btn-delete" onclick="deleteFile(${file.id})">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
+            <div class="file-icon" style="${file.file_type === 'image' ? 'background: white; padding: 15px; border-radius: 8px;' : ''}">${icon}</div>
+            <div class="file-name">${file.filename}</div>
+            <div class="file-info">${file.file_size} MB</div>
+            <div class="file-info">${file.uploaded_at}</div>
+            <div class="file-actions">
+                <button class="btn-view" onclick="viewFile('${file.file_url}', '${file.file_type}')">
+                    <i class="fas fa-eye"></i> View
+                </button>
+                <button class="btn-delete" onclick="deleteFile(${file.id}, '${file.filename}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         `;
         
         grid.appendChild(card);
-      });
-      
-      container.innerHTML = '';
-      container.appendChild(grid);
+    });
+    
+    container.innerHTML = '';
+    container.appendChild(grid);
+    
+    console.log('✅ Files rendered successfully');
+}
+
+    // New function to display files (separated from renderFiles)
+function displayFiles(files) {
+    const container = document.getElementById('filesContainer');
+    
+    if (!files || files.length === 0) {
+        container.innerHTML = '<div class="no-files"><i class="fas fa-folder-open"></i><p>No files found</p></div>';
+        return;
     }
+    
+    console.log(`📋 Displaying ${files.length} files`);
+    
+    const grid = document.createElement('div');
+    grid.className = 'files-grid';
+    
+    files.forEach((file) => {
+        const card = document.createElement('div');
+        card.className = `file-card ${file.file_type}`;
+        card.setAttribute('data-type', file.file_type);
+        card.setAttribute('data-filename', file.filename.toLowerCase()); // For search
+        
+        const icon = getFileIcon(file.file_type);
+        
+        card.innerHTML = `
+            <div class="file-icon" style="${file.file_type === 'image' ? 'background: white; padding: 15px; border-radius: 8px;' : ''}">${icon}</div>
+            <div class="file-name">${file.filename}</div>
+            <div class="file-info">${file.file_size} MB</div>
+            <div class="file-info">${file.uploaded_at}</div>
+            <div class="file-actions">
+                <button class="btn-view" onclick="viewFile('${file.file_url}', '${file.file_type}')">
+                    <i class="fas fa-eye"></i> View
+                </button>
+                <button class="btn-delete" onclick="deleteFile(${file.id}, '${file.filename}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        grid.appendChild(card);
+    });
+    
+    container.innerHTML = '';
+    container.appendChild(grid);
+    
+    console.log('✅ Files displayed successfully');
+}
+  // Search function
+function searchFiles() {
+    const searchInput = document.getElementById('fileSearchInput');
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    console.log(`🔍 Searching for: "${searchTerm}"`);
+    
+    if (!searchTerm) {
+        // If search is empty, show all files
+        displayFiles(allFiles);
+        return;
+    }
+    
+    // Filter files by filename
+    const filteredFiles = allFiles.filter(file => 
+        file.filename.toLowerCase().includes(searchTerm)
+    );
+    
+    console.log(`Found ${filteredFiles.length} matching files`);
+    displayFiles(filteredFiles);
+}
+
+// Clear search function
+function clearSearch() {
+    const searchInput = document.getElementById('fileSearchInput');
+    searchInput.value = '';
+    displayFiles(allFiles);
+    searchInput.focus();
+}
 
     // Get file icon
-    function getFileIcon(fileType) {
-      const icons = {
-        'image': '<i class="fas fa-file-image"></i>',
-        'pdf': '<i class="fas fa-file-pdf"></i>',
-        'document': '<i class="fas fa-file-word"></i>',
-        'other': '<i class="fas fa-file"></i>'
-      };
-      return icons[fileType] || icons['other'];
-    }
+  function getFileIcon(fileType) {
+    const icons = {
+      'image': '<i class="fas fa-file-image"></i>',
+      'pdf': '<i class="fas fa-file-pdf"></i>',
+      'document': '<i class="fas fa-file-word"></i>',
+      'other': '<i class="fas fa-file"></i>'
+    };
+    return icons[fileType] || icons['other'];
+  }
 
-    // View file
-    function viewFile(url, type) {
-      if (type === 'image') {
-        document.getElementById('previewImage').src = url;
-        document.getElementById('previewModal').classList.add('active');
-      } else {
-        window.open(url, '_blank');
-      }
-    }
-
-    // Close preview
-    function closePreview() {
-      document.getElementById('previewModal').classList.remove('active');
-    }
-
-    // Delete file
-    function deleteFile(fileId) {
-      if (!confirm('Are you sure you want to delete this file?')) {
+  // Update the deleteFile function in certification_filess.html
+function deleteFile(fileId, filename) {
+    if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
         return;
-      }
-      
-      fetch(`/api/files/${fileId}/delete/`, {
+    }
+    
+    console.log(`🗑️ Deleting file ID: ${fileId}`);
+    
+    fetch(`/api/certificate-files/${fileId}/delete/`, {
         method: 'DELETE',
         headers: {
-          'X-CSRFToken': csrfToken,
-          'X-Requested-With': 'XMLHttpRequest'
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
         }
-      })
-      .then(response => response.json())
-      .then(data => {
+    })
+    .then(response => response.json())
+    .then(data => {
         if (data.success) {
-          alert('File deleted successfully');
-          refreshFiles();
-          loadFileCounts();
+            alert('✅ ' + data.message);
+            refreshFiles(); // Reload the file list
+            loadFileCounts(); // Update counts
         } else {
-          alert('Error: ' + data.error);
+            alert('❌ Error: ' + data.error);
         }
-      })
-      .catch(error => {
-        console.error('Error:', error);
+    })
+    .catch(error => {
+        console.error('❌ Delete error:', error);
         alert('Failed to delete file');
-      });
+    });
+}
+  // View file
+  // ✅ FIXED: View file with white background for signatures
+function viewFile(url, type) {
+    console.log(`👁️ Viewing file: ${url} (type: ${type})`);
+    
+    if (type === 'image') {
+        // Create image preview modal with white background
+        const modal = document.createElement('div');
+        modal.className = 'preview-modal active';
+        modal.innerHTML = `
+            <div class="preview-content" style="background: white; padding: 30px; border-radius: 12px; position: relative; max-width: 90%; max-height: 90vh;">
+                <button class="close-preview" onclick="this.parentElement.parentElement.remove()">×</button>
+                <img src="${url}" alt="Preview" style="max-width: 100%; max-height: 80vh; display: block; margin: 0 auto; background: white;">
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close when clicking outside the image
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        console.log('✅ Image preview opened with white background');
+    } else {
+        // Open PDFs and documents in new tab
+        window.open(url, '_blank');
+        console.log('✅ Document opened in new tab');
     }
+}
 
-    // Refresh files
-    function refreshFiles() {
-      if (currentCategory) {
-        loadFiles(currentCategory);
-      }
+  // Delete file from certification folder
+  function deleteFileFromCertification(filename, category) {
+    if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
+      return;
     }
+    
+    console.log(`🗑️ Deleting: ${filename} from ${category}`);
+    
+    // For now, show error that this needs backend implementation
+    alert('Delete functionality needs to be implemented in the backend.\n\nFilename: ' + filename + '\nCategory: ' + category);
+    
+    // TODO: Implement actual delete API
+    // fetch(`/api/certificate-files/delete/`, {
+    //   method: 'DELETE',
+    //   headers: {
+    //     'X-CSRFToken': csrfToken,
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: JSON.stringify({ filename, category })
+    // })...
+  }
 
-    // Close file browser
-    function closeFileBrowser() {
-      document.getElementById('fileBrowser').classList.remove('active');
+  // Refresh files
+  function refreshFiles() {
+    if (currentCategory) {
+      console.log(`🔄 Refreshing files for: ${currentCategory}`);
+      loadFiles(currentCategory);
+      loadFileCounts(); // Also refresh counts
     }
+  }
+
+  // Close file browser
+  function closeFileBrowser() {
+    document.getElementById('fileBrowser').classList.remove('active');
+    console.log('📂 File browser closed');
+  }
+
+  // Close modal when clicking outside
+  document.getElementById('fileBrowser').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeFileBrowser();
+    }
+  });
+  
+  console.log('✅ JavaScript loaded successfully');
 
     // Show upload modal
     function showUploadModal(category = null) {
@@ -1017,6 +1373,60 @@ function toggleMobileMenu() {
     }
   }
 }
+// Function to update file counts
+function updateFileCounts() {
+    console.log('📊 Updating file counts...');
+    
+    const categories = ['certificates', 'appointive_certificates', 'elective_certificates', 'ids', 'signatures'];
+    
+    categories.forEach(category => {
+        fetch(`/api/certificate-files/category/${category}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const fileCount = data.total_count || 0;
+                    console.log(`✅ ${category}: ${fileCount} files`);
+                    
+                    // Update the display
+                    const card = document.querySelector(`.profile-card[data-category="${category}"]`);
+                    if (card) {
+                        const countElement = card.querySelector('.file-count');
+                        if (countElement) {
+                            countElement.textContent = `${fileCount} file${fileCount !== 1 ? 's' : ''}`;
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error(`❌ Error loading ${category}:`, error);
+                const card = document.querySelector(`.profile-card[data-category="${category}"]`);
+                if (card) {
+                    const countElement = card.querySelector('.file-count');
+                    if (countElement) {
+                        countElement.textContent = 'Error loading';
+                    }
+                }
+            });
+    });
+}
+
+// Update on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Page loaded, loading file counts...');
+    updateFileCounts();
+});
+
+// Refresh counts after closing modal
+const fileModal = document.getElementById('fileModal');
+if (fileModal) {
+    fileModal.addEventListener('hidden.bs.modal', function() {
+        console.log('🔄 Modal closed, refreshing counts...');
+        setTimeout(updateFileCounts, 500);
+    });
+}
+
+// Make function globally accessible
+window.refreshFileCounts = updateFileCounts;
 
 // Close mobile menu when clicking outside
 document.addEventListener('click', function(event) {

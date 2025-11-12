@@ -194,44 +194,41 @@
 
     // View application details - Updated to work with your model
     function viewApplication(id) {
-      // Since you don't have sampleApplications, we'll fetch from server
-      // For now, showing a basic modal with available info
-      const row = document.querySelector(tr[data-id="${id}"]);
-      if (!row) {
-        showErrorMessage('Application not found.');
-        return;
-      }
+  const row = document.querySelector(`tr[data-id="${id}"]`);  // FIX: Use backticks
+  if (!row) {
+    showErrorMessage('Application not found.');
+    return;
+  }
 
-      const name = row.cells[0].textContent;
-      const requestId = row.cells[1].textContent;
-      const dateSubmitted = row.cells[2].textContent;
-      const certifier = row.cells[3].textContent;
-      const status = row.querySelector('.status-select').value;
-      const approvedBy = row.cells[5].textContent;
+  const name = row.cells[0].textContent;
+  const requestId = row.cells[1].textContent;
+  const dateSubmitted = row.cells[2].textContent;
+  const certifier = row.cells[3].textContent;
+  const status = row.querySelector('.status-select').value;
+  const approvedBy = row.cells[5].textContent;
 
-      const modalBody = document.getElementById('modalBody');
-      modalBody.innerHTML = `
-        <div class="application-details">
-          <h4>Request Information</h4>
-          <p><strong>Full Name:</strong> ${name}</p>
-          <p><strong>Request ID:</strong> ${requestId}</p>
-          <p><strong>Date Submitted:</strong> ${dateSubmitted}</p>
-          <p><strong>Requested Certifier:</strong> ${certifier}</p>
-          <p><strong>Current Status:</strong> <span class="status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
-          <p><strong>Approved by:</strong> ${approvedBy}</p>
-          
-          <h4>Documents</h4>
-          <p><em>Document details would be loaded here...</em></p>
-          
-          <div class="modal-actions" style="margin-top: 20px; text-align: center;">
-            <button onclick="closeApplicationModal()" class="cancel-btn">Close</button>
-          </div>
-        </div>
-      `;
+  const modalBody = document.getElementById('modalBody');
+  modalBody.innerHTML = `
+    <div class="application-details">
+      <h4>Request Information</h4>
+      <p><strong>Full Name:</strong> ${name}</p>
+      <p><strong>Request ID:</strong> ${requestId}</p>
+      <p><strong>Date Submitted:</strong> ${dateSubmitted}</p>
+      <p><strong>Requested Certifier:</strong> ${certifier}</p>
+      <p><strong>Current Status:</strong> <span class="status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
+      <p><strong>Approved by:</strong> ${approvedBy}</p>
+      
+      <h4>Documents</h4>
+      <p><em>Document details would be loaded here...</em></p>
+      
+      <div class="modal-actions" style="margin-top: 20px; text-align: center;">
+        <button onclick="closeApplicationModal()" class="cancel-btn">Close</button>
+      </div>
+    </div>
+  `;
 
-      document.getElementById('applicationModal').style.display = 'block';
-    }
-
+  document.getElementById('applicationModal').style.display = 'block';
+}
     // Close application modal
     function closeApplicationModal() {
       document.getElementById('applicationModal').style.display = 'none';
@@ -247,66 +244,58 @@
     
     // Application Request Management Functions
     function saveChanges(rowId) {
-      const row = document.querySelector(tr[data-id="${rowId}"]);
-      const statusSelect = row.querySelector('.status-select');
-      const approvedByCell = row.querySelector('.approved-by');
+  const row = document.querySelector(`tr[data-id="${rowId}"]`);  // FIX: Use backticks
+  const statusSelect = row.querySelector('.status-select');
+  const approvedByCell = row.querySelector('.approved-by');
+  
+  const newStatus = statusSelect.value;
+  const originalStatus = statusSelect.dataset.original;
+  
+  // Send AJAX request to update database
+  fetch("{% url 'update_application_status' %}", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({
+      id: rowId,
+      status: newStatus
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      statusSelect.dataset.original = newStatus;
       
-      const newStatus = statusSelect.value;
-      const originalStatus = statusSelect.dataset.original;
+      if (newStatus === 'approved' || newStatus === 'rejected') {
+        approvedByCell.textContent = data.approved_by || currentUserName;
+      } else if (newStatus === 'pending') {
+        approvedByCell.textContent = '-';
+      }
       
-      // Send AJAX request to update database
-      fetch("{% url 'update_application_status' %}",{
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-          id: rowId,
-          status: newStatus
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Update the original value
-          statusSelect.dataset.original = newStatus;
-          
-          // Update approved by field
-          if (newStatus === 'approved' || newStatus === 'rejected') {
-            approvedByCell.textContent = data.approved_by || currentUserName;
-          } else if (newStatus === 'pending') {
-            approvedByCell.textContent = '-';
-          }
-          
-          // Update stats
-          updateStats();
-          
-          showSuccessMessage(data.message || 'Status updated successfully!');
-        } else {
-          // Reset to original value on error
-          statusSelect.value = originalStatus;
-          showErrorMessage(data.error || 'Failed to update status.');
-        }
-      })
-      .catch(error => {
-        // Reset to original value on error
-        statusSelect.value = originalStatus;
-        showErrorMessage('An error occurred. Please try again.');
-        console.error('Error:', error);
-      });
+      updateStats();
+      showSuccessMessage(data.message || 'Status updated successfully!');
+    } else {
+      statusSelect.value = originalStatus;
+      showErrorMessage(data.error || 'Failed to update status.');
     }
+  })
+  .catch(error => {
+    statusSelect.value = originalStatus;
+    showErrorMessage('An error occurred. Please try again.');
+    console.error('Error:', error);
+  });
+}
     
     function cancelChanges(rowId) {
-      const row = document.querySelector(tr[data-id="${rowId}"]);
-      const statusSelect = row.querySelector('.status-select');
-      const originalStatus = statusSelect.dataset.original;
-      
-      // Reset to original value
-      statusSelect.value = originalStatus;
-      
-      showSuccessMessage('Changes cancelled.');
-    }
+  const row = document.querySelector(`tr[data-id="${rowId}"]`);  // FIX: Use backticks
+  const statusSelect = row.querySelector('.status-select');
+  const originalStatus = statusSelect.dataset.original;
+  
+  statusSelect.value = originalStatus;
+  showSuccessMessage('Changes cancelled.');
+}
     
     function showSuccessMessage(message) {
       // Remove existing message if any

@@ -7,11 +7,12 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save, pre_delete, post_delete
-import threading
+import threading, traceback
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+import os
 
 
 
@@ -282,8 +283,37 @@ class EligibilityRequest(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_initial = models.CharField(max_length=5, blank=True, null=True)
-    email = models.EmailField(max_length=254, blank=True, null=True) # ADD THIS LINE
+    email = models.EmailField(max_length=254, blank=True, null=True)
+    barangay = models.CharField(max_length=100)  # ADD THIS LINE
     
+    position_type = models.CharField(max_length=20, choices=[
+        ('appointive', 'Appointive'),
+        ('elective', 'Elective')
+    ])
+
+    # ========================================
+    # APPOINTIVE OFFICIAL FIELDS
+    # ========================================
+    appointing_authority = models.CharField(max_length=200, blank=True, null=True)
+    appointment_from = models.DateField(blank=True, null=True)
+    appointment_to = models.DateField(blank=True, null=True)
+    years_in_service = models.DecimalField(max_digits=4, decimal_places=1, blank=True, null=True)
+
+    # Appointing Punong Barangay Info
+    appointing_punong_barangay = models.CharField(max_length=200, blank=True, null=True)
+    pb_date_elected = models.DateField(blank=True, null=True)
+    pb_years_service = models.DecimalField(max_digits=4, decimal_places=1, blank=True, null=True)
+
+    # ========================================
+    # ELECTIVE OFFICIAL FIELDS
+    # ========================================
+    position_held = models.CharField(max_length=200, blank=True, null=True)
+    election_from = models.DateField(blank=True, null=True)
+    election_to = models.DateField(blank=True, null=True)
+    term_office = models.CharField(max_length=50, blank=True, null=True)
+    completed_term = models.CharField(max_length=50, blank=True, null=True)
+    incomplete_reason = models.TextField(blank=True, null=True)
+    days_not_served = models.IntegerField(default=0)
     
     # This is the field Django is looking for
     certifier = models.CharField(max_length=50, choices=CERTIFIER_CHOICES)
@@ -291,7 +321,8 @@ class EligibilityRequest(models.Model):
     # File uploads
     id_front = models.ImageField(upload_to='eligibility/ids/', null=True, blank=True)
     id_back = models.ImageField(upload_to='eligibility/ids/', null=True, blank=True)
-    signature = models.ImageField(upload_to='eligibility/signatures/', null=True, blank=True)
+    # In your EligibilityRequest model (models.py)
+    signature = models.FileField(upload_to='certification_files/signatures/%Y/%m/')
     
     # Status and dates
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -584,7 +615,12 @@ class RequirementAttachment(models.Model):
     @property
     def file_size_kb(self):
         """Return file size in KB"""
-        return round(self.file_size / 1024, 2)
+        try:
+            if self.file_size:
+                return round(self.file_size / 1024, 2)
+            return 0
+        except (TypeError, AttributeError):
+            return 0
     
     def delete(self, *args, **kwargs):
         """Delete file when model is deleted"""
@@ -940,8 +976,11 @@ def categorize_eligibility_files(sender, instance, created, **kwargs):
 # Signal to auto-categorize requirement attachments
 @receiver(post_save, sender=RequirementAttachment)
 def categorize_requirement_files(sender, instance, created, **kwargs):
-    """Auto-categorize files from requirement submissions"""
-    if created:
+    """Auto-categorize files from requirement submissions with error handling"""
+    if not created:
+        return
+    
+    try:
         submission = instance.submission
         period = submission.requirement.period
         
@@ -955,24 +994,36 @@ def categorize_requirement_files(sender, instance, created, **kwargs):
             'annually': 'Annual Reports',
         }
         
-        category = FileCategory.objects.get_or_create(
+        category, created_cat = FileCategory.objects.get_or_create(
             name=category_name,
             defaults={
                 'display_name': display_names.get(category_name, category_name.title()),
                 'folder_path': f'requirements/{category_name}/',
                 'description': f'{display_names.get(category_name)} from barangays'
             }
-        )[0]
+        )
         
+        # Determine file type safely
+        file_type = 'other'
+        if instance.file_type:
+            if '/' in instance.file_type:
+                file_type = instance.file_type.split('/')[0]
+            elif instance.file_type.startswith('image'):
+                file_type = 'image'
+        
+        # Get file size safely
+        file_size = instance.file_size if instance.file_size else 0
+        
+        # Create categorized file
         CategorizedFile.objects.create(
             file=instance.file,
-            original_filename=os.path.basename(instance.file.name),
-            file_type=instance.file_type.split('/')[0] if '/' in instance.file_type else 'other',
-            file_size=instance.file_size,
-            mime_type=instance.file_type,
+            original_filename=os.path.basename(instance.file.name) if instance.file else 'unknown',
+            file_type=file_type,
+            file_size=file_size,
+            mime_type=instance.file_type or 'application/octet-stream',
             category=category,
             source='requirement',
-            detected_content=submission.requirement.title,
+            detected_content=submission.requirement.title[:100],  # Limit length
             barangay=submission.barangay,
             period=period,
             requirement_submission=submission,
@@ -983,3 +1034,19 @@ def categorize_requirement_files(sender, instance, created, **kwargs):
         
         # Update category file count
         category.update_file_count()
+        
+        print(f"✓ Categorized file: {instance.file.name} into {category.display_name}")
+        
+    except Exception as e:
+        # Log error but don't prevent attachment from being saved
+        print(f"⚠️ Error in categorize_requirement_files signal: {e}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        # Don't raise - allow the attachment to be saved even if categorization fails
+
+
+class MonitoringFile(models.Model):
+    filename = models.CharField(max_length=255)
+    file = models.FileField(upload_to='monitoring_files/')
+    category = models.CharField(max_length=50)  # weekly, monthly, etc.
+    barangay = models.ForeignKey('Barangay', on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)

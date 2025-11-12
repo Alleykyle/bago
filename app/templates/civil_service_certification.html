@@ -513,7 +513,7 @@
                 
                 <div class="signature-box">
                   <div class="signature-line"></div>
-                  <p class="signatory-name">ENRICO O. DAMOT</p>
+                  <p class="signatory-name">LEANDRO SIPOY GIGANTOCA, CESE</p>
                   <p class="signatory-position">OIC-HUC Director</p>
                 </div>
               </div>
@@ -650,7 +650,7 @@
                     
                     <div class="signature-box">
                       <div class="signature-line"></div>
-                      <p class="signatory-name">ENGR. VILMA B. DE TORRES</p>
+                      <p class="signatory-name">LEANDRO SIPOY GIGANTOCA, CESE</p>
                       <p class="signatory-position">OIC-HUC Director</p>
                     </div>
                   </div>
@@ -1193,6 +1193,18 @@ function setupElectiveCalculations() {
       showStep('step1');
     }
 
+    // In civil_service_certification.html or wherever signature is captured
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Set WHITE background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Set BLACK pen color
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
+
     function setupSignatureCanvas() {
       signatureCanvas = document.getElementById('signature-canvas');
       const canvasWrapper = document.getElementById('canvasWrapper');
@@ -1709,14 +1721,19 @@ function calculateDecimalYears(fromDate, toDate) {
     submitData.append('pb_years_service', formData.pb_years_service || '');
   }
   
-  if (positionType === 'elective') {
-    submitData.append('position_held', formData.position_held || '');
-    submitData.append('election_from', formData.election_from || '');
-    submitData.append('election_to', formData.election_to || '');
-    submitData.append('term_office', formData.term_office || '');
-    submitData.append('completed_term', formData.completed_term || '');
-    submitData.append('incomplete_reason', formData.incomplete_reason || '');
-  }
+  // In finishProcess() function around line 1440
+if (positionType === 'elective') {
+  submitData.append('position_held', formData.position_held || '');
+  submitData.append('election_from', formData.election_from || '');
+  submitData.append('election_to', formData.election_to || '');
+  submitData.append('term_office', formData.term_office || '');
+  submitData.append('completed_term', formData.completed_term || '');
+  submitData.append('incomplete_reason', formData.incomplete_reason || '');
+  
+  // 🔥 ADD: Submit days_not_served from the hidden field
+  const daysNotServedValue = document.getElementById('days_not_served_value')?.value || '0';
+  submitData.append('days_not_served', daysNotServedValue);
+}
   
   submitData.append('certifier', formData.certifier || '');
   
@@ -1867,17 +1884,15 @@ function calculateDecimalYears(fromDate, toDate) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function showCertificate() {
-  // DEBUG: Check what data we have
+    // Around line 1730 in civil_service_certification.html
+// Update the showCertificate function to properly show incomplete term info
+
+function showCertificate() {
   console.log('=== DEBUG showCertificate ===');
   console.log('formData:', formData);
   console.log('positionType:', positionType);
-  console.log('first_name:', formData.first_name);
-  console.log('last_name:', formData.last_name);
-  console.log('barangay:', formData.barangay);
   
   const fullName = `${formData.first_name} ${formData.middle_initial ? formData.middle_initial + '. ' : ''}${formData.last_name}`;
-  console.log('fullName:', fullName);
   
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -1893,7 +1908,6 @@ function calculateDecimalYears(fromDate, toDate) {
     "July", "August", "September", "October", "November", "December"];
   const certDate = `${monthNames[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
   
-  // Expand the container
   const container = document.querySelector('.container');
   if (container) {
     container.style.maxWidth = '100%';
@@ -1902,62 +1916,14 @@ function calculateDecimalYears(fromDate, toDate) {
   }
   
   if (positionType === 'appointive') {
-    console.log('Showing APPOINTIVE certificate');
-    
-    // Check if elements exist
-    const nameEl = document.getElementById('cert-full-name');
-    const barangayEl = document.getElementById('cert-barangay');
-    console.log('cert-full-name element:', nameEl);
-    console.log('cert-barangay element:', barangayEl);
-    
-    // Populate APPOINTIVE certificate
-    if (nameEl) nameEl.textContent = fullName;
-    if (document.getElementById('cert-full-name-2')) {
-      document.getElementById('cert-full-name-2').textContent = fullName;
-    }
-    if (barangayEl) barangayEl.textContent = formData.barangay || 'Not specified';
-    
-    if (document.getElementById('cert-appointment-date')) {
-      document.getElementById('cert-appointment-date').textContent = formatDate(formData.appointment_from);
-    }
-    if (document.getElementById('cert-date-from')) {
-      document.getElementById('cert-date-from').textContent = formatDate(formData.appointment_from);
-    }
-    if (document.getElementById('cert-date-to')) {
-      document.getElementById('cert-date-to').textContent = formatDate(formData.appointment_to);
-    }
-    if (document.getElementById('cert-years-served')) {
-      document.getElementById('cert-years-served').textContent = formData.years_in_service + ' years';
-    }
-    if (document.getElementById('cert-pb-name')) {
-      document.getElementById('cert-pb-name').textContent = formData.appointing_punong_barangay;
-    }
-    if (document.getElementById('cert-pb-date')) {
-      document.getElementById('cert-pb-date').textContent = formatDate(formData.pb_date_elected);
-    }
-    if (document.getElementById('cert-pb-years')) {
-      document.getElementById('cert-pb-years').textContent = formData.pb_years_service + ' years';
-    }
-    if (document.getElementById('cert-date')) {
-      document.getElementById('cert-date').textContent = certDate;
-    }
-    
-    showStep('certificate');
-    const certificateDiv = document.getElementById('certificate');
-    if (certificateDiv) {
-      certificateDiv.classList.add('active');
-    }
+    // ... appointive logic (keep existing)
     
   } else if (positionType === 'elective') {
     console.log('Showing ELECTIVE certificate');
     
-    // Check if elements exist
     const nameEl = document.getElementById('cert-elec-full-name');
     const barangayEl = document.getElementById('cert-elec-barangay');
-    console.log('cert-elec-full-name element:', nameEl);
-    console.log('cert-elec-barangay element:', barangayEl);
     
-    // Populate ELECTIVE certificate
     if (nameEl) nameEl.textContent = fullName;
     if (document.getElementById('cert-elec-full-name-2')) {
       document.getElementById('cert-elec-full-name-2').textContent = fullName;
@@ -1983,28 +1949,41 @@ function calculateDecimalYears(fromDate, toDate) {
       document.getElementById('cert-elec-date').textContent = certDate;
     }
     
-    // Handle completion status
+    // 🔥 CRITICAL: Handle completion status with days not served
     const yesCheck = document.getElementById('cert-elec-yes-check');
     const noCheck = document.getElementById('cert-elec-no-check');
     const reasonSection = document.getElementById('cert-elec-reason-section');
     const incompleteDays = document.getElementById('cert-elec-incomplete-days');
     const reasonText = document.getElementById('cert-elec-reason-text');
     
+    console.log('Completed term:', formData.completed_term);
+    console.log('Incomplete reason:', formData.incomplete_reason);
+    
     if (formData.completed_term === 'yes') {
       if (yesCheck) yesCheck.textContent = '√';
       if (noCheck) noCheck.textContent = '';
       if (reasonSection) reasonSection.style.display = 'none';
+      
+      console.log('✓ Term completed - showing YES checkbox');
     } else {
-        if (yesCheck) yesCheck.textContent = '';
-        if (noCheck) noCheck.textContent = '√';
-        if (reasonSection) reasonSection.style.display = 'block';
-        
-        // Get the calculated days not served from the hidden field
-        const daysNotServedValue = document.getElementById('days_not_served_value')?.value || '0';
-        if (incompleteDays) incompleteDays.textContent = daysNotServedValue + ' days';
-        
-        if (reasonText) reasonText.textContent = formData.incomplete_reason || 'Not specified';
+      if (yesCheck) yesCheck.textContent = '';
+      if (noCheck) noCheck.textContent = '√';
+      if (reasonSection) reasonSection.style.display = 'block';
+      
+      // 🔥 Get the calculated days not served from the hidden field
+      const daysNotServedValue = document.getElementById('days_not_served_value')?.value || '0';
+      console.log('Days not served:', daysNotServedValue);
+      
+      if (incompleteDays) {
+        incompleteDays.textContent = `${daysNotServedValue} days`;
       }
+      
+      if (reasonText) {
+        reasonText.textContent = formData.incomplete_reason || 'Not specified';
+      }
+      
+      console.log('✓ Term incomplete - showing NO checkbox with reason');
+    }
     
     showStep('certificate-elective');
     const certificateDiv = document.getElementById('certificate-elective');

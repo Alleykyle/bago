@@ -22,10 +22,11 @@ import openpyxl
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Q, Count, Avg, Sum  
-from .models import EligibilityRequest, Barangay, Requirement, RequirementSubmission, RequirementAttachment, Notification, Announcement
+from .models import EligibilityRequest, Barangay, Requirement, RequirementSubmission, RequirementAttachment, Notification, Announcement, FileCategory, MonitoringFile
 from django.views.decorators.http import require_POST
 import os
 from datetime import date
+from .models import CategorizedFile
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -33,6 +34,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from datetime import timedelta
 import traceback
+from PIL import Image
+import pytesseract, PyPDF2
+
 
 
 try:
@@ -1171,135 +1175,1239 @@ def bulk_employee_operations(request):
         return JsonResponse({'success': False, 'error': str(e)})
     
 
+from PIL import Image, ImageOps
+import io
+from django.core.files.uploadedfile import InMemoryUploadedFile
+
+def process_signature_image(uploaded_file):
+    """
+    Process signature image to ensure it has white background
+    and black signature (fixes black signature display issue)
+    """
+    try:
+        print(f"🖊️ Processing signature: {uploaded_file.name}")
+        print(f"   Original size: {uploaded_file.size} bytes")
+        
+        # Store original filename
+        original_name = uploaded_file.name
+        
+        # Read the uploaded file
+        uploaded_file.seek(0)
+        image = Image.open(uploaded_file)
+        
+        print(f"   Image mode: {image.mode}")
+        print(f"   Image size: {image.size}")
+        
+        # Convert to RGBA first if needed
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+        
+        # Create a white background
+        white_bg = Image.new('RGB', image.size, (255, 255, 255))
+        
+        # Paste the signature onto white background
+        # This converts transparent areas to white
+        white_bg.paste(image, mask=image.split()[-1])  # Use alpha channel as mask
+        
+        # Save to BytesIO
+        output = io.BytesIO()
+        white_bg.save(output, format='PNG', quality=95)
+        output.seek(0)
+        
+        processed_size = output.getbuffer().nbytes
+        print(f"   ✓ Processed size: {processed_size} bytes")
+        
+        # Create new InMemoryUploadedFile with ORIGINAL FILENAME
+        processed_file = InMemoryUploadedFile(
+            output,
+            'ImageField',
+            original_name,  # ✅ Keep the original filename
+            'image/png',
+            processed_size,
+            None
+        )
+        
+        return processed_file
+        
+    except Exception as e:
+        print(f"   ⚠️ Error processing signature: {e}")
+        import traceback
+        print(traceback.format_exc())
+        # Return original file if processing fails
+        uploaded_file.seek(0)
+        return uploaded_file
+
+
+
 @require_http_methods(["POST"])
 def submit_eligibility_request(request):
-    """Handle form submission from the public certification form"""
+    """
+    Handle form submission with SMART DOCUMENT CATEGORIZATION
+    Files are automatically sorted based on content analysis
+    """
     try:
-        # Debug logging
-        print("=== FORM SUBMISSION DEBUG ===")
-        print("POST data:", dict(request.POST))
-        print("FILES data:", dict(request.FILES))
-        print("Content-Type:", request.content_type)
+        print("\n" + "="*80)
+        print("🆕 NEW ELIGIBILITY REQUEST SUBMISSION")
+        print("="*80)
         
         # Extract and validate form data
         last_name = request.POST.get('last_name', '').strip()
         first_name = request.POST.get('first_name', '').strip()
         middle_initial = request.POST.get('middle_initial', '').strip()
-        email = request.POST.get('email', '').strip()  # ← ADD THIS LINE
+        barangay = request.POST.get('barangay', '').strip()
+        email = request.POST.get('email', '').strip()
+        position_type = request.POST.get('position_type', '').strip()
         certifier = request.POST.get('certifier', '').strip()
         
+        print(f"👤 Applicant: {first_name} {last_name}")
+        print(f"📧 Email: {email}")
+        print(f"🏢 Barangay: {barangay}")
+        print(f"📋 Position Type: {position_type}")
+        
         # Validation
-        if not last_name:
+        if not all([last_name, first_name, email, barangay, position_type, certifier]):
             return JsonResponse({
                 'success': False,
-                'error': 'Last name is required'
-            }, status=400)
-            
-        if not first_name:
-            return JsonResponse({
-                'success': False,
-                'error': 'First name is required'
+                'error': 'All required fields must be filled'
             }, status=400)
         
-        # ← ADD THIS EMAIL VALIDATION
-        if not email:
-            return JsonResponse({
-                'success': False,
-                'error': 'Email address is required'
-            }, status=400)
-            
-        if not certifier:
-            return JsonResponse({
-                'success': False,
-                'error': 'Certifier selection is required'
-            }, status=400)
-        
-        # Validate certifier choice against model choices
+        # Validate certifier choice
         valid_certifiers = [choice[0] for choice in EligibilityRequest.CERTIFIER_CHOICES]
         if certifier not in valid_certifiers:
             return JsonResponse({
                 'success': False,
-                'error': f'Invalid certifier selection. Must be one of: {valid_certifiers}'
+                'error': f'Invalid certifier selection'
             }, status=400)
         
-        # Handle file uploads
+        # Get uploaded files
         id_front = request.FILES.get('id_front')
         id_back = request.FILES.get('id_back')
         signature = request.FILES.get('signature')
         
-        print(f"Files found - id_front: {id_front is not None}, id_back: {id_back is not None}, signature: {signature is not None}")
-        
-        if not id_front:
+        if not all([id_front, id_back, signature]):
             return JsonResponse({
                 'success': False,
-                'error': 'Front ID image is required'
-            }, status=400)
-            
-        if not id_back:
-            return JsonResponse({
-                'success': False,
-                'error': 'Back ID image is required'
-            }, status=400)
-            
-        if not signature:
-            return JsonResponse({
-                'success': False,
-                'error': 'Signature is required'
+                'error': 'All files (ID front, ID back, signature) are required'
             }, status=400)
         
-        # Create new request using the correct field names from your model
-        try:
-            eligibility_request = EligibilityRequest.objects.create(
-                first_name=first_name,
-                last_name=last_name,
-                middle_initial=middle_initial if middle_initial else None,
-                email=email,  # ← ADD THIS LINE
-                certifier=certifier,
-                id_front=id_front,
-                id_back=id_back,
-                signature=signature,
-                status='pending',
-                date_submitted=timezone.now()
-            )
-            
-            print(f"Successfully created request with ID: {eligibility_request.id}")
-            
-            # Generate a reference number for the user
-            reference_number = f"EC-{timezone.now().year}-{eligibility_request.id:03d}"
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Application submitted successfully! Check your email for confirmation.',  # ← UPDATED MESSAGE
-                'id_number': reference_number,  
-                'request_id': eligibility_request.id
-            })
-            
-        except Exception as create_error:
-            print(f"Error creating EligibilityRequest: {create_error}")
-            print(f"Error type: {type(create_error).__name__}")
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-            
-            return JsonResponse({
-                'success': False,
-                'error': f'Database error: {str(create_error)}'
-            }, status=400)
+        print(f"📎 Files received: ID Front ({id_front.size} bytes), ID Back ({id_back.size} bytes), Signature ({signature.size} bytes)")
+        
+        # Create eligibility request
+        eligibility_request = EligibilityRequest.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            middle_initial=middle_initial if middle_initial else None,
+            barangay=barangay,
+            email=email,
+            position_type=position_type,
+            certifier=certifier,
+            status='pending',
+            date_submitted=timezone.now()
+        )
+        
+        # Save position-specific data
+        if position_type == 'appointive':
+            eligibility_request.appointing_authority = request.POST.get('appointing_authority', '')
+            eligibility_request.appointment_from = request.POST.get('appointment_from')
+            eligibility_request.appointment_to = request.POST.get('appointment_to')
+            eligibility_request.years_in_service = request.POST.get('years_in_service')
+            eligibility_request.appointing_punong_barangay = request.POST.get('appointing_punong_barangay', '')
+            eligibility_request.pb_date_elected = request.POST.get('pb_date_elected')
+            eligibility_request.pb_years_service = request.POST.get('pb_years_service')
+        elif position_type == 'elective':
+            eligibility_request.position_held = request.POST.get('position_held', '')
+            eligibility_request.election_from = request.POST.get('election_from')
+            eligibility_request.election_to = request.POST.get('election_to')
+            eligibility_request.term_office = request.POST.get('term_office', '')
+            eligibility_request.completed_term = request.POST.get('completed_term', '')
+            eligibility_request.incomplete_reason = request.POST.get('incomplete_reason', '')
+            eligibility_request.days_not_served = int(request.POST.get('days_not_served', 0))
+        
+        eligibility_request.save()
+        
+        print(f"✅ Created EligibilityRequest ID: {eligibility_request.id}")
+        
+        # 🔥 SMART CATEGORIZATION - Process each file
+        files_processed = []
+        
+        # Process ID Front
+        print(f"\n📄 Processing ID Front...")
+        id_front_category = smart_categorize_file(id_front, 'id_front')
+        id_front_path = save_categorized_eligibility_file(
+            file=id_front,
+            category=id_front_category,
+            user_name=f"{first_name}_{last_name}",
+            file_type='id_front',
+            request_id=eligibility_request.id
+        )
+        files_processed.append({
+            'name': 'ID Front',
+            'category': id_front_category,
+            'path': id_front_path
+        })
+        
+        # Process ID Back
+        print(f"\n📄 Processing ID Back...")
+        id_back_category = smart_categorize_file(id_back, 'id_back')
+        id_back_path = save_categorized_eligibility_file(
+            file=id_back,
+            category=id_back_category,
+            user_name=f"{first_name}_{last_name}",
+            file_type='id_back',
+            request_id=eligibility_request.id
+        )
+        files_processed.append({
+            'name': 'ID Back',
+            'category': id_back_category,
+            'path': id_back_path
+        })
+        
+        # 🔥 FIX: Process Signature WITH white background correction
+        print(f"\n📄 Processing Signature...")
+        
+        # Process signature to fix black background issue
+        processed_signature = process_signature_image(signature)
+        
+        signature_category = smart_categorize_file(processed_signature, 'signature')
+        signature_path = save_categorized_eligibility_file(
+            file=processed_signature,  # Use processed signature
+            category=signature_category,
+            user_name=f"{first_name}_{last_name}",
+            file_type='signature',
+            request_id=eligibility_request.id
+        )
+        files_processed.append({
+            'name': 'Signature',
+            'category': signature_category,
+            'path': signature_path
+        })
+        
+        # Store file paths in eligibility request
+        eligibility_request.id_front = id_front_path
+        eligibility_request.id_back = id_back_path
+        eligibility_request.signature = signature_path
+        eligibility_request.save()
+        
+        print(f"\n{'='*80}")
+        print(f"✅ SUBMISSION COMPLETE")
+        print(f"📊 Files Categorized:")
+        for file_info in files_processed:
+            print(f"   - {file_info['name']} → {file_info['category']}")
+        print(f"{'='*80}\n")
+        
+        # Generate reference number
+        reference_number = f"EC-{timezone.now().year}-{eligibility_request.id:05d}"
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Application submitted successfully! Check your email for confirmation.',
+            'id_number': reference_number,
+            'request_id': eligibility_request.id,
+            'files_categorized': [
+                {'name': f['name'], 'category': f['category']}
+                for f in files_processed
+            ]
+        })
         
     except Exception as e:
-        print(f"=== SUBMISSION ERROR ===")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Error message: {str(e)}")
+        print(f"\n{'='*80}")
+        print(f"❌ SUBMISSION ERROR")
+        print(f"{'='*80}")
+        print(f"Error: {str(e)}")
         import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        print(traceback.format_exc())
+        print(f"{'='*80}\n")
         
         return JsonResponse({
             'success': False,
             'error': f'Submission failed: {str(e)}'
         }, status=400)
 
+
+
+def smart_categorize_file(file, file_type_hint):
+    """
+    🧠 SMART CATEGORIZATION ENGINE
+    Analyzes file content to determine correct folder
+    
+    Returns: 'appointive_certificates', 'elective_certificates', 'ids', or 'signatures'
+    """
+    try:
+        print(f"🔍 Analyzing: {file.name}")
+        
+        # Force categorization based on file type hint
+        if file_type_hint in ['id_front', 'id_back']:
+            print(f"   ✅ Category: ids (based on file type)")
+            return 'ids'
+        
+        if file_type_hint == 'signature':
+            print(f"   ✅ Category: signatures (based on file type)")
+            return 'signatures'
+        
+        # For other files, analyze content
+        file_extension = file.name.lower().split('.')[-1]
+        text_content = ""
+        
+        # Extract text based on file type
+        if file_extension == 'pdf':
+            text_content = extract_text_from_pdf(file)
+        elif file_extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp']:
+            text_content = extract_text_from_image(file)
+        
+        # If we have text, analyze it
+        if text_content:
+            category = analyze_text_for_category(text_content, file.name)
+            print(f"   ✅ Category: {category} (based on content analysis)")
+            return category
+        
+        # Fallback to filename analysis
+        category = categorize_by_filename(file.name)
+        print(f"   ✅ Category: {category} (based on filename)")
+        return category
+        
+    except Exception as e:
+        print(f"   ⚠️ Categorization error: {e}")
+        return 'ids'  # Default fallback
+
+
+def extract_text_from_pdf(file):
+    """Extract text from PDF file"""
+    try:
+        file.seek(0)
+        pdf_reader = PyPDF2.PdfReader(file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + "\n"
+        return text
+    except Exception as e:
+        print(f"   ⚠️ PDF extraction error: {e}")
+        return ""
+
+
+def extract_text_from_image(file):
+    """Extract text from image using OCR"""
+    try:
+        file.seek(0)
+        image = Image.open(file)
+        text = pytesseract.image_to_string(image)
+        return text
+    except Exception as e:
+        print(f"   ⚠️ OCR extraction error: {e}")
+        return ""
+
+
+def analyze_text_for_category(text, filename):
+    """
+    Analyze extracted text to determine certificate type
+    """
+    text_lower = text.lower()
+    filename_lower = filename.lower()
+    
+    # Keywords for different certificate types
+    appointive_keywords = [
+        'appointive official',
+        'appointive position',
+        'date of appointment',
+        'appointing authority',
+        'appointing punong barangay',
+        'barangay secretary',
+        'barangay treasurer',
+        'appointment',
+        'csc-erpo boe form 1(b)'
+    ]
+    
+    elective_keywords = [
+        'elective official',
+        'elective position',
+        'date of election',
+        'term of office',
+        'punong barangay',
+        'sanguniang barangay member',
+        'elected',
+        'election',
+        'csc-erpo boe form 1(a)'
+    ]
+    
+    id_keywords = [
+        'identification',
+        'id card',
+        'government issued id',
+        'driver',
+        'passport',
+        'sss',
+        'philhealth',
+        'tin',
+        'voter'
+    ]
+    
+    signature_keywords = [
+        'signature',
+        'sign here',
+        'e-signature'
+    ]
+    
+    # Count keyword matches
+    appointive_score = sum(1 for keyword in appointive_keywords if keyword in text_lower)
+    elective_score = sum(1 for keyword in elective_keywords if keyword in text_lower)
+    id_score = sum(1 for keyword in id_keywords if keyword in text_lower)
+    signature_score = sum(1 for keyword in signature_keywords if keyword in text_lower)
+    
+    # Check filename hints
+    if any(word in filename_lower for word in ['id_front', 'id_back', 'identification']):
+        id_score += 5
+    if 'signature' in filename_lower or 'sign' in filename_lower:
+        signature_score += 5
+    if 'appointive' in filename_lower:
+        appointive_score += 3
+    if 'elective' in filename_lower:
+        elective_score += 3
+    
+    print(f"    Scores - Appointive:{appointive_score}, Elective:{elective_score}, ID:{id_score}, Signature:{signature_score}")
+    
+    # Determine category based on highest score
+    scores = {
+        'appointive_certificates': appointive_score,
+        'elective_certificates': elective_score,
+        'ids': id_score,
+        'signatures': signature_score
+    }
+    
+    max_score = max(scores.values())
+    
+    if max_score == 0:
+        return categorize_by_filename(filename)
+    
+    # Return category with highest score
+    for category, score in scores.items():
+        if score == max_score:
+            return category
+    
+    return 'ids'
+
+
+def categorize_by_filename(filename):
+    """Fallback categorization based on filename"""
+    filename_lower = filename.lower()
+    
+    if any(word in filename_lower for word in ['id_front', 'id_back', 'identification', '_id_']):
+        return 'ids'
+    elif any(word in filename_lower for word in ['signature', 'sign', 'esign']):
+        return 'signatures'
+    elif 'appointive' in filename_lower:
+        return 'appointive_certificates'
+    elif 'elective' in filename_lower:
+        return 'elective_certificates'
+    else:
+        return 'ids'
+
+
+def save_categorized_eligibility_file(file, category, user_name, file_type, request_id):
+    from django.core.files.storage import default_storage
+    from django.core.files.base import ContentFile
+
+    file_extension = os.path.splitext(file.name)[1]
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{user_name}_{file_type}_{timestamp}{file_extension}"
+
+    year = datetime.now().strftime('%Y')
+    month = datetime.now().strftime('%m')
+    folder_path = f"certification_files/{category}/{year}/{month}"
+
+    gitkeep_path = f"{folder_path}/.gitkeep"
+    if not default_storage.exists(gitkeep_path):
+        default_storage.save(gitkeep_path, ContentFile(b''))
+    file_path = os.path.join(folder_path, filename)
+    
+    file.seek(0)  
+    path = default_storage.save(file_path, ContentFile(file.read()))
+    print(f"    ✓ Saved to: {path}")
+    return path
+
+
+# Add this helper function for generating certificates (when admin approves)
+def generate_certificate_pdf(eligibility_request):
+    """
+    Generate certificate PDF with DILG logos and proper formatting
+    Fixed: Logo placement, Director name, Table formatting
+    """
+    try:
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.platypus import Table, TableStyle
+        from io import BytesIO
+        import os
+        from django.conf import settings
+        
+        print(f"\n{'='*70}")
+        print(f"📄 GENERATING OFFICIAL DILG CERTIFICATE")
+        print(f"{'='*70}")
+        print(f"Request ID: {eligibility_request.id}")
+        print(f"Name: {eligibility_request.full_name}")
+        print(f"Position: {eligibility_request.position_type}")
+        print(f"Barangay: {eligibility_request.barangay}")
+        
+        # Determine folder
+        if eligibility_request.position_type == 'appointive':
+            folder = 'appointive_certificates'
+            form_ref = "CSC-ERPO BOE Form 1(b). April 2012"
+            position_label = "(Appointive Official)"
+        else:
+            folder = 'elective_certificates'
+            form_ref = "CSC-ERPO BOE Form 1(a) (Revised, June 2017)"
+            position_label = "(Elective Official)"
+        
+        # Get or create category
+        from .models import FileCategory, CategorizedFile
+        category, _ = FileCategory.objects.get_or_create(
+            name=folder,
+            defaults={
+                'display_name': folder.replace('_', ' ').title(),
+                'folder_path': f'certification_files/{folder}/',
+            }
+        )
+        
+        # Create PDF
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        # === OUTER BORDER ===
+        c.setStrokeColor(colors.HexColor('#1A237E'))
+        c.setLineWidth(2)
+        c.rect(0.4*inch, 0.4*inch, width - 0.8*inch, height - 0.8*inch)
+        
+        # === INNER BORDER ===
+        c.setLineWidth(0.5)
+        c.rect(0.5*inch, 0.5*inch, width - 1*inch, height - 1*inch)
+        
+        # === DILG LOGOS (IMPROVED) ===
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'Pictures', 'logo1.png')
+        
+        if os.path.exists(logo_path):
+            try:
+                logo_size = 0.7*inch  # Increased size
+                logo_y = height - 1.3*inch
+                
+                # Left logo
+                c.drawImage(logo_path, 0.75*inch, logo_y, 
+                           width=logo_size, height=logo_size, 
+                           preserveAspectRatio=True, mask='auto')
+                
+                # Right logo
+                c.drawImage(logo_path, width - 0.75*inch - logo_size, logo_y, 
+                           width=logo_size, height=logo_size, 
+                           preserveAspectRatio=True, mask='auto')
+                print(f"✓ DILG logos added")
+            except Exception as logo_err:
+                print(f"⚠️ Logo error: {logo_err}")
+        else:
+            print(f"⚠️ Logo not found at: {logo_path}")
+        
+        # === HEADER ===
+        y_pos = height - 1*inch
+        
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(width/2, y_pos, "Republic of the Philippines")
+        
+        y_pos -= 0.2*inch
+        c.setFillColor(colors.HexColor('#1A237E'))
+        c.setFont("Helvetica-Bold", 11)
+        c.drawCentredString(width/2, y_pos, "DEPARTMENT OF THE INTERIOR AND")
+        y_pos -= 0.18*inch
+        c.drawCentredString(width/2, y_pos, "LOCAL GOVERNMENT")
+        
+        y_pos -= 0.2*inch
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(width/2, y_pos, "REGION IV-A CALABARZON")
+        
+        y_pos -= 0.15*inch
+        c.drawCentredString(width/2, y_pos, "CITY OF LUCENA")
+        
+        # Form reference (right aligned)
+        c.setFont("Helvetica", 7)
+        c.setFillColor(colors.gray)
+        c.drawRightString(width - 0.6*inch, y_pos - 0.3*inch, form_ref)
+        
+        # === HORIZONTAL LINE ===
+        y_pos -= 0.5*inch
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(1)
+        c.line(0.75*inch, y_pos, width - 0.75*inch, y_pos)
+        
+        # === TITLE SECTION ===
+        y_pos -= 0.5*inch
+        c.setFillColor(colors.HexColor('#1A237E'))
+        c.setFont("Helvetica-Bold", 18)
+        c.drawCentredString(width/2, y_pos, "CERTIFICATION")
+        
+        y_pos -= 0.25*inch
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(width/2, y_pos, "on Services Rendered in the Barangay*")
+        
+        y_pos -= 0.2*inch
+        c.setFont("Helvetica-Bold", 10)
+        c.drawCentredString(width/2, y_pos, position_label)
+        
+        # === HORIZONTAL LINE ===
+        y_pos -= 0.3*inch
+        c.line(0.75*inch, y_pos, width - 0.75*inch, y_pos)
+        
+        # === BODY TEXT ===
+        y_pos -= 0.4*inch
+        c.setFont("Helvetica", 10)
+        c.setFillColor(colors.black)
+        
+        text_line = f"This is to certify that "
+        c.drawString(0.75*inch, y_pos, text_line)
+        
+        name_x = 0.75*inch + c.stringWidth(text_line, "Helvetica", 10)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(name_x, y_pos, eligibility_request.full_name.upper())
+        
+        after_name_x = name_x + c.stringWidth(eligibility_request.full_name.upper(), "Helvetica-Bold", 10)
+        c.setFont("Helvetica", 10)
+        c.drawString(after_name_x, y_pos, " has rendered services in")
+        
+        y_pos -= 0.18*inch
+        barangay_text = f"Barangay {eligibility_request.barangay}, with the following details:"
+        c.drawString(0.75*inch, y_pos, barangay_text)
+        
+        # === TABLE (FIXED FORMATTING) ===
+        y_pos -= 0.5*inch
+        
+        if eligibility_request.position_type == 'appointive':
+            # Appointive table with proper spacing
+            table_data = [
+                ['Position\nHeld', 
+                 'Date of\nAppointment', 
+                 'Inclusive Dates\nFrom', 
+                 'Inclusive Dates\nTo',
+                 'No. of Years\nServed', 
+                 'Appointing Punong\nBarangay Name',
+                 'Date Elected',
+                 'Term of Office\n(years)'],
+                [
+                    'Barangay\nSecretary',
+                    eligibility_request.appointment_from.strftime('%m/%d/%Y') if eligibility_request.appointment_from else 'N/A',
+                    eligibility_request.appointment_from.strftime('%m/%d/%Y') if eligibility_request.appointment_from else 'N/A',
+                    eligibility_request.appointment_to.strftime('%m/%d/%Y') if eligibility_request.appointment_to else 'N/A',
+                    f"{float(eligibility_request.years_in_service)} yrs" if eligibility_request.years_in_service else '0.0 yrs',
+                    eligibility_request.appointing_punong_barangay or 'N/A',
+                    eligibility_request.pb_date_elected.strftime('%m/%d/%Y') if eligibility_request.pb_date_elected else 'N/A',
+                    f"{float(eligibility_request.pb_years_service)} yrs" if eligibility_request.pb_years_service else '0.0 yrs'
+                ]
+            ]
+            
+            # Adjusted column widths for better spacing
+            col_widths = [0.8*inch, 0.75*inch, 0.75*inch, 0.75*inch, 0.7*inch, 1.1*inch, 0.7*inch, 0.7*inch]
+            row_heights = [0.6*inch, 0.5*inch]
+            
+        else:
+            # Elective table - matching official format exactly
+            table_data = [
+                ['Position Held', 'Date of Election\n(mm/dd/yyyy)', 'Term of Office\n(no. of years)', 
+                 'Inclusive Dates\nFrom (mm/dd/yyyy)', 'Inclusive Dates\nTo (mm/dd/yyyy)'],
+                [
+                    eligibility_request.position_held or 'Punong Barangay',
+                    eligibility_request.election_from.strftime('%m/%d/%Y') if eligibility_request.election_from else '',
+                    eligibility_request.term_office or 'November 2025 -\nNovember 2025',
+                    eligibility_request.election_from.strftime('%m/%d/%Y') if eligibility_request.election_from else '',
+                    eligibility_request.election_to.strftime('%m/%d/%Y') if eligibility_request.election_to else ''
+                ]
+            ]
+            
+            col_widths = [1.3*inch, 1.3*inch, 1.3*inch, 1.3*inch, 1.3*inch]
+            row_heights = [0.6*inch, 0.5*inch]
+        
+        # Create table with improved styling
+        table = Table(table_data, colWidths=col_widths, rowHeights=row_heights)
+        
+        table.setStyle(TableStyle([
+            # Header styling
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1A237E')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 7),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            
+            # Data styling
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+            
+            # Borders
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BOX', (0, 0), (-1, -1), 1, colors.black),
+            
+            # Padding
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        
+        table.wrapOn(c, width, height)
+        table_height = table._height
+        table.drawOn(c, 0.75*inch, y_pos - table_height)
+        
+        y_pos -= (table_height + 0.4*inch)
+        
+        # === COMPLETED TERM SECTION (ELECTIVE ONLY) ===
+        if eligibility_request.position_type == 'elective':
+            c.setFont("Helvetica-Bold", 9)
+            c.setFillColor(colors.black)
+            c.drawString(0.75*inch, y_pos, "Completed Term of Office?")
+            c.setFont("Helvetica", 9)
+            c.drawString(2.5*inch, y_pos, "(Please check (√) appropriate box)")
+            
+            y_pos -= 0.25*inch
+            
+            completed_term = eligibility_request.completed_term
+            checkbox_size = 0.12*inch
+            
+            # YES checkbox
+            c.rect(0.95*inch, y_pos - checkbox_size/2, checkbox_size, checkbox_size)
+            if completed_term and completed_term.lower() == 'yes':
+                # Draw checkmark
+                c.setLineWidth(2)
+                c.line(0.97*inch, y_pos - checkbox_size/4, 
+                       1.0*inch, y_pos - checkbox_size/1.5)
+                c.line(1.0*inch, y_pos - checkbox_size/1.5,
+                       1.05*inch, y_pos)
+                c.setLineWidth(0.5)
+            
+            c.drawString(1.15*inch, y_pos - 0.05*inch, "YES")
+            
+            # NO checkbox
+            c.rect(1.8*inch, y_pos - checkbox_size/2, checkbox_size, checkbox_size)
+            if completed_term and completed_term.lower() == 'no':
+                # Draw checkmark
+                c.setLineWidth(2)
+                c.line(1.82*inch, y_pos - checkbox_size/4, 
+                       1.85*inch, y_pos - checkbox_size/1.5)
+                c.line(1.85*inch, y_pos - checkbox_size/1.5,
+                       1.90*inch, y_pos)
+                c.setLineWidth(0.5)
+            
+            c.drawString(2.0*inch, y_pos - 0.05*inch, "NO. Specify total number of days not served")
+            
+            y_pos -= 0.25*inch
+            
+            # If NO was selected, show reason box
+            if completed_term and completed_term.lower() == 'no':
+                c.setFont("Helvetica-Bold", 9)
+                c.drawString(0.95*inch, y_pos, "Reason for non-completion:")
+                
+                y_pos -= 0.25*inch
+                
+                # Draw reason box
+                reason_text = eligibility_request.incomplete_reason or 'Not specified'
+                c.setFont("Helvetica", 9)
+                c.setFillColor(colors.HexColor('#f5f5f5'))
+                c.rect(0.95*inch, y_pos - 0.35*inch, 5.5*inch, 0.4*inch, fill=1)
+                
+                c.setFillColor(colors.black)
+                c.drawString(1.05*inch, y_pos - 0.15*inch, reason_text)
+                
+                y_pos -= 0.45*inch
+            
+            # ASSUMED checkbox (always show)
+            c.rect(0.95*inch, y_pos - checkbox_size/2, checkbox_size, checkbox_size)
+            c.drawString(1.15*inch, y_pos - 0.05*inch, "Assumed under rule on succession.")
+            
+            y_pos -= 0.35*inch
+        
+        # === FOOTER TEXT ===
+        c.setFont("Helvetica", 9)
+        c.setFillColor(colors.black)
+        
+        if eligibility_request.position_type == 'elective':
+            # Elective footer text with CSC Resolutions
+            footer_text = f"This Certification is issued in support of the evaluation/processing of the application of {eligibility_request.full_name.upper()}"
+            c.drawString(0.75*inch, y_pos, footer_text)
+            
+            y_pos -= 0.15*inch
+            footer_text2 = "for the grant of Barangay Official Eligibility pursuant to Republic Act No. 7160, in accordance"
+            c.drawString(0.75*inch, y_pos, footer_text2)
+            
+            y_pos -= 0.15*inch
+            footer_text3 = "with CSC Resolution No. 1200865 dated June 14, 2012 and CSC Resolution No."
+            c.drawString(0.75*inch, y_pos, footer_text3)
+            
+            y_pos -= 0.15*inch
+            footer_text4 = "1601257 dated November 21, 2016."
+            c.drawString(0.75*inch, y_pos, footer_text4)
+        else:
+            # Appointive footer text
+            footer_text = f"This Certification is issued in support of the evaluation/processing of the application of {eligibility_request.full_name.upper()}"
+            c.drawString(0.75*inch, y_pos, footer_text)
+            
+            y_pos -= 0.15*inch
+            footer_text2 = "for the grant of Barangay Official Eligibility pursuant to Republic Act No. 7160, in accordance"
+            c.drawString(0.75*inch, y_pos, footer_text2)
+            
+            y_pos -= 0.15*inch
+            footer_text3 = "with CSC Resolution No. 13 series of 2012."
+            c.drawString(0.75*inch, y_pos, footer_text3)
+        
+        # === SIGNATURE SECTION ===
+        y_pos -= 0.5*inch
+        
+        from django.utils import timezone
+        date_text = f"Lucena City, Quezon, {timezone.now().strftime('%B %d, %Y')}."
+        c.drawString(0.75*inch, y_pos, date_text)
+        
+        # === SIGNATURE SECTION (UPDATED DIRECTOR) ===
+        y_pos -= 0.8*inch
+        
+        # Signature line (right side)
+        sig_x = width - 2.8*inch
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(0.5)
+        c.line(sig_x, y_pos, width - 0.75*inch, y_pos)
+        
+        # Director name and title
+        y_pos -= 0.2*inch
+        c.setFont("Helvetica-Bold", 10)
+        c.setFillColor(colors.black)
+        c.drawCentredString(sig_x + 1.025*inch, y_pos, "LEANDRO SIPOY GIGANTOCA, CESE")
+        
+        y_pos -= 0.18*inch
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(sig_x + 1.025*inch, y_pos, "OIC-HUC Director, Lucena City")
+        
+        # Save PDF
+        c.showPage()
+        c.save()
+        
+        pdf_data = buffer.getvalue()
+        buffer.close()
+        
+        print(f"✓ PDF generated successfully ({len(pdf_data)} bytes)")
+        
+        # Create filename
+        safe_name = eligibility_request.full_name.replace(' ', '_').replace('.', '')
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{safe_name}_{eligibility_request.position_type}_Certificate_{timestamp}.pdf"
+        
+        # Save to storage
+        file_path = f"certification_files/{folder}/{filename}"
+        saved_path = default_storage.save(file_path, ContentFile(pdf_data))
+        
+        print(f"✓ PDF saved: {saved_path}")
+        
+        # Create CategorizedFile entry
+        categorized = CategorizedFile.objects.create(
+            file=saved_path,
+            original_filename=filename,
+            file_type='pdf',
+            file_size=len(pdf_data),
+            mime_type='application/pdf',
+            category=category,
+            source='eligibility',
+            detected_content=f'{eligibility_request.get_position_type_display()} Certificate',
+            eligibility_request=eligibility_request,
+            uploaded_by=eligibility_request.approved_by,
+            tags=f"{eligibility_request.full_name}, {eligibility_request.position_type}, Certificate, Approved"
+        )
+        
+        print(f"✓ CategorizedFile created: ID {categorized.id}")
+        category.update_file_count()
+        print(f"✓ Updated folder file count: {category.file_count}")
+        
+        print(f"{'='*70}\n")
+        
+        return saved_path
+        
+    except Exception as e:
+        print(f"\n{'='*70}")
+        print(f"❌ CERTIFICATE GENERATION ERROR")
+        print(f"{'='*70}")
+        print(f"Error: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        print(f"{'='*70}\n")
+        return None
+
+
+# Add these API endpoints for the certificate files page
+
+@require_http_methods(["GET"])
+def get_certificate_files_by_category(request, category):
+    """
+    FIXED: Get certificate files by category with REAL database IDs
+    """
+    try:
+        from django.core.files.storage import default_storage
+        from .models import CategorizedFile, FileCategory
+        
+        print(f"\n{'='*70}")
+        print(f"📁 GET CERTIFICATE FILES BY CATEGORY")
+        print(f"{'='*70}")
+        print(f"Category requested: {category}")
+        
+        # Map category names to folder paths
+        category_folders = {
+            'certificates': ['appointive_certificates', 'elective_certificates'],
+            'appointive_certificates': ['appointive_certificates'],
+            'elective_certificates': ['elective_certificates'],
+            'ids': ['ids'],
+            'signatures': ['signatures']
+        }
+        
+        if category not in category_folders:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid category: {category}'
+            }, status=400)
+        
+        folders_to_scan = category_folders[category]
+        all_files = []
+        
+        # Get files from CategorizedFile database
+        for folder_name in folders_to_scan:
+            print(f"\n🔍 Querying CategorizedFile for: {folder_name}")
+            
+            # Get or create category
+            try:
+                file_category = FileCategory.objects.get(name=folder_name)
+            except FileCategory.DoesNotExist:
+                print(f"   ⚠️ Category '{folder_name}' not found in database")
+                continue
+            
+            # Query CategorizedFile with REAL IDs
+            files = CategorizedFile.objects.filter(
+                category=file_category
+            ).select_related('uploaded_by', 'barangay')
+            
+            print(f"   ✓ Found {files.count()} files in database")
+            
+            for file_obj in files:
+                try:
+                    file_info = {
+                        'id': file_obj.id,  # ✅ REAL DATABASE ID
+                        'filename': file_obj.original_filename,
+                        'file_url': file_obj.file.url if file_obj.file else '',
+                        'file_type': file_obj.file_type,
+                        'file_size': file_obj.file_size_mb,
+                        'uploaded_at': file_obj.uploaded_at.strftime('%B %d, %Y %I:%M %p'),
+                        'category': file_category.display_name,
+                        'folder': folder_name,
+                        'uploaded_by': (
+                            file_obj.uploaded_by.get_full_name() 
+                            if file_obj.uploaded_by 
+                            else 'System'
+                        ),
+                        'barangay': (
+                            file_obj.barangay.name 
+                            if file_obj.barangay 
+                            else None
+                        )
+                    }
+                    
+                    all_files.append(file_info)
+                    print(f"    ✓ {file_obj.original_filename} (ID: {file_obj.id})")
+                    
+                except Exception as file_err:
+                    print(f"    ✗ Error processing file {file_obj.id}: {file_err}")
+                    continue
+        
+        print(f"\n📊 Total files found: {len(all_files)}")
+        print(f"{'='*70}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'files': all_files,
+            'total_count': len(all_files),
+            'category': category
+        })
+        
+    except Exception as e:
+        print(f"\n{'='*70}")
+        print(f"❌ ERROR: {str(e)}")
+        print(f"{'='*70}\n")
+        import traceback
+        print(traceback.format_exc())
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'category': category
+        }, status=500)
+
+
+def save_categorized_eligibility_file(file, category, user_name, file_type, request_id):
+    from django.core.files.storage import default_storage
+    from django.core.files.base import ContentFile
+    from .models import FileCategory, CategorizedFile
+
+    file_extension = os.path.splitext(file.name)[1]
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{user_name}_{file_type}_{timestamp}{file_extension}"
+
+    year = datetime.now().strftime('%Y')
+    month = datetime.now().strftime('%m')
+    folder_path = f"certification_files/{category}/{year}/{month}"
+
+    # Ensure .gitkeep exists
+    gitkeep_path = f"{folder_path}/.gitkeep"
+    if not default_storage.exists(gitkeep_path):
+        default_storage.save(gitkeep_path, ContentFile(b''))
+    
+    # Save file
+    file_path = os.path.join(folder_path, filename)
+    file.seek(0)  
+    path = default_storage.save(file_path, ContentFile(file.read()))
+    print(f"    ✓ Saved to: {path}")
+    
+    # ✅ FIX: Create/get FileCategory and CategorizedFile
+    file_category, _ = FileCategory.objects.get_or_create(
+        name=category,  # 'ids' or 'signatures'
+        defaults={
+            'display_name': category.replace('_', ' ').title(),
+            'folder_path': f'certification_files/{category}/'
+        }
+    )
+    
+    # Create CategorizedFile entry
+    categorized = CategorizedFile.objects.create(
+        file=path,
+        original_filename=filename,
+        file_type='image' if file_extension.lower() in ['.jpg', '.jpeg', '.png', '.gif'] else 'document',
+        file_size=file.size,
+        mime_type=file.content_type,
+        category=file_category,
+        source='eligibility',
+        detected_content=f'ID {file_type}' if 'id' in file_type else 'Signature',
+        tags=f"{user_name}, {file_type}, Eligibility Request {request_id}"
+    )
+    
+    # Update category file count
+    file_category.update_file_count()
+    
+    print(f"    ✓ Created CategorizedFile ID: {categorized.id}")
+    
+    return path
+
+@require_http_methods(["GET"])
+def debug_certificate_categories(request):
+    """Debug view to see what's in the database"""
+    from .models import FileCategory, CategorizedFile
+    
+    result = {
+        'file_categories': [],
+        'files_by_folder': {},
+        'total_files': CategorizedFile.objects.count()
+    }
+    
+    # Get all FileCategory objects
+    for cat in FileCategory.objects.all():
+        result['file_categories'].append({
+            'id': cat.id,
+            'name': cat.name,
+            'display_name': cat.display_name,
+            'file_count': CategorizedFile.objects.filter(category=cat).count()
+        })
+    
+    # Get all CategorizedFile objects grouped by their source
+    files = CategorizedFile.objects.select_related('category').all()
+    
+    for file_obj in files:
+        folder = file_obj.category.name if file_obj.category else 'No Category'
+        
+        if folder not in result['files_by_folder']:
+            result['files_by_folder'][folder] = []
+        
+        result['files_by_folder'][folder].append({
+            'id': file_obj.id,
+            'filename': file_obj.original_filename,
+            'source': file_obj.source,
+            'file_type': file_obj.file_type,
+        })
+    
+    return JsonResponse(result, json_dumps_params={'indent': 2})
+
+
+@require_http_methods(["GET"])
+def debug_certificate_files(request):
+    from django.core.files.storage import default_storage
+    import os
+    
+    try:
+        result = {
+            'base_path': 'certification_files',
+            'folders': {},
+            'all_files_found': []
+        }
+        
+        # Check each category folder
+        for category in ['appointive_certificates', 'elective_certificates', 'ids', 'signatures']:
+            folder_path = f"certification_files/{category}/"
+            
+            folder_info = {
+                'exists': default_storage.exists(folder_path),
+                'files_found': []
+            }
+            
+            if folder_info['exists']:
+                try:
+                    # Recursively find all files
+                    def scan_directory(path):
+                        files_in_dir = []
+                        try:
+                            dirs, files = default_storage.listdir(path)
+                            
+                            # Add files in current directory
+                            for f in files:
+                                if not f.startswith('.'):
+                                    full_path = os.path.join(path, f)
+                                    files_in_dir.append({
+                                        'path': full_path,
+                                        'name': f,
+                                        'url': default_storage.url(full_path),
+                                        'size': default_storage.size(full_path)
+                                    })
+                            
+                            # Recursively scan subdirectories
+                            for d in dirs:
+                                subdir_path = os.path.join(path, d)
+                                files_in_dir.extend(scan_directory(subdir_path))
+                        
+                        except Exception as e:
+                            print(f"Error scanning {path}: {e}")
+                        
+                        return files_in_dir
+                    
+                    folder_info['files_found'] = scan_directory(folder_path)
+                    result['all_files_found'].extend(folder_info['files_found'])
+                    
+                except Exception as e:
+                    folder_info['error'] = str(e)
+            
+            result['folders'][category] = folder_info
+        
+        # Summary
+        result['summary'] = {
+            'total_files': len(result['all_files_found']),
+            'files_by_category': {
+                cat: len(info['files_found']) 
+                for cat, info in result['folders'].items()
+            }
+        }
+        
+        return JsonResponse(result, json_dumps_params={'indent': 2})
+        
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
+
+def test_certificate_setup(request):
+
+    try:
+        from django.core.files.storage import default_storage
+        import os
+        
+        results = {
+            'status': 'Testing Certificate Files Setup',
+            'media_root': settings.MEDIA_ROOT if hasattr(settings, 'MEDIA_ROOT') else 'Not configured',
+            'media_url': settings.MEDIA_URL if hasattr(settings, 'MEDIA_URL') else 'Not configured',
+            'folders': {},
+            'sample_structure': {}
+        }
+        
+        # Check each category folder
+        categories = ['appointive_certificates', 'elective_certificates', 'ids', 'signatures']
+        
+        for category in categories:
+            folder_path = f'certification_files/{category}/'
+            
+            folder_info = {
+                'exists': default_storage.exists(folder_path),
+                'full_path': os.path.join(settings.MEDIA_ROOT, folder_path) if hasattr(settings, 'MEDIA_ROOT') else 'Unknown',
+                'file_count': 0,
+                'sample_files': []
+            }
+            
+            if folder_info['exists']:
+                try:
+                    # Try to count files
+                    year_dirs, direct_files = default_storage.listdir(folder_path)
+                    folder_info['file_count'] = len(direct_files)
+                    folder_info['sample_files'] = direct_files[:3]  # First 3 files
+                    folder_info['year_folders'] = year_dirs
+                except Exception as e:
+                    folder_info['error'] = str(e)
+            
+            results['folders'][category] = folder_info
+        
+        # Show expected structure
+        results['sample_structure'] = {
+            'certification_files/': {
+                'appointive_certificates/': {
+                    '2024/': {
+                        '11/': ['John_Doe_certificate_20241106.pdf']
+                    }
+                },
+                'elective_certificates/': {
+                    '2024/': {
+                        '11/': ['Jane_Smith_certificate_20241106.pdf']
+                    }
+                },
+                'ids/': {
+                    '2024/': {
+                        '11/': ['John_Doe_id_front_20241106.jpg', 'John_Doe_id_back_20241106.jpg']
+                    }
+                },
+                'signatures/': {
+                    '2024/': {
+                        '11/': ['John_Doe_signature_20241106.png']
+                    }
+                }
+            }
+        }
+        
+        # Test URL patterns
+        from django.urls import reverse, NoReverseMatch
+        
+        url_tests = {}
+        for category in categories:
+            try:
+                url = reverse('get_certificate_files_by_category', kwargs={'category': category})
+                url_tests[category] = {
+                    'url': url,
+                    'status': 'URL pattern exists ✓'
+                }
+            except NoReverseMatch:
+                url_tests[category] = {
+                    'status': 'URL pattern MISSING ✗',
+                    'fix': f"Add path('api/certificate-files/category/<str:category>/', views.get_certificate_files_by_category) to urls.py"
+                }
+        
+        results['url_patterns'] = url_tests
+        
+        return JsonResponse(results, json_dumps_params={'indent': 2})
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500, json_dumps_params={'indent': 2})
+
+
 @login_required
 def application_request(request):
-    """Render the admin application request management page"""
     # Get all eligibility requests
     requests = EligibilityRequest.objects.all().order_by('-date_submitted')
     
@@ -1308,90 +2416,629 @@ def application_request(request):
     }
     return render(request, 'application_request.html', context)
 
+
+
 @login_required
 @require_http_methods(["POST"])
 def update_application_status(request):
-    """Update the status of an eligibility request"""
+    """Update status AND generate certificate when approved"""
     try:
-        # Parse JSON data
         data = json.loads(request.body)
         request_id = data.get('id')
         new_status = data.get('status')
         
-        # Validate input
-        if not request_id:
-            return JsonResponse({
-                'success': False,
-                'error': 'Request ID is required'
-            }, status=400)
-            
-        if not new_status:
-            return JsonResponse({
-                'success': False,
-                'error': 'Status is required'
-            }, status=400)
-        
-        # Validate status choice
-        valid_statuses = ['pending', 'approved', 'rejected', 'processing']
-        if new_status not in valid_statuses:
-            return JsonResponse({
-                'success': False,
-                'error': f'Invalid status. Must be one of: {valid_statuses}'
-            }, status=400)
-        
-        # Get the request
-        try:
-            eligibility_request = EligibilityRequest.objects.get(id=request_id)
-        except EligibilityRequest.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'error': 'Request not found'
-            }, status=404)
+        eligibility_request = get_object_or_404(EligibilityRequest, id=request_id)
         
         # Update status
+        old_status = eligibility_request.status
         eligibility_request.status = new_status
         
-        # Update approved_by and date_processed for approved/rejected status
         if new_status in ['approved', 'rejected']:
             eligibility_request.approved_by = request.user
-            eligibility_request.date_processed = timezone.now()  # Use timezone.now()
-        elif new_status == 'pending':
-            # Reset approval fields when changing back to pending
-            eligibility_request.approved_by = None
-            eligibility_request.date_processed = None
+            eligibility_request.date_processed = timezone.now()
         
         eligibility_request.save()
         
-        # Prepare response data
-        approved_by_name = None
-        if eligibility_request.approved_by:
-            approved_by_name = eligibility_request.approved_by.get_full_name() or eligibility_request.approved_by.username
-        else:
-            approved_by_name = '-'
+        #  GENERATE CERTIFICATE when status changes to approved
+        certificate_path = None
+        if new_status == 'approved' and old_status != 'approved':
+            print(f"\n APPROVAL DETECTED - Generating certificate...")
+            certificate_path = generate_certificate_pdf(eligibility_request)
+            
+            if certificate_path:
+                print(f" Certificate generated: {certificate_path}")
+            else:
+                print(f" Certificate generation failed!")
         
-        return JsonResponse({
+        response_data = {
             'success': True,
             'message': f'Status updated to {new_status.capitalize()}',
-            'approved_by': approved_by_name,
             'new_status': new_status
-        })
+        }
         
-    except json.JSONDecodeError:
-        return JsonResponse({
-            'success': False,
-            'error': 'Invalid JSON data'
-        }, status=400)
+        if certificate_path:
+            import os
+            response_data['certificate_generated'] = True
+            response_data['certificate_filename'] = os.path.basename(certificate_path)
+        
+        return JsonResponse(response_data)
+        
     except Exception as e:
-        # Log the actual error for debugging
         import traceback
-        print(f"Error updating application status: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"❌ Error: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+
+def generate_certificate_pdf(eligibility_request):
+    """
+    Generate certificate PDF - FIXED for elective incomplete term
+    """
+    try:
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.platypus import Table, TableStyle
+        from io import BytesIO
+        import os
+        from django.conf import settings
         
-        return JsonResponse({
-            'success': False,
-            'error': f'Server error: {str(e)}'
-        }, status=500)
+        print(f"\n{'='*70}")
+        print(f"📄 GENERATING CERTIFICATE")
+        print(f"Position: {eligibility_request.position_type}")
+        if eligibility_request.position_type == 'elective':
+            print(f"Completed Term: {eligibility_request.completed_term}")
+            print(f"Days Not Served: {eligibility_request.days_not_served}")
+            print(f"Reason: {eligibility_request.incomplete_reason}")
+        print(f"{'='*70}")
+        
+        # Determine folder based on position type AND completion status
+        if eligibility_request.position_type == 'appointive':
+            folder = 'appointive_certificates'
+            form_ref = "CSC-ERPO BOE Form 1(b). April 2012"
+            position_label = "(Appointive Official)"
+        else:
+            folder = 'elective_certificates'
+            form_ref = "CSC-ERPO BOE Form 1(a) (Revised, June 2017)"
+            position_label = "(Elective Official)"
+        
+        from .models import FileCategory, CategorizedFile
+        category, _ = FileCategory.objects.get_or_create(
+            name=folder,
+            defaults={
+                'display_name': folder.replace('_', ' ').title(),
+                'folder_path': f'certification_files/{folder}/',
+            }
+        )
+        
+        # Create PDF
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        # === BORDERS ===
+        c.setStrokeColor(colors.HexColor('#1A237E'))
+        c.setLineWidth(2)
+        c.rect(0.4*inch, 0.4*inch, width - 0.8*inch, height - 0.8*inch)
+        
+        c.setLineWidth(0.5)
+        c.rect(0.5*inch, 0.5*inch, width - 1*inch, height - 1*inch)
+        
+        # === LOGOS ===
+        from reportlab.lib.utils import ImageReader
+        
+        # Try multiple possible logo paths
+        possible_logo_paths = [
+            os.path.join(settings.BASE_DIR, 'static', 'Pictures', 'logo1.png'),
+            os.path.join(settings.BASE_DIR, 'app', 'static', 'Pictures', 'logo1.png'),
+            os.path.join(settings.BASE_DIR, 'static', 'pictures', 'logo1.png'),
+            os.path.join(settings.STATIC_ROOT, 'Pictures', 'logo1.png') if hasattr(settings, 'STATIC_ROOT') and settings.STATIC_ROOT else None,
+        ]
+        
+        logo_path = None
+        for path in possible_logo_paths:
+            if path and os.path.exists(path):
+                logo_path = path
+                print(f"✓ Logo found at: {path}")
+                break
+        
+        if logo_path:
+            try:
+                # Use ImageReader for better compatibility
+                img = ImageReader(logo_path)
+                logo_size = 0.7*inch
+                logo_y = height - 1.3*inch
+                
+                # Draw left logo
+                c.drawImage(img, 0.75*inch, logo_y, 
+                           width=logo_size, height=logo_size, 
+                           preserveAspectRatio=True, mask='auto')
+                
+                # Draw right logo (reload for second instance)
+                img2 = ImageReader(logo_path)
+                c.drawImage(img2, width - 0.75*inch - logo_size, logo_y, 
+                           width=logo_size, height=logo_size, 
+                           preserveAspectRatio=True, mask='auto')
+                
+                print(f"✓ Logos rendered successfully on both sides")
+            except Exception as e:
+                print(f"⚠️ Logo rendering error: {e}")
+                import traceback
+                print(traceback.format_exc())
+        else:
+            print(f"⚠️ Logo file not found. Searched:")
+            for path in possible_logo_paths:
+                if path:
+                    print(f"   - {path}")
+        
+        # === HEADER ===
+        y_pos = height - 1*inch
+        
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(width/2, y_pos, "Republic of the Philippines")
+        
+        y_pos -= 0.2*inch
+        c.setFillColor(colors.HexColor('#1A237E'))
+        c.setFont("Helvetica-Bold", 11)
+        c.drawCentredString(width/2, y_pos, "DEPARTMENT OF THE INTERIOR AND")
+        y_pos -= 0.18*inch
+        c.drawCentredString(width/2, y_pos, "LOCAL GOVERNMENT")
+        
+        y_pos -= 0.2*inch
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(width/2, y_pos, "REGION IV-A CALABARZON")
+        
+        y_pos -= 0.15*inch
+        c.drawCentredString(width/2, y_pos, "CITY OF LUCENA")
+        
+        c.setFont("Helvetica", 7)
+        c.setFillColor(colors.gray)
+        c.drawRightString(width - 0.6*inch, y_pos - 0.3*inch, form_ref)
+        
+        # === LINE ===
+        y_pos -= 0.5*inch
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(1)
+        c.line(0.75*inch, y_pos, width - 0.75*inch, y_pos)
+        
+        # === TITLE ===
+        y_pos -= 0.5*inch
+        c.setFillColor(colors.HexColor('#1A237E'))
+        c.setFont("Helvetica-Bold", 18)
+        c.drawCentredString(width/2, y_pos, "CERTIFICATION")
+        
+        y_pos -= 0.25*inch
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(width/2, y_pos, "on Services Rendered in the Barangay*")
+        
+        y_pos -= 0.2*inch
+        c.setFont("Helvetica-Bold", 10)
+        c.drawCentredString(width/2, y_pos, position_label)
+        
+        # === LINE ===
+        y_pos -= 0.3*inch
+        c.line(0.75*inch, y_pos, width - 0.75*inch, y_pos)
+        
+        # === BODY ===
+        y_pos -= 0.4*inch
+        c.setFont("Helvetica", 10)
+        c.setFillColor(colors.black)
+        
+        # First line with indentation (0.5 inch indent)
+        indent = 0.5*inch
+        text_line = f"This is to certify that "
+        c.drawString(0.75*inch + indent, y_pos, text_line)
+        
+        name_x = 0.75*inch + indent + c.stringWidth(text_line, "Helvetica", 10)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(name_x, y_pos, eligibility_request.full_name.upper())
+        
+        after_name_x = name_x + c.stringWidth(eligibility_request.full_name.upper(), "Helvetica-Bold", 10)
+        c.setFont("Helvetica", 10)
+        c.drawString(after_name_x, y_pos, " has rendered services in")
+        
+        # Second line - no indent
+        y_pos -= 0.18*inch
+        barangay_text = f"Barangay {eligibility_request.barangay}, with the following details:"
+        c.drawString(0.75*inch, y_pos, barangay_text)
+        
+        # === TABLE ===
+        y_pos -= 0.5*inch
+        
+        if eligibility_request.position_type == 'elective':
+            # ✅ ELECTIVE TABLE
+            table_data = [
+                ['Position Held', 'Date of Election\n(mm/dd/yyyy)', 'Term of Office\n(no. of years)', 
+                 'From\n(mm/dd/yyyy)', 'To\n(mm/dd/yyyy)'],
+                [
+                    eligibility_request.position_held or 'N/A',
+                    eligibility_request.election_from.strftime('%m/%d/%Y') if eligibility_request.election_from else 'N/A',
+                    eligibility_request.term_office or 'N/A',
+                    eligibility_request.election_from.strftime('%m/%d/%Y') if eligibility_request.election_from else 'N/A',
+                    eligibility_request.election_to.strftime('%m/%d/%Y') if eligibility_request.election_to else 'N/A'
+                ]
+            ]
+            
+            col_widths = [1.4*inch, 1.2*inch, 1.2*inch, 1.2*inch, 1.2*inch]
+            row_heights = [0.5*inch, 0.4*inch]
+            
+        else:
+            # APPOINTIVE TABLE
+            table_data = [
+                ['Position\nHeld', 'Date of\nAppointment', 'Inclusive Dates\nFrom', 'Inclusive Dates\nTo',
+                 'No. of Years\nServed', 'Appointing Punong\nBarangay Name', 'Date Elected', 'Term of Office\n(years)'],
+                [
+                    'Barangay\nSecretary',
+                    eligibility_request.appointment_from.strftime('%m/%d/%Y') if eligibility_request.appointment_from else 'N/A',
+                    eligibility_request.appointment_from.strftime('%m/%d/%Y') if eligibility_request.appointment_from else 'N/A',
+                    eligibility_request.appointment_to.strftime('%m/%d/%Y') if eligibility_request.appointment_to else 'N/A',
+                    f"{float(eligibility_request.years_in_service)} yrs" if eligibility_request.years_in_service else '0.0 yrs',
+                    eligibility_request.appointing_punong_barangay or 'N/A',
+                    eligibility_request.pb_date_elected.strftime('%m/%d/%Y') if eligibility_request.pb_date_elected else 'N/A',
+                    f"{float(eligibility_request.pb_years_service)} yrs" if eligibility_request.pb_years_service else '0.0 yrs'
+                ]
+            ]
+            col_widths = [0.8*inch, 0.75*inch, 0.75*inch, 0.75*inch, 0.7*inch, 1.1*inch, 0.7*inch, 0.7*inch]
+            row_heights = [0.6*inch, 0.5*inch]
+        
+        table = Table(table_data, colWidths=col_widths, rowHeights=row_heights)
+        
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1A237E')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BOX', (0, 0), (-1, -1), 1, colors.black),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        table.wrapOn(c, width, height)
+        table_height = table._height
+        table.drawOn(c, 0.75*inch, y_pos - table_height)
+        
+        y_pos -= (table_height + 0.3*inch)
+        
+        # === ✅ COMPLETED TERM SECTION (ELECTIVE ONLY) ===
+        if eligibility_request.position_type == 'elective':
+            c.setFont("Helvetica-Bold", 10)
+            c.setFillColor(colors.black)
+            c.drawString(0.75*inch, y_pos, "Completed Term of Office?")
+            
+            c.setFont("Helvetica", 9)
+            c.drawString(2.9*inch, y_pos, "(Please check (√) appropriate box)")
+            
+            y_pos -= 0.3*inch
+            
+            completed_term = eligibility_request.completed_term
+            checkbox_size = 0.15*inch
+            
+            # YES checkbox
+            c.setStrokeColor(colors.black)
+            c.setLineWidth(1)
+            c.rect(1.0*inch, y_pos - 0.05*inch, checkbox_size, checkbox_size)
+            
+            if completed_term and completed_term.lower() == 'yes':
+                c.setFont("Helvetica-Bold", 14)
+                c.drawString(1.03*inch, y_pos - 0.02*inch, "✓")
+            
+            c.setFont("Helvetica", 10)
+            c.drawString(1.25*inch, y_pos, "YES")
+            
+            # NO checkbox
+            c.rect(2.1*inch, y_pos - 0.05*inch, checkbox_size, checkbox_size)
+            
+            if completed_term and completed_term.lower() == 'no':
+                c.setFont("Helvetica-Bold", 14)
+                c.drawString(2.13*inch, y_pos - 0.02*inch, "✓")
+            
+            c.setFont("Helvetica", 10)
+            c.drawString(2.35*inch, y_pos, "NO, Specify total number of days not served")
+            
+            y_pos -= 0.3*inch
+            
+            # REASON BOX - ONLY SHOWS WHEN completed_term == 'no'
+            if completed_term and completed_term.lower() == 'no':
+                c.setFont("Helvetica-Bold", 9)
+                c.drawString(1.0*inch, y_pos, "Reason for non-completion:")
+                
+                y_pos -= 0.25*inch
+                
+                c.setFillColor(colors.HexColor('#f5f5f5'))
+                c.setStrokeColor(colors.HexColor('#cccccc'))
+                c.setLineWidth(0.5)
+                reason_box_height = 0.7*inch
+                c.rect(1.0*inch, y_pos - reason_box_height, 5.5*inch, reason_box_height, fill=1, stroke=1)
+                
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica", 9)
+                
+                reason_text = eligibility_request.incomplete_reason or 'Not specified'
+                max_width = 5.2*inch
+                
+                words = reason_text.split()
+                lines = []
+                current_line = []
+                
+                for word in words:
+                    test_line = ' '.join(current_line + [word])
+                    if c.stringWidth(test_line, "Helvetica", 9) < max_width:
+                        current_line.append(word)
+                    else:
+                        if current_line:
+                            lines.append(' '.join(current_line))
+                        current_line = [word]
+                
+                if current_line:
+                    lines.append(' '.join(current_line))
+                
+                text_y = y_pos - 0.2*inch
+                for i, line in enumerate(lines[:4]):
+                    c.drawString(1.1*inch, text_y, line)
+                    text_y -= 0.13*inch
+                
+                y_pos -= (reason_box_height + 0.2*inch)
+            
+            # "Assumed under rule on succession" checkbox
+            y_pos -= 0.25*inch
+            c.setStrokeColor(colors.black)
+            c.rect(1.0*inch, y_pos - 0.05*inch, checkbox_size, checkbox_size)
+            c.setFont("Helvetica", 9)
+            c.drawString(1.25*inch, y_pos, "Assumed under rule on succession.")
+            
+            y_pos -= 0.35*inch
+        
+        # === FOOTER TEXT ===
+        c.setFont("Helvetica", 9)
+        c.setFillColor(colors.black)
+        
+        # Create properly wrapped footer text with indentation
+        left_margin = 0.75*inch
+        indent = 0.5*inch  # Same indent as opening paragraph
+        max_width = width - 1.5*inch - indent  # Account for indent
+        
+        if eligibility_request.position_type == 'elective':
+            footer_text = f"This Certification is issued in support of the evaluation/processing of the application of {eligibility_request.full_name.upper()} for the grant of Barangay Official Eligibility pursuant to Republic Act No. 7160, in accordance with CSC Resolution No. 1200865 dated June 14, 2012 and CSC Resolution No. 1601257 dated November 21, 2016."
+        else:
+            footer_text = f"This Certification is issued in support of the evaluation/processing of the application of {eligibility_request.full_name.upper()} for the grant of Barangay Official Eligibility pursuant to Republic Act No. 7160, in accordance with CSC Resolution No. 13 series of 2012."
+        
+        # Word wrap the footer text
+        words = footer_text.split()
+        lines = []
+        current_line = []
+        
+        for word in words:
+            test_line = ' '.join(current_line + [word])
+            if c.stringWidth(test_line, "Helvetica", 9) < max_width:
+                current_line.append(word)
+            else:
+                if current_line:
+                    lines.append(' '.join(current_line))
+                current_line = [word]
+        
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        # Draw wrapped footer text with indentation on first line only
+        for i, line in enumerate(lines):
+            if i == 0:
+                # First line gets indentation
+                c.drawString(left_margin + indent, y_pos, line)
+            else:
+                # Subsequent lines align with left margin
+                c.drawString(left_margin, y_pos, line)
+            y_pos -= 0.15*inch
+        
+        # === DATE ===
+        y_pos -= 0.2*inch
+        from django.utils import timezone
+        date_text = f"Lucena City, Quezon, {timezone.now().strftime('%B %d, %Y')}."
+        c.drawString(0.75*inch, y_pos, date_text)
+        
+        # === SIGNATURES ===
+        y_pos -= 0.8*inch
+        
+        # Director signature (RIGHT SIDE - properly aligned)
+        sig_line_width = 2.5*inch
+        sig_right_margin = 0.75*inch
+        sig_line_x_start = width - sig_right_margin - sig_line_width
+        sig_line_x_end = width - sig_right_margin
+        
+        # Draw signature line
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(0.5)
+        c.line(sig_line_x_start, y_pos, sig_line_x_end, y_pos)
+        
+        # Director name (centered above line)
+        y_pos -= 0.18*inch
+        sig_center_x = sig_line_x_start + (sig_line_width / 2)
+        
+        c.setFont("Helvetica-Bold", 10)
+        name_width = c.stringWidth("LEANDRO SIPOY GIGANTOCA, CESE", "Helvetica-Bold", 10)
+        c.drawString(sig_center_x - (name_width / 2), y_pos, "LEANDRO SIPOY GIGANTOCA, CESE")
+        
+        # Director title (centered below name)
+        y_pos -= 0.15*inch
+        c.setFont("Helvetica", 9)
+        title_width = c.stringWidth("OIC-HUC Director, Lucena City", "Helvetica", 9)
+        c.drawString(sig_center_x - (title_width / 2), y_pos, "OIC-HUC Director, Lucena City")
+        
+        # Save PDF
+        c.showPage()
+        c.save()
+        
+        pdf_data = buffer.getvalue()
+        buffer.close()
+        
+        print(f"✓ PDF generated ({len(pdf_data)} bytes)")
+        
+        # ✅ FIXED FILENAME GENERATION
+        safe_name = eligibility_request.full_name.replace(' ', '_').replace('.', '')
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        
+        if eligibility_request.position_type == 'elective':
+            completion_status = 'Completed' if eligibility_request.completed_term and eligibility_request.completed_term.lower() == 'yes' else 'Incomplete'
+            filename = f"{safe_name}_Elective_{completion_status}_Certificate_{timestamp}.pdf"
+        else:
+            filename = f"{safe_name}_Appointive_Certificate_{timestamp}.pdf"
+        
+        # Save to storage
+        file_path = f"certification_files/{folder}/{filename}"
+        saved_path = default_storage.save(file_path, ContentFile(pdf_data))
+        
+        print(f"✓ Saved: {saved_path}")
+        
+        # Create CategorizedFile record
+        completion_tag = 'Completed' if eligibility_request.position_type == 'elective' and eligibility_request.completed_term and eligibility_request.completed_term.lower() == 'yes' else 'Incomplete'
+        
+        categorized = CategorizedFile.objects.create(
+            file=saved_path,
+            original_filename=filename,
+            file_type='pdf',
+            file_size=len(pdf_data),
+            mime_type='application/pdf',
+            category=category,
+            source='eligibility',
+            detected_content=f'{eligibility_request.get_position_type_display()} Certificate - {completion_tag}',
+            eligibility_request=eligibility_request,
+            uploaded_by=eligibility_request.approved_by,
+            tags=f"{eligibility_request.full_name}, {eligibility_request.position_type}, {completion_tag}"
+        )
+        
+        category.update_file_count()
+        print(f"{'='*70}\n")
+        
+        return saved_path
+        
+    except Exception as e:
+        print(f"\n❌ ERROR: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return None
+
+
+# Add to views.py
+from PIL import Image, ImageOps
+import io
+
+def process_signature_image(uploaded_file):
+    """
+    Process signature image to ensure it has white background
+    and black signature (fixes black signature display issue)
+    """
+    try:
+        print(f"🖊️ Processing signature: {uploaded_file.name}")
+        print(f"   Original size: {uploaded_file.size} bytes")
+        
+        # Store original filename and content type
+        original_name = uploaded_file.name
+        original_content_type = uploaded_file.content_type
+        
+        # Read the uploaded file
+        uploaded_file.seek(0)
+        image = Image.open(uploaded_file)
+        
+        print(f"   Image mode: {image.mode}")
+        print(f"   Image size: {image.size}")
+        
+        # Convert to RGBA first if needed
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+        
+        # Create a white background
+        white_bg = Image.new('RGB', image.size, (255, 255, 255))
+        
+        # Paste the signature onto white background
+        # This converts transparent areas to white
+        white_bg.paste(image, mask=image.split()[-1])  # Use alpha channel as mask
+        
+        # Save to BytesIO
+        output = io.BytesIO()
+        white_bg.save(output, format='PNG', quality=95)
+        output.seek(0)
+        
+        processed_size = output.getbuffer().nbytes
+        print(f"   ✓ Processed size: {processed_size} bytes")
+        
+        # Create new InMemoryUploadedFile with ORIGINAL FILENAME
+        processed_file = InMemoryUploadedFile(
+            output,
+            'ImageField',
+            original_name,  # ✅ Keep the original filename
+            'image/png',
+            processed_size,
+            None
+        )
+        
+        # ✅ FIX: Add the 'name' attribute that save_categorized_eligibility_file expects
+        processed_file.name = original_name
+        
+        return processed_file
+        
+    except Exception as e:
+        print(f"   ⚠️ Error processing signature: {e}")
+        import traceback
+        print(traceback.format_exc())
+        # Return original file if processing fails
+        uploaded_file.seek(0)
+        return uploaded_file
+
+@require_http_methods(["GET"])
+def setup_certificate_folders(request):
+    """
+    Create all required certificate folder structures
+    """
+    from django.core.files.storage import default_storage
+    import os
     
+    categories = ['appointive_certificates', 'elective_certificates', 'ids', 'signatures']
+    results = {}
+    
+    for category in categories:
+        base_path = f'certification_files/{category}/'
+        
+        try:
+            # Create year/month structure for current year
+            from datetime import datetime
+            current_year = datetime.now().strftime('%Y')
+            current_month = datetime.now().strftime('%m')
+            
+            full_path = f'{base_path}{current_year}/{current_month}/'
+            
+            # Create a dummy file to ensure folder exists
+            dummy_file = f'{full_path}.gitkeep'
+            
+            if not default_storage.exists(dummy_file):
+                from django.core.files.base import ContentFile
+                default_storage.save(dummy_file, ContentFile(b''))
+                results[category] = f'✓ Created: {full_path}'
+            else:
+                results[category] = f'✓ Already exists: {full_path}'
+                
+        except Exception as e:
+            results[category] = f'✗ Error: {str(e)}'
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Certificate folders setup complete',
+        'details': results
+    }, json_dumps_params={'indent': 2})
+
+
 
 
 #-----------------REQUIREMENTS_MONITORING--------------
@@ -1410,24 +3057,14 @@ def user_profile(request):
     })
 @login_required
 def requirements_monitoring(request):
-    """
-    Main requirements monitoring page with color-coded barangay status
-    """
-    user_profile = request.user.userprofile
-    
+    user_profile = request.user.userprofile  
     if user_profile.role == 'dilg staff':
         messages.info(request, 'As DILG Admin, please use the Admin Submissions page.')
         return redirect('admin_submissions')
-    
-    # Get all barangays
     barangays = Barangay.objects.all()
-    
-    # Calculate status for each barangay
     barangay_statuses = {}
-    today = date.today()
-    
+    today = date.today()   
     for barangay in barangays:
-        # Get all submissions for this barangay
         submissions = RequirementSubmission.objects.filter(barangay=barangay)
         
         if not submissions.exists():
@@ -1492,16 +3129,7 @@ import logging
 logger = logging.getLogger(__name__)
 @login_required
 def get_barangay_status(request, barangay_id):
-    """
-    API endpoint to get real-time barangay status
-    
-    Color Logic (FIXED):
-    - RED: Has overdue requirements (past due date and NOT approved/rejected)
-    - GREEN: All requirements completed AND approved
-    - YELLOW: Has in-progress requirements
-    - BLUE: Has pending requirements
-    - GRAY: No requirements assigned
-    """
+
     try:
         barangay = Barangay.objects.get(id=barangay_id)
         submissions = RequirementSubmission.objects.filter(barangay=barangay)
@@ -1524,8 +3152,7 @@ def get_barangay_status(request, barangay_id):
             })
         
         total = submissions.count()
-        
-        # FIXED: Overdue only counts items NOT approved/rejected
+
         overdue = submissions.filter(
             status__in=['pending', 'in_progress', 'accomplished'],
             due_date__lt=today
@@ -1537,7 +3164,6 @@ def get_barangay_status(request, barangay_id):
         approved = submissions.filter(status='approved').count()
         rejected = submissions.filter(status='rejected').count()
         
-        # Priority 1: If ANY requirements are overdue (and not approved/rejected) -> RED
         if overdue > 0:
             return JsonResponse({
                 'status': 'overdue',
@@ -1554,7 +3180,7 @@ def get_barangay_status(request, barangay_id):
                 }
             })
         
-        # Priority 2: If ALL requirements are approved -> GREEN
+
         elif approved == total:
             return JsonResponse({
                 'status': 'completed',
@@ -1570,8 +3196,7 @@ def get_barangay_status(request, barangay_id):
                     'rejected': rejected
                 }
             })
-        
-        # Priority 3: If has in-progress or accomplished (waiting review) -> YELLOW
+
         elif in_progress > 0 or accomplished > 0:
             return JsonResponse({
                 'status': 'in_progress',
@@ -1588,7 +3213,6 @@ def get_barangay_status(request, barangay_id):
                 }
             })
         
-        # Priority 4: If only pending -> BLUE
         elif pending > 0:
             return JsonResponse({
                 'status': 'pending',
@@ -1604,8 +3228,7 @@ def get_barangay_status(request, barangay_id):
                     'rejected': rejected
                 }
             })
-        
-        # Partially complete (some approved, some not)
+
         else:
             return JsonResponse({
                 'status': 'partial',
@@ -1821,109 +3444,149 @@ def api_submission_update(request, submission_id):
 @login_required
 @require_http_methods(["POST"])
 def api_attachment_upload(request):
-    """API endpoint to upload file attachments"""
+    """
+    FIXED: API endpoint to upload file attachments with proper error handling
+    """
     try:
         # Debug logging
-        print("=== FILE UPLOAD DEBUG ===")
-        print(f"POST data: {request.POST}")
-        print(f"FILES data: {request.FILES}")
-        print(f"User: {request.user}")
+        print("\n" + "="*60)
+        print("📁 FILE UPLOAD REQUEST")
+        print("="*60)
+        print(f"User: {request.user.username}")
+        print(f"POST data: {dict(request.POST)}")
+        print(f"FILES: {list(request.FILES.keys())}")
         
+        # Get submission_id
         submission_id = request.POST.get('submission_id')
         
         if not submission_id:
-            print("ERROR: No submission_id provided")
             return JsonResponse({
                 'success': False, 
-                'error': 'Submission ID required'
+                'error': 'Submission ID is required'
             }, status=400)
         
-        print(f"Looking for submission ID: {submission_id}")
+        print(f"Looking for submission: {submission_id}")
         
+        # Get submission
         try:
-            submission = RequirementSubmission.objects.get(id=submission_id)
-            print(f"Found submission: {submission}")
+            submission = RequirementSubmission.objects.select_related(
+                'requirement', 'barangay'
+            ).get(id=submission_id)
+            print(f"✓ Found: {submission.requirement.title} - {submission.barangay.name}")
         except RequirementSubmission.DoesNotExist:
-            print(f"ERROR: Submission {submission_id} not found")
+            print(f"✗ Submission {submission_id} not found")
             return JsonResponse({
                 'success': False, 
-                'error': f'Submission with ID {submission_id} not found'
+                'error': f'Submission {submission_id} not found'
             }, status=404)
         
+        # Check for file
         if 'file' not in request.FILES:
-            print("ERROR: No file in request.FILES")
             return JsonResponse({
                 'success': False, 
-                'error': 'No file uploaded'
+                'error': 'No file provided'
             }, status=400)
         
-        file = request.FILES['file']
-        print(f"File received: {file.name}, size: {file.size}, type: {file.content_type}")
+        uploaded_file = request.FILES['file']
+        print(f"File: {uploaded_file.name}")
+        print(f"Size: {uploaded_file.size} bytes ({round(uploaded_file.size/1024, 2)} KB)")
+        print(f"Type: {uploaded_file.content_type}")
         
         # Validate file type
-        if not file.content_type.startswith('image/'):
-            print(f"ERROR: Invalid file type: {file.content_type}")
+        allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+        if uploaded_file.content_type not in allowed_types:
             return JsonResponse({
                 'success': False, 
-                'error': 'Only image files allowed'
+                'error': f'Invalid file type: {uploaded_file.content_type}. Only images allowed.'
             }, status=400)
         
-        # Validate file size (5MB limit)
-        if file.size > 5 * 1024 * 1024:
-            print(f"ERROR: File too large: {file.size} bytes")
+        # Validate file size (5MB)
+        max_size = 5 * 1024 * 1024
+        if uploaded_file.size > max_size:
             return JsonResponse({
                 'success': False, 
-                'error': 'File size must be less than 5MB'
+                'error': f'File too large ({round(uploaded_file.size/(1024*1024), 2)}MB). Max: 5MB'
             }, status=400)
         
-        # Create attachment
-        print("Creating attachment...")
-        attachment = RequirementAttachment.objects.create(
-            submission=submission,
-            file=file,
-            file_type=file.content_type,
-            file_size=file.size,
-            uploaded_by=request.user
-        )
-        print(f"Attachment created with ID: {attachment.id}")
+        # Create attachment - WRAP IN TRY/EXCEPT
+        print("Creating RequirementAttachment...")
+        try:
+            attachment = RequirementAttachment.objects.create(
+                submission=submission,
+                file=uploaded_file,
+                file_type=uploaded_file.content_type,
+                file_size=uploaded_file.size,
+                uploaded_by=request.user
+            )
+            print(f"✓ Attachment created: ID {attachment.id}")
+        except Exception as create_error:
+            print(f"✗ Failed to create attachment: {create_error}")
+            print(f"Traceback:\n{traceback.format_exc()}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Failed to save file: {str(create_error)}'
+            }, status=500)
         
-        # Log the upload
+        # Log the upload (optional)
         try:
             AuditLog.objects.create(
                 user=request.user,
                 action='CREATE',
                 content_object=attachment,
-                description=f"Uploaded attachment for: {submission.requirement.title}"
+                description=f"Uploaded: {uploaded_file.name} for {submission.requirement.title}"
             )
-        except Exception as log_error:
-            print(f"Warning: Failed to create audit log: {log_error}")
+        except Exception as log_err:
+            print(f"⚠️ Audit log failed: {log_err}")
         
-        response_data = {
-            'success': True,
-            'message': 'File uploaded successfully',
-            'attachment': {
-                'id': attachment.id,
-                'file_name': os.path.basename(attachment.file.name),
-                'file_size': attachment.file_size_kb,
-                'file_url': attachment.file.url,
-                'uploaded_at': attachment.uploaded_at.strftime('%B %d, %Y at %I:%M %p'),
+        # Prepare response
+        try:
+            response_data = {
+                'success': True,
+                'message': 'File uploaded successfully',
+                'attachment': {
+                    'id': attachment.id,
+                    'file_name': os.path.basename(attachment.file.name),
+                    'file_size': attachment.file_size_kb,
+                    'file_url': attachment.file.url,
+                    'uploaded_at': attachment.uploaded_at.strftime('%B %d, %Y at %I:%M %p'),
+                }
             }
-        }
+        except Exception as response_err:
+            print(f"⚠️ Error building response: {response_err}")
+            # Fallback response
+            response_data = {
+                'success': True,
+                'message': 'File uploaded successfully',
+                'attachment': {
+                    'id': attachment.id,
+                    'file_name': uploaded_file.name,
+                    'file_size': round(uploaded_file.size / 1024, 2),
+                    'file_url': '',
+                    'uploaded_at': timezone.now().strftime('%B %d, %Y at %I:%M %p'),
+                }
+            }
         
-        print(f"SUCCESS: Returning response: {response_data}")
+        print(f"✓ SUCCESS")
+        print(f"Response: {response_data}")
+        print("="*60 + "\n")
+        
         return JsonResponse(response_data)
         
     except Exception as e:
-        print(f"=== UPLOAD ERROR ===")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Error message: {str(e)}")
-        import traceback
+        print("\n" + "="*60)
+        print("❌ UPLOAD ERROR")
+        print("="*60)
+        print(f"Error: {str(e)}")
+        print(f"Type: {type(e).__name__}")
         print(f"Traceback:\n{traceback.format_exc()}")
+        print("="*60 + "\n")
         
         return JsonResponse({
             'success': False, 
             'error': f'Upload failed: {str(e)}'
         }, status=500)
+
+
 
 @login_required
 @require_http_methods(["POST"])
@@ -3850,46 +5513,53 @@ def api_upload_file(request):
         }, status=500)
 
 
-@login_required
 @require_http_methods(["DELETE"])
 def api_delete_file(request, file_id):
-    """API endpoint to delete a categorized file"""
+    """
+    FIXED: API endpoint to delete a file
+    """
     try:
-        file = get_object_or_404(CategorizedFile, id=file_id)
+        print(f"\n{'='*50}")
+        print(f"DELETE FILE - ID: {file_id}")
+        print(f"{'='*50}")
         
-        # Check permissions
-        if not request.user.is_staff and file.uploaded_by != request.user:
-            return JsonResponse({
-                'success': False,
-                'error': 'Permission denied'
-            }, status=403)
+        file = MonitoringFile.objects.get(id=file_id)
+        filename = file.filename
+        print(f"Found file: {filename}")
         
-        filename = file.original_filename
-        category = file.category
-        
-        # Delete the file
-        file.file.delete(save=False)
-        file.delete()
-        
-        # Update category count
-        category.update_file_count()
-        
-        # Log deletion
+        # Delete the actual file
         try:
-            AuditLog.objects.create(
-                user=request.user,
-                action='DELETE',
-                description=f"Deleted file from {category.display_name}: {filename}"
-            )
-        except:
-            pass
+            if file.file:
+                file.file.delete(save=False)
+                print(f"✓ Deleted physical file")
+        except Exception as file_del_error:
+            print(f"✗ Could not delete physical file: {file_del_error}")
+        
+        # Delete database record
+        file.delete()
+        print(f"✓ Deleted database record")
+        print(f"{'='*50}\n")
         
         return JsonResponse({
             'success': True,
             'message': f'File "{filename}" deleted successfully'
         })
         
+    except MonitoringFile.DoesNotExist:
+        print(f"✗ File {file_id} not found in database")
+        return JsonResponse({
+            'success': False,
+            'error': 'File not found'
+        }, status=404)
+        
     except Exception as e:
+        print(f"\n{'='*50}")
+        print(f"ERROR IN DELETE FILE")
+        print(f"{'='*50}")
+        print(f"Error: {str(e)}")
+        print(traceback.format_exc())
+        print(f"{'='*50}\n")
+        
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -4017,3 +5687,421 @@ def api_file_statistics(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+
+
+@require_http_methods(["GET"])
+def get_files_by_category(request, category):
+    """
+    FIXED: API endpoint to get files by category
+    URL: /api/files/category/<category>/
+    """
+    try:
+        print(f"\n{'='*50}")
+        print(f"GET FILES BY CATEGORY - START")
+        print(f"{'='*50}")
+        print(f"Category: {category}")
+        print(f"Request method: {request.method}")
+        print(f"GET params: {dict(request.GET)}")
+        
+        # Get query parameters
+        barangay_id = request.GET.get('barangay_id', None)
+        date_from = request.GET.get('date_from', None)
+        date_to = request.GET.get('date_to', None)
+        
+        # Check if MonitoringFile model exists
+        try:
+            # Test query to check if table exists
+            test_count = MonitoringFile.objects.count()
+            print(f"✓ MonitoringFile table exists. Total records: {test_count}")
+        except Exception as model_error:
+            print(f"✗ MonitoringFile table error: {model_error}")
+            # Return empty result gracefully
+            return JsonResponse({
+                'success': True,
+                'files': [],
+                'total_count': 0,
+                'category': category,
+                'message': 'No files table found'
+            })
+        
+        # Base query
+        files = MonitoringFile.objects.filter(category=category)
+        print(f"Files in category '{category}': {files.count()}")
+        
+        # Apply filters
+        if barangay_id:
+            files = files.filter(barangay_id=barangay_id)
+            print(f"After barangay filter ({barangay_id}): {files.count()}")
+        
+        if date_from:
+            files = files.filter(uploaded_at__gte=date_from)
+            print(f"After date_from filter: {files.count()}")
+        
+        if date_to:
+            files = files.filter(uploaded_at__lte=date_to)
+            print(f"After date_to filter: {files.count()}")
+        
+        # Order by most recent
+        files = files.order_by('-uploaded_at')
+        total_count = files.count()
+        
+        # Serialize files
+        files_data = []
+        for file_obj in files:
+            try:
+                # Build file data safely
+                file_data = {
+                    'id': file_obj.id,
+                    'filename': getattr(file_obj, 'filename', 'Unknown'),
+                    'file_url': '',
+                    'file_type': 'unknown',
+                    'file_size': 0,
+                    'barangay': 'N/A',
+                    'uploaded_at': ''
+                }
+                
+                # Get file URL
+                try:
+                    if hasattr(file_obj, 'file') and file_obj.file:
+                        file_data['file_url'] = file_obj.file.url
+                        # Get file size
+                        try:
+                            file_data['file_size'] = round(file_obj.file.size / (1024 * 1024), 2)
+                        except:
+                            pass
+                except:
+                    pass
+                
+                # Get file type
+                if file_obj.filename:
+                    ext = file_obj.filename.lower().split('.')[-1]
+                    if ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']:
+                        file_data['file_type'] = 'image'
+                    else:
+                        file_data['file_type'] = 'document'
+                
+                # Get barangay name
+                try:
+                    if hasattr(file_obj, 'barangay') and file_obj.barangay:
+                        file_data['barangay'] = file_obj.barangay.name
+                except:
+                    pass
+                
+                # Get upload date
+                try:
+                    if hasattr(file_obj, 'uploaded_at') and file_obj.uploaded_at:
+                        file_data['uploaded_at'] = file_obj.uploaded_at.strftime('%Y-%m-%d %H:%M')
+                except:
+                    pass
+                
+                files_data.append(file_data)
+                
+            except Exception as file_error:
+                print(f"✗ Error processing file {file_obj.id}: {file_error}")
+                continue
+        
+        print(f"✓ Successfully processed {len(files_data)} files")
+        print(f"{'='*50}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'files': files_data,
+            'total_count': total_count,
+            'category': category
+        })
+        
+    except Exception as e:
+        print(f"\n{'='*50}")
+        print(f"ERROR IN GET_FILES_BY_CATEGORY")
+        print(f"{'='*50}")
+        print(f"Error: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Traceback:")
+        print(traceback.format_exc())
+        print(f"{'='*50}\n")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'category': category
+        }, status=500)
+
+
+def get_file_type(filename):
+    """Helper function to determine file type"""
+    try:
+        ext = filename.lower().split('.')[-1]
+        image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']
+        
+        if ext in image_extensions:
+            return 'image'
+        return 'document'
+    except:
+        return 'unknown'
+
+def test_monitoring_api(request):
+    """
+    Temporary test endpoint to verify setup
+    URL: /test-monitoring/
+    """
+    try:
+        # Test database connection
+        from .models import MonitoringFile, Barangay
+        
+        monitoring_count = MonitoringFile.objects.count()
+        barangay_count = Barangay.objects.count()
+        
+        # Get sample records
+        sample_files = list(MonitoringFile.objects.values(
+            'id', 'filename', 'category', 'barangay__name'
+        )[:5])
+        
+        categories = MonitoringFile.objects.values_list('category', flat=True).distinct()
+        
+        return JsonResponse({
+            'status': 'success',
+            'database': 'connected',
+            'monitoring_files_count': monitoring_count,
+            'barangays_count': barangay_count,
+            'categories': list(categories),
+            'sample_files': sample_files,
+        }, json_dumps_params={'indent': 2})
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500, json_dumps_params={'indent': 2})
+    
+@require_http_methods(["GET"])
+def get_files_by_category_simple(request, category):
+    """
+    Get files by category (weekly, monthly, quarterly, semestral, annually)
+    Files are automatically categorized when uploaded via requirements_monitoring
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"📁 GET FILES BY CATEGORY: {category}")
+        print(f"{'='*60}")
+        
+        # Get query parameters
+        barangay_id = request.GET.get('barangay_id')
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        page = int(request.GET.get('page', 1))
+        
+        print(f"Filters: barangay_id={barangay_id}, date_from={date_from}, date_to={date_to}")
+        
+        # Query CategorizedFile using period field
+        # REMOVED is_archived filter since it doesn't exist
+        files = CategorizedFile.objects.filter(
+            period=category  # weekly, monthly, quarterly, semestral, annually
+        ).select_related('barangay', 'uploaded_by', 'requirement_submission')
+        
+        print(f"Files with period '{category}': {files.count()}")
+        
+        # Apply filters
+        if barangay_id:
+            files = files.filter(barangay_id=barangay_id)
+            print(f"After barangay filter: {files.count()}")
+        
+        if date_from:
+            files = files.filter(uploaded_at__gte=date_from)
+            print(f"After date_from filter: {files.count()}")
+        
+        if date_to:
+            files = files.filter(uploaded_at__lte=date_to)
+            print(f"After date_to filter: {files.count()}")
+        
+        # Order by newest first
+        files = files.order_by('-uploaded_at')
+        total_count = files.count()
+        
+        # Pagination
+        from django.core.paginator import Paginator
+        paginator = Paginator(files, 20)
+        page_obj = paginator.get_page(page)
+        
+        print(f"Total count: {total_count}, Page: {page}/{paginator.num_pages}")
+        
+        # Build response
+        files_data = []
+        for file_obj in page_obj:
+            try:
+                files_data.append({
+                    'id': file_obj.id,
+                    'filename': file_obj.original_filename,
+                    'file_url': file_obj.file.url if file_obj.file else '',
+                    'file_type': file_obj.file_type,
+                    'file_size': file_obj.file_size_mb,
+                    'barangay': file_obj.barangay.name if file_obj.barangay else 'N/A',
+                    'uploaded_at': file_obj.uploaded_at.strftime('%B %d, %Y %I:%M %p'),
+                    'uploaded_by': file_obj.uploaded_by.get_full_name() if file_obj.uploaded_by else 'System',
+                    'detected_content': file_obj.detected_content or 'N/A',
+                    'requirement_title': (
+                        file_obj.requirement_submission.requirement.title 
+                        if file_obj.requirement_submission 
+                        else 'N/A'
+                    ),
+                    'tags': file_obj.tags or '',
+                })
+            except Exception as file_err:
+                print(f"✗ Error processing file {file_obj.id}: {file_err}")
+                continue
+        
+        print(f"✓ Successfully processed {len(files_data)} files")
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'files': files_data,
+            'total_count': total_count,
+            'page': page,
+            'total_pages': paginator.num_pages,
+            'category': category
+        })
+        
+    except Exception as e:
+        print(f"\n{'='*60}")
+        print(f"❌ ERROR IN get_files_by_category_simple")
+        print(f"{'='*60}")
+        print(f"Error: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'category': category
+        }, status=500)
+    
+
+@require_http_methods(["DELETE"])  
+def api_delete_monitoring_file(request, file_id):
+    """
+    Delete a categorized file
+    Works for files uploaded via requirements_monitoring
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"🗑️ DELETE FILE REQUEST")
+        print(f"{'='*60}")
+        print(f"File ID: {file_id}")
+        print(f"User: {request.user}")
+        
+        # Get the file from CategorizedFile
+        file = CategorizedFile.objects.get(id=file_id)
+        filename = file.original_filename
+        category = file.category.display_name if file.category else 'Unknown'
+        
+        print(f"Found file: {filename}")
+        print(f"Category: {category}")
+        
+        # Delete physical file from storage
+        try:
+            if file.file:
+                file.file.delete(save=False)
+                print(f"✓ Deleted physical file from storage")
+        except Exception as storage_err:
+            print(f"⚠️ Could not delete physical file: {storage_err}")
+        
+        # Delete the RequirementAttachment if it exists
+        if file.requirement_attachment:
+            try:
+                file.requirement_attachment.delete()
+                print(f"✓ Deleted linked RequirementAttachment")
+            except Exception as att_err:
+                print(f"⚠️ Could not delete RequirementAttachment: {att_err}")
+        
+        # Delete database record
+        file.delete()
+        print(f"✓ Deleted from database: {filename}")
+        
+        # Update category file count
+        if file.category:
+            file.category.update_file_count()
+            print(f"✓ Updated category file count")
+        
+        # Log the deletion
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='DELETE',
+                description=f"Deleted file: {filename} from {category}"
+            )
+        except:
+            pass
+        
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'File "{filename}" deleted successfully'
+        })
+        
+    except CategorizedFile.DoesNotExist:
+        print(f"✗ File {file_id} not found in CategorizedFile table")
+        print(f"{'='*60}\n")
+        return JsonResponse({
+            'success': False,
+            'error': 'File not found'
+        }, status=404)
+        
+    except Exception as e:
+        print(f"\n{'='*60}")
+        print(f"❌ ERROR IN api_delete_monitoring_file")
+        print(f"{'='*60}")
+        print(f"Error: {str(e)}")
+        print(traceback.format_exc())
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+    
+
+
+
+@require_http_methods(["GET"])
+def get_category_file_counts(request):
+    """
+    Get file counts for all categories
+    Useful for updating the monitoring_files.html folder counts
+    """
+    try:
+        categories = ['weekly', 'monthly', 'quarterly', 'semestral', 'annually']
+        barangay_id = request.GET.get('barangay_id')
+        
+        counts = {}
+        for category in categories:
+            query = CategorizedFile.objects.filter(
+                period=category,
+                is_archived=False
+            )
+            
+            if barangay_id:
+                query = query.filter(barangay_id=barangay_id)
+            
+            counts[category] = query.count()
+        
+        return JsonResponse({
+            'success': True,
+            'counts': counts
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+
+
+

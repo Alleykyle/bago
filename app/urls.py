@@ -126,10 +126,22 @@ urlpatterns = [
     path('certification_filess/', views.certification_filess, name='certification_filess'),
     path('monitoring_filess/', views.monitoring_filess, name='monitoring_filess'),
 
-    path('api/files/category/<str:category_name>/', views.api_category_files, name='api_category_files'),
+    path('api/files/category/<str:category>/', views.get_files_by_category_simple, name='get_files_by_category'),
     path('api/files/upload/', views.api_upload_file, name='api_upload_file'),
-    path('api/files/<int:file_id>/delete/', views.api_delete_file, name='api_delete_file'),
+    path('api/files/<int:file_id>/delete/', views.api_delete_monitoring_file, name='api_delete_file'),
     path('api/files/<int:file_id>/archive/', views.api_archive_file, name='api_archive_file'),
     path('api/files/<int:file_id>/move/', views.api_move_file, name='api_move_file'),
     path('api/files/statistics/', views.api_file_statistics, name='api_file_statistics'),
+
+    # File Operations
+    path('debug/certificate-categories/', views.debug_certificate_categories, name='debug_certificate_categories'),
+     path('api/certificate-files/<int:file_id>/delete/', 
+     views.api_delete_monitoring_file,  # Use the existing function
+     name='delete_certificate_file'),
+     path('api/certificate-files/category/<str:category>/', views.get_certificate_files_by_category, name='get_certificate_files_by_category'),
+     path('setup-certificate-folders/', views.setup_certificate_folders, name='setup_certificate_folders'),
+     path('debug-certificate-files/', views.debug_certificate_files, name='debug_certificate_files'),
+     path('test-certificate-setup/', views.test_certificate_setup, name='test_certificate_setup'),
+     path('api/files/<int:file_id>/delete/', views.api_delete_file, name='api_delete_file'),
+     path('api/files/upload/', views.api_upload_file, name='api_upload_file'),
 ]
