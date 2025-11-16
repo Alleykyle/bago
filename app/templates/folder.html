@@ -3,24 +3,693 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DILG Folder Management</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <title>Folders</title>
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/folder.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/theme-system.css' %}">
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #e9ecef;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-muted: #868e96;
+      --border-color: #dee2e6;
+      --shadow: 0 2px 4px rgba(0,0,0,0.1);
+      --shadow-hover: 0 4px 8px rgba(0,0,0,0.15);
+      --accent-primary: #007bff;
+      --accent-hover: #0056b3;
+      --success: #28a745;
+      --success-hover: #218838;
+      --warning: #ffc107;
+      --danger: #dc3545;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      overflow-x: hidden;
+    }
+
+    /* Main Layout */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar .logo {
+      width: 140px;
+      margin: 24px auto;
+      display: block;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .sidebar .logo:hover {
+      transform: scale(1.05);
+    }
+
+    .menu-title {
+      padding: 16px 24px;
+      font-weight: 600;
+      color: rgba(11, 26, 80, 0.7);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav-menu {
+      list-style: none;
+      padding: 0 12px;
+    }
+
+    .nav-menu li {
+      margin-bottom: 4px;
+    }
+
+    .nav-menu a {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      color: rgba(11, 26, 80, 0.8);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-menu a:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .nav-menu a.active {
+      background: var(--bg-tertiary);
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      padding: 32px 40px;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .back-button {
+      padding: 10px 20px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+
+    /* Action Buttons Section */
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      gap: 16px;
+    }
+
+    .buttons-left {
+      display: flex;
+      gap: 12px;
+    }
+
+    .create-button,
+    .upload-button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+    }
+
+    .create-button {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .create-button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .upload-button {
+      background: var(--success);
+      color: white;
+    }
+
+    .upload-button:hover {
+      background: var(--success-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .search-container {
+      position: relative;
+      width: 300px;
+    }
+
+    .search-bar {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow);
+    }
+
+    .search-bar:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    .search-container::before {
+      content: '\f002';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Modal Styling */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-content {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 540px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 28px 32px;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-header h2 i {
+      color: var(--accent-primary);
+      font-size: 1.75rem;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      line-height: 1;
+    }
+
+    .close-modal:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      transform: rotate(90deg);
+    }
+
+    .modal-body {
+      padding: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+    }
+
+    .form-group input[type="text"],
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .form-group input[type="text"]:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      background: var(--bg-primary);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .modal-footer {
+      padding: 20px 32px;
+      border-top: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      background: var(--bg-secondary);
+    }
+
+    .btn-cancel,
+    .btn-create {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-cancel {
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      border: 2px solid var(--border-color);
+    }
+
+    .btn-cancel:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    .btn-create {
+      background: var(--accent-primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+    }
+
+    .btn-create:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+    }
+
+    .btn-create:active {
+      transform: translateY(0);
+    }
+
+    /* Folder Cards Grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .profile-card {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent-primary), var(--success));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .profile-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .profile-card:hover::before {
+      opacity: 1;
+    }
+
+    .folder-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #0b1a50 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      transition: transform 0.3s ease;
+    }
+
+    .profile-card:hover .folder-icon {
+      transform: scale(1.1);
+    }
+
+    .folder-icon i {
+      font-size: 2.5rem;
+      color: white;
+    }
+
+    .profile-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .profile-card p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+
+    .edit-button {
+      padding: 10px 24px;
+      background: var(--accent-primary);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .edit-button:hover {
+      background: var(--accent-hover);
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+
+    .edit-button::after {
+      content: '\f054';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      font-size: 0.75rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+
+    .empty-state h3 {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+      }
+
+      .main-content {
+        margin-left: 200px;
+        padding: 20px;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .buttons-left {
+        width: 100%;
+      }
+
+      .search-container {
+        width: 100%;
+      }
+
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-content {
+        width: 95%;
+        margin: 20px;
+      }
+
+      .modal-header {
+        padding: 20px;
+      }
+
+      .modal-body {
+        padding: 20px;
+      }
+
+      .modal-footer {
+        padding: 16px 20px;
+        flex-direction: column;
+      }
+
+      .btn-cancel,
+      .btn-create {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .sidebar {
+        width: 70px;
+      }
+
+      .sidebar .logo {
+        width: 50px;
+      }
+
+      .menu-title {
+        display: none;
+      }
+
+      .nav-menu a span {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 70px;
+        padding: 16px;
+      }
+    }
+
+    /* Card Loading Animation */
+    @keyframes cardFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .profile-card {
+      animation: cardFadeIn 0.5s ease forwards;
+    }
+
+    .profile-card:nth-child(1) { animation-delay: 0.1s; }
+    .profile-card:nth-child(2) { animation-delay: 0.2s; }
+    .profile-card:nth-child(3) { animation-delay: 0.3s; }
+    .profile-card:nth-child(4) { animation-delay: 0.4s; }
+    .profile-card:nth-child(5) { animation-delay: 0.5s; }
+    .profile-card:nth-child(6) { animation-delay: 0.6s; }
+  </style>
 </head>
 <body>
   <div class="dashboard-container">
     <!-- Sidebar -->
     <div class="sidebar">
-      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      <a href="{% url 'landing_menu' %}">
+        <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      </a>
+      <div class="menu-title">Navigation</div>
       <ul class="nav-menu">
-        <li><a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Dashboard</a></li>
-        <li><a href="{% url 'application_request' %}" {% if request.resolver_match.url_name == 'application_request' %}class="active"{% endif %}>Application Request</a></li>
-        <li><a href="{% url 'history' %}" {% if request.resolver_match.url_name == 'history' %}class="active"{% endif %}>History</a></li>
-        <li><a href="{% url 'employees_profile' %}" {% if request.resolver_match.url_name == 'employees_profile' %}class="active"{% endif %}>Employees Profile</a></li>
-        <li><a href="{% url 'folder' %}" {% if request.resolver_match.url_name == 'folder' %}class="active"{% endif %}>Folders</a></li>
-        <li><a href="{% url 'settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>Settings</a></li>
+        <li><a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}><span> Dashboard</span></a></li>
+        <li><a href="{% url 'application_request' %}" {% if request.resolver_match.url_name == 'application_request' %}class="active"{% endif %}><span> Application Request</span></a></li>
+        <li><a href="{% url 'employees_profile' %}" {% if request.resolver_match.url_name == 'employees_profile' %}class="active"{% endif %}><span> Employees Profile</span></a></li>
+        <li><a href="{% url 'folder' %}" {% if request.resolver_match.url_name == 'folder' %}class="active"{% endif %}><span> Folders</span></a></li>
+        <li><a href="{% url 'settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}><span> Settings</span></a></li>
       </ul>
     </div>
 
@@ -28,22 +697,56 @@
     <div class="main-content">
       <!-- Header -->
       <div class="header">
-        <h1>Folder Management</h1>
-        <a href="/dashboard/" class="back-button">← Back</a>
+        <h1>
+          <i class="fas fa-folder-open"></i>
+          Folder Management
+        </h1>
+        <a href="/dashboard/" class="back-button">
+          <i class="fas fa-arrow-left"></i>
+          Back to Dashboard
+        </a>
       </div>
       
       <!-- Action Buttons with Search -->
       <div class="action-buttons">
         <div class="buttons-left">
-          <button class="create-button">
-            <i class="fas fa-plus"></i> Create
-          </button>
-          <button class="upload-button">
-            <i class="fas fa-upload"></i> Upload
+          <button class="create-button" id="createFolderBtn">
+            <i class="fas fa-plus"></i>
+            Create Folder
           </button>
         </div>
         <div class="search-container">
-          <input type="text" class="search-bar" placeholder="Search">
+          <input type="text" class="search-bar" placeholder="Search folders...">
+        </div>
+      </div>
+      
+      <!-- Create Folder Modal -->
+      <div class="modal" id="createFolderModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2><i class="fas fa-folder-plus"></i> Create New Folder</h2>
+            <button class="close-modal" id="closeModal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="folderName">Folder Name <span style="color: var(--danger);">*</span></label>
+              <input type="text" id="folderName" placeholder="Enter folder name..." required>
+            </div>
+            <div class="form-group">
+              <label for="folderDescription">Description</label>
+              <textarea id="folderDescription" placeholder="Enter folder description (optional)..." rows="4"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-cancel" id="cancelBtn">
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
+            <button class="btn-create" id="submitFolderBtn">
+              <i class="fas fa-check"></i>
+              Create Folder
+            </button>
+          </div>
         </div>
       </div>
       
@@ -54,224 +757,119 @@
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
           <h3>{{ folder.name }}</h3>
           <p>{{ folder.description }}</p>
+          <a href="#" class="edit-button">Open</a>
         </div>
         {% endfor %}
         
         <div class="profile-card">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
           <h3>Brgy. Monitoring Files</h3>
-          <p>Requirements</p>
+          <p>Requirements and monitoring documents</p>
           <a href="/monitoring_filess/" class="edit-button">Open</a>
         </div>
         
         <div class="profile-card">
           <div class="folder-icon"><i class="fas fa-folder"></i></div>
           <h3>Certification Files</h3>
-          <p>Documents</p>
+          <p>Official certification documents</p>
           <a href="/certification_filess/" class="edit-button">Open</a>
         </div>
-        
-        
-    </div> <!-- This closing div was missing! -->
-  </div> <!-- This closes dashboard-container -->
+      </div>
+    </div>
+  </div>
+
   <script>
- 
-    // Global Theme Management System
-    class GlobalThemeManager {
-      constructor() {
-        this.currentTheme = 'light';
-        this.currentFontSize = 'medium';
-        this.currentAnimationSpeed = 'normal';
-        this.init();
+    document.addEventListener('DOMContentLoaded', function() {
+      const modal = document.getElementById('createFolderModal');
+      const createBtn = document.getElementById('createFolderBtn');
+      const closeBtn = document.getElementById('closeModal');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const submitBtn = document.getElementById('submitFolderBtn');
+      const folderNameInput = document.getElementById('folderName');
+      const folderDescInput = document.getElementById('folderDescription');
+
+      // Open modal
+      if (createBtn) {
+        createBtn.addEventListener('click', function() {
+          modal.classList.add('active');
+          folderNameInput.focus();
+        });
       }
 
-      init() {
-        // Load saved preferences on every page load
-        this.loadPreferences();
-        // Apply saved theme immediately
-        this.applyTheme(this.currentTheme);
-        this.applyFontSize(this.currentFontSize);
-        this.applyAnimationSpeed(this.currentAnimationSpeed);
-        // Listen for system theme changes
-        this.watchSystemTheme();
+      // Close modal functions
+      function closeModal() {
+        modal.classList.remove('active');
+        folderNameInput.value = '';
+        folderDescInput.value = '';
       }
 
-      loadPreferences() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
-        this.currentFontSize = localStorage.getItem('fontSize') || 'medium';
-        this.currentAnimationSpeed = localStorage.getItem('animationSpeed') || 'normal';
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
       }
 
-      applyTheme(theme) {
-        const html = document.documentElement;
-        
-        // Add transition class for smooth theme switching
-        html.classList.add('theme-transition');
-        
-        // Set theme attribute
-        html.setAttribute('data-theme', theme);
-        
-        // Store current theme
-        this.currentTheme = theme;
-        localStorage.setItem('theme', theme);
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeModal);
+      }
 
-        // Remove transition class after animation
-        setTimeout(() => {
-          html.classList.remove('theme-transition');
-        }, 300);
-
-        // Update theme selector if it exists on the page
-        const themeSelector = document.getElementById('change-theme');
-        if (themeSelector) {
-          themeSelector.value = theme;
+      // Close on background click
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeModal();
         }
-      }
+      });
 
-      applyFontSize(size) {
-        const root = document.documentElement;
-        const sizeMap = {
-          'small': '14px',
-          'medium': '15px',
-          'large': '16px'
-        };
-        
-        
-        root.style.fontSize = sizeMap[size];
-        this.currentFontSize = size;
-        localStorage.setItem('fontSize', size);
-
-        // Update font size selector if it exists
-        const fontSizeSelector = document.getElementById('font-size');
-        if (fontSizeSelector) {
-          fontSizeSelector.value = size;
+      // Close on ESC key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+          closeModal();
         }
-      }
+      });
 
-      applyAnimationSpeed(speed) {
-        const root = document.documentElement;
-        const speedMap = {
-          'slow': '0.6s',
-          'normal': '0.3s',
-          'fast': '0.15s',
-          'none': '0s'
-        };
-        
-        root.style.setProperty('--transition-duration', speedMap[speed]);
-        this.currentAnimationSpeed = speed;
-        localStorage.setItem('animationSpeed', speed);
-
-        // Update all transition durations
-        const style = document.createElement('style');
-        style.textContent = `
-          .theme-transition * {
-            transition-duration: ${speedMap[speed]} !important;
+      // Submit form
+      if (submitBtn) {
+        submitBtn.addEventListener('click', function() {
+          const folderName = folderNameInput.value.trim();
+          
+          if (!folderName) {
+            alert('Please enter a folder name');
+            folderNameInput.focus();
+            return;
           }
-        `;
-        
-        // Remove previous speed style if exists
-        const oldStyle = document.getElementById('animation-speed-style');
-        if (oldStyle) oldStyle.remove();
-        
-        style.id = 'animation-speed-style';
-        document.head.appendChild(style);
 
-        // Update animation speed selector if it exists
-        const animationSpeedSelector = document.getElementById('animation-speed');
-        if (animationSpeedSelector) {
-          animationSpeedSelector.value = speed;
-        }
+          // Here you would typically send the data to your backend
+          console.log('Creating folder:', {
+            name: folderName,
+            description: folderDescInput.value.trim()
+          });
+
+          // For now, just close the modal
+          closeModal();
+          
+          // You can add a success notification here
+          alert('Folder created successfully!');
+        });
       }
 
-      watchSystemTheme() {
-        if (window.matchMedia) {
-          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-          mediaQuery.addListener((e) => {
-            if (this.currentTheme === 'auto') {
-              // Force re-application of auto theme
-              this.applyTheme('auto');
+      // Search functionality
+      const searchBar = document.querySelector('.search-bar');
+      if (searchBar) {
+        searchBar.addEventListener('input', function(e) {
+          const searchTerm = e.target.value.toLowerCase();
+          const cards = document.querySelectorAll('.profile-card');
+          
+          cards.forEach(card => {
+            const title = card.querySelector('h3')?.textContent.toLowerCase() || '';
+            const description = card.querySelector('p')?.textContent.toLowerCase() || '';
+            
+            if (title.includes(searchTerm) || description.includes(searchTerm)) {
+              card.style.display = '';
+            } else {
+              card.style.display = 'none';
             }
           });
-        }
-      }
-
-      // Method to change theme programmatically
-      setTheme(theme) {
-        this.applyTheme(theme);
-      }
-
-      // Method to get current theme
-      getTheme() {
-        return this.currentTheme;
-      }
-
-      // Method to toggle between light and dark
-      toggleTheme() {
-        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-        this.applyTheme(newTheme);
-        return newTheme;
-      }
-
-      showSuccessMessage(message) {
-        // Remove existing message if any
-        const existing = document.querySelector('.success-message');
-        if (existing) existing.remove();
-
-        // Create new message
-        const messageEl = document.createElement('div');
-        messageEl.className = 'success-message';
-        messageEl.textContent = message;
-        document.body.appendChild(messageEl);
-
-        // Show message
-        setTimeout(() => messageEl.classList.add('show'), 100);
-
-        // Hide and remove message
-        setTimeout(() => {
-          messageEl.classList.remove('show');
-          setTimeout(() => messageEl.remove(), 300);
-        }, 3000);
-      }
-    }
-
-    // Initialize global theme manager
-    let globalThemeManager;
-
-    // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      globalThemeManager = new GlobalThemeManager();
-      
-      // Add event listeners if theme controls exist on current page
-      const themeSelector = document.getElementById('change-theme');
-      if (themeSelector) {
-        themeSelector.addEventListener('change', function(e) {
-          globalThemeManager.setTheme(e.target.value);
-        });
-      }
-
-      const fontSizeSelector = document.getElementById('font-size');
-      if (fontSizeSelector) {
-        fontSizeSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyFontSize(e.target.value);
-        });
-      }
-
-      const animationSpeedSelector = document.getElementById('animation-speed');
-      if (animationSpeedSelector) {
-        animationSpeedSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyAnimationSpeed(e.target.value);
         });
       }
     });
-
-    // Make theme manager globally accessible
-    window.globalThemeManager = globalThemeManager;
-
-    // Global functions
-    function toggleTheme() {
-      if (window.globalThemeManager) {
-        return window.globalThemeManager.toggleTheme();
-      }
-    }
   </script>
 </body>
 </html>

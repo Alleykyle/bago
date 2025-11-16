@@ -1,0 +1,32 @@
+# === Django GitIgnore Template ===
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+db.sqlite3
+
+# Media and static (user uploads)
+media/
+staticfiles/
+static/
+
+# Environment variables and settings
+.env
+.env.local
+.env.*.local
+
+# Virtual environment
+env/
+venv/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

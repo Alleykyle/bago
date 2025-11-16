@@ -27,11 +27,16 @@ urlpatterns = [
     # ============================================
     # DILG STAFF DASHBOARD
     # ============================================
+    path('api/applications/archive/<int:application_id>/', views.archive_application),
+    path('api/applications/restore/<int:application_id>/', views.restore_application),
+
+    path('api/analytics/refresh/', views.refresh_analytics, name='refresh_analytics'),
+    path('api/analytics/certifications/', views.certifications_data, name='certifications_data'),
+    path('api/analytics/barangays/', views.barangays_data, name='barangays_data'),
     path('landing-menu/', views.landing_menu, name='landing_menu'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('employees/', views.employees_profile, name='employees_profile'),
     path('history/', views.history, name='history'),
-    path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
     path('api/analytics/refresh/', views.refresh_analytics, name='refresh_analytics'),
     
     # ============================================
@@ -63,6 +68,8 @@ urlpatterns = [
     # ============================================
     # API ENDPOINTS - EMPLOYEES
     # ============================================
+    path('api/employees/archive/<int:employee_id>/', views.archive_employee, name='archive_employee'),
+path('api/employees/restore/<int:employee_id>/', views.restore_employee, name='restore_employee'),
     path('api/employees/edit/<int:employee_id>/', views.edit_employee, name='edit_employee'),
     path('api/employees/delete/<int:employee_id>/', views.delete_employee, name='delete_employee'),
     path('api/employees/export/', views.export_employees, name='export_employees'),
@@ -134,6 +141,7 @@ urlpatterns = [
     path('api/files/statistics/', views.api_file_statistics, name='api_file_statistics'),
 
     # File Operations
+    
     path('debug/certificate-categories/', views.debug_certificate_categories, name='debug_certificate_categories'),
      path('api/certificate-files/<int:file_id>/delete/', 
      views.api_delete_monitoring_file,  # Use the existing function
@@ -144,4 +152,17 @@ urlpatterns = [
      path('test-certificate-setup/', views.test_certificate_setup, name='test_certificate_setup'),
      path('api/files/<int:file_id>/delete/', views.api_delete_file, name='api_delete_file'),
      path('api/files/upload/', views.api_upload_file, name='api_upload_file'),
+
+
+     # API endpoints for settings
+    # Settings API endpoints
+    path('api/update-profile/', views.update_profile, name='update_profile'),
+    path('api/update-account/', views.update_account, name='update_account'),
+    path('api/change-password/', views.change_password, name='change_password'),
+    path('api/get-notification-preferences/', views.get_notification_preferences, name='get_notifications'),
+    path('api/update-notifications/', views.update_notifications, name='update_notifications'),
+    path('api/toggle-2fa/', views.toggle_2fa, name='toggle_2fa'),
+    path('api/delete-account/', views.delete_account, name='delete_account'),
+    path('api/get-user-stats/', views.get_user_stats, name='get_user_stats'),
+
 ]

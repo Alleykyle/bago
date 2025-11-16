@@ -4,9 +4,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Brgy. Monitoring Files </title>
+  <title>Brgy. Monitoring Files - DILG</title>
+  <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #e9ecef;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-muted: #868e96;
+      --border-color: #dee2e6;
+      --shadow: 0 2px 4px rgba(0,0,0,0.1);
+      --shadow-hover: 0 4px 8px rgba(0,0,0,0.15);
+      --accent-primary: #007bff;
+      --accent-hover: #0056b3;
+      --success: #28a745;
+      --success-hover: #218838;
+      --warning: #ffc107;
+      --danger: #dc3545;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -14,35 +33,121 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f7fa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      overflow-x: hidden;
     }
 
+    /* Main Layout */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: var(--shadow);
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar .logo {
+      width: 140px;
+      margin: 24px auto;
+      display: block;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .sidebar .logo:hover {
+      transform: scale(1.05);
+    }
+
+    .menu-title {
+      padding: 16px 24px 8px;
+      font-weight: 600;
+      color: rgba(11, 26, 80, 0.7);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .barangay-list {
+      list-style: none;
+      padding: 0 12px;
+      max-height: calc(100vh - 180px);
+      overflow-y: auto;
+    }
+
+    .barangay-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .barangay-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .barangay-list::-webkit-scrollbar-thumb {
+      background: rgba(11, 26, 80, 0.5);
+      border-radius: 3px;
+    }
+
+    .barangay-list li {
+      margin-bottom: 4px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgba(11, 26, 80, 0.8);
+    }
+
+    .barangay-list li:hover {
+      background: rgba(255, 255, 255, 0.3);
+      color: #0b1a50;
+    }
+
+    .barangay-list li.active {
+      background: rgba(255, 255, 255, 0.5);
+      color: #0b1a50;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Mobile Menu Toggle */
     .menu-toggle {
       display: none;
       position: fixed;
       top: 20px;
       left: 20px;
       z-index: 1100;
-      background: #2196F3;
+      background: var(--accent-primary);
       color: white;
       border: none;
-      width: 50px;
-      height: 50px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       font-size: 20px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+      box-shadow: var(--shadow-hover);
       transition: all 0.3s;
     }
 
     .menu-toggle:hover {
-      background: #1976D2;
+      background: var(--accent-hover);
       transform: scale(1.05);
-    }
-
-    .menu-toggle.active {
-      left: 270px;
     }
 
     .sidebar-overlay {
@@ -53,7 +158,7 @@
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 999;
+      z-index: 99;
       opacity: 0;
       transition: opacity 0.3s;
     }
@@ -63,190 +168,129 @@
       opacity: 1;
     }
 
-    .sidebar {
-      position: fixed;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 250px;
-      background: #ffffff;
-      padding: 20px;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-      overflow-y: auto;
-      z-index: 1000;
-      transition: transform 0.3s ease;
-    }
-
-    .sidebar .logo {
-      width: 100px;
-      display: block;
-      margin: 0 auto 20px;
-    }
-
-    .sidebar h3 {
-      color: #1a202c;
-      margin-bottom: 20px;
-      font-size: 18px;
-      text-align: center;
-      font-weight: 700;
-    }
-
-    .barangay-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: calc(100vh - 200px);
-      overflow-y: auto;
-    }
-
-    .barangay-list::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .barangay-list::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 4px;
-    }
-
-    .barangay-list::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 4px;
-    }
-
-    .barangay-list li {
-      padding: 12px 15px;
-      margin-bottom: 8px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-      font-size: 14px;
-      border-left: 4px solid transparent;
-      background: #f9fafb;
-      color: #1a202c;
-      font-weight: 500;
-    }
-
-    .barangay-list li:hover {
-      background: #e5e7eb;
-      border-left-color: #2196F3;
-    }
-
-    .barangay-list li.active {
-      background: #2196F3;
-      color: white;
-      border-left-color: #1976D2;
-      font-weight: 600;
-    }
-
+    /* Main Content */
     .main-content {
-      margin-left: 250px;
-      padding: 30px;
+      flex: 1;
+      margin-left: 260px;
+      padding: 32px 40px;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
       min-height: 100vh;
-      background: #f5f7fa;
       transition: margin-left 0.3s ease;
     }
 
+    /* Header */
     .header {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--border-color);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
+      justify-content: space-between;
       flex-wrap: wrap;
-      gap: 15px;
+      gap: 16px;
     }
 
     .header h1 {
-      font-size: 32px;
-      color: #1a202c;
-      margin: 0;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .back-button {
-      background: #2196F3;
+      padding: 10px 20px;
+      background: var(--accent-primary);
       color: white;
-      padding: 10px 25px;
-      border-radius: 8px;
+      border: none;
+      border-radius: 6px;
       text-decoration: none;
-      transition: all 0.3s;
+      font-weight: 500;
+      transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
     }
 
     .back-button:hover {
-      background: #1976D2;
+      background: var(--accent-hover);
       transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
     }
 
+    /* Selected Barangay Banner */
     .selected-barangay {
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border-left: 4px solid var(--accent-hover);
     }
 
     .selected-barangay h3 {
       margin: 0;
-      color: #1a202c;
-      font-size: 18px;
+      color: var(--text-primary);
+      font-size: 1.125rem;
       font-weight: 600;
     }
 
     .selected-barangay span {
-      color: #2196F3;
+      color: var(--accent-hover);
       font-weight: 700;
     }
 
+    /* Action Buttons */
     .action-buttons {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
+      margin-bottom: 32px;
       gap: 20px;
       flex-wrap: wrap;
     }
 
     .buttons-left {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     .create-button,
     .upload-button {
-      padding: 12px 25px;
+      padding: 12px 24px;
       border: none;
       border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
+      font-size: 0.9375rem;
       font-weight: 600;
-      transition: all 0.3s;
+      cursor: pointer;
+      transition: all 0.3s ease;
       display: flex;
       align-items: center;
       gap: 8px;
+      box-shadow: var(--shadow);
     }
 
     .create-button {
-      background: #4CAF50;
+      background: var(--success);
       color: white;
     }
 
     .create-button:hover {
-      background: #45a049;
+      background: var(--success-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
     }
 
     .upload-button {
-      background: #2196F3;
+      background: var(--accent-primary);
       color: white;
     }
 
     .upload-button:hover {
-      background: #1976D2;
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
     }
 
     .search-container {
@@ -257,74 +301,140 @@
 
     .search-bar {
       width: 100%;
-      padding: 12px 20px;
-      border: 1px solid #d1d5db;
+      padding: 12px 16px 12px 44px;
+      border: 2px solid var(--border-color);
       border-radius: 8px;
-      font-size: 14px;
-      background: white;
-      color: #1a202c;
+      font-size: 0.9375rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow);
+      position: relative;
     }
 
+    .search-bar:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    .search-container {
+      position: relative;
+    }
+
+    .search-container::before {
+      content: '\f002';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Folder Cards Grid */
     .card-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 25px;
-      margin-top: 30px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
     }
 
     .profile-card {
-      background: white;
+      background: var(--bg-primary);
       border-radius: 12px;
-      padding: 30px;
+      padding: 32px 28px;
       text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: all 0.3s;
-      border: 1px solid #e5e7eb;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+      border-left: 4px solid transparent;
+      position: relative;
+      overflow: hidden;
       cursor: pointer;
     }
 
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent-primary), var(--success));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
     .profile-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
-      border-color: #2196F3;
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-hover);
+      border-left-color: var(--accent-primary);
+    }
+
+    .profile-card:hover::before {
+      opacity: 1;
     }
 
     .folder-icon {
-      font-size: 80px;
+      font-size: 4rem;
       margin-bottom: 20px;
-      color: #2196F3;
+      background: linear-gradient(135deg, #667eea 0%, #0b1a50 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transition: transform 0.3s ease;
+    }
+
+    .profile-card:hover .folder-icon {
+      transform: scale(1.1);
     }
 
     .profile-card h3 {
-      font-size: 22px;
-      color: #1a202c;
+      font-size: 1.375rem;
+      color: var(--text-primary);
       margin-bottom: 8px;
       font-weight: 600;
     }
 
     .profile-card p {
-      color: #6b7280;
-      font-size: 14px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
       margin-bottom: 8px;
     }
 
+    .profile-card p#count-weekly,
+    .profile-card p#count-monthly,
+    .profile-card p#count-quarterly,
+    .profile-card p#count-semestral,
+    .profile-card p#count-annually {
+      color: var(--accent-primary);
+      font-weight: 600;
+      font-size: 0.9375rem;
+    }
+
     .edit-button {
-      background: #2196F3;
+      background: var(--accent-primary);
       color: white;
       border: none;
-      padding: 10px 30px;
+      padding: 10px 28px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 0.875rem;
       font-weight: 600;
-      transition: all 0.3s;
-      margin-top: 12px;
+      transition: all 0.2s ease;
+      margin-top: 16px;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
     }
 
     .edit-button:hover {
-      background: #1976D2;
+      background: var(--accent-hover);
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
     }
 
+    /* Modal Styles */
     .modal {
       display: none;
       position: fixed;
@@ -332,80 +442,123 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 2000;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
       align-items: center;
       justify-content: center;
+      animation: fadeIn 0.3s ease;
     }
 
     .modal.active {
       display: flex;
     }
 
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .modal-content {
-      background: white;
+      background: var(--bg-primary);
       border-radius: 12px;
-      padding: 30px;
-      max-width: 600px;
       width: 90%;
-      max-height: 80vh;
+      max-width: 900px;
+      max-height: 90vh;
       overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
     }
 
     .modal-header {
+      padding: 24px 32px;
+      border-bottom: 2px solid var(--border-color);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 25px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #e5e7eb;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px 12px 0 0;
     }
 
     .modal-header h2 {
-      color: #1a202c;
-      font-size: 24px;
-      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .close-modal {
       background: none;
       border: none;
-      font-size: 28px;
+      font-size: 2rem;
+      color: var(--text-muted);
       cursor: pointer;
-      color: #6b7280;
-      transition: color 0.3s;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      line-height: 1;
     }
 
     .close-modal:hover {
-      color: #1a202c;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      transform: rotate(90deg);
+    }
+
+    .modal-body {
+      padding: 32px;
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
 
     .form-group label {
       display: block;
       margin-bottom: 8px;
-      color: #1a202c;
       font-weight: 600;
-      font-size: 14px;
+      color: var(--text-primary);
+      font-size: 0.9375rem;
     }
 
     .form-group input,
-    .form-group textarea {
+    .form-group textarea,
+    .form-group select {
       width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #d1d5db;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
       border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.3s;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      transition: all 0.2s ease;
+      font-family: inherit;
     }
 
     .form-group input:focus,
-    .form-group textarea:focus {
+    .form-group textarea:focus,
+    .form-group select:focus {
       outline: none;
-      border-color: #2196F3;
+      border-color: var(--accent-primary);
+      background: var(--bg-primary);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
     }
 
     .form-group textarea {
@@ -414,34 +567,34 @@
     }
 
     .upload-zone {
-      border: 2px dashed #d1d5db;
+      border: 2px dashed var(--border-color);
       border-radius: 8px;
       padding: 40px;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s;
-      background: #f9fafb;
+      background: var(--bg-secondary);
     }
 
     .upload-zone:hover {
-      border-color: #2196F3;
-      background: #eff6ff;
+      border-color: var(--accent-primary);
+      background: rgba(0, 123, 255, 0.05);
     }
 
     .upload-zone.dragover {
-      border-color: #2196F3;
-      background: #dbeafe;
+      border-color: var(--accent-primary);
+      background: rgba(0, 123, 255, 0.1);
     }
 
     .upload-zone i {
-      font-size: 48px;
-      color: #2196F3;
-      margin-bottom: 15px;
+      font-size: 3rem;
+      color: var(--accent-primary);
+      margin-bottom: 16px;
     }
 
     .upload-zone p {
-      color: #6b7280;
-      margin-bottom: 10px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
     }
 
     .file-input {
@@ -449,140 +602,276 @@
     }
 
     .selected-files {
-      margin-top: 15px;
+      margin-top: 16px;
     }
 
     .file-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px;
-      background: #f9fafb;
-      border-radius: 6px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
       margin-bottom: 8px;
+      border: 1px solid var(--border-color);
     }
 
     .file-item-info {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex: 1;
     }
 
     .file-item i {
-      color: #2196F3;
-      font-size: 20px;
+      color: var(--accent-primary);
+      font-size: 1.25rem;
     }
 
     .file-item-name {
-      color: #1a202c;
-      font-size: 14px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
       font-weight: 500;
     }
 
     .file-item-size {
-      color: #6b7280;
-      font-size: 12px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
     }
 
     .remove-file {
-      background: #ef4444;
+      background: var(--danger);
       color: white;
       border: none;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s;
+      font-size: 18px;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .remove-file:hover {
-      background: #dc2626;
+      background: #c82333;
     }
 
     .auto-category-badge {
       display: inline-block;
-      padding: 4px 12px;
-      background: #dbeafe;
-      color: #1976D2;
+      padding: 6px 14px;
+      background: rgba(0, 123, 255, 0.1);
+      color: var(--accent-primary);
       border-radius: 12px;
-      font-size: 12px;
+      font-size: 0.75rem;
       font-weight: 600;
       margin-top: 8px;
     }
 
     .modal-actions {
       display: flex;
-      gap: 15px;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
+      gap: 12px;
+      margin-top: 24px;
+      padding: 20px 32px;
+      border-top: 2px solid var(--border-color);
+      background: var(--bg-secondary);
+      border-radius: 0 0 12px 12px;
     }
 
     .btn-submit {
       flex: 1;
-      padding: 12px 25px;
-      background: #2196F3;
+      padding: 12px 28px;
+      background: var(--accent-primary);
       color: white;
       border: none;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 0.9375rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
     }
 
     .btn-submit:hover {
-      background: #1976D2;
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
     }
 
     .btn-cancel {
       flex: 1;
-      padding: 12px 25px;
-      background: #6b7280;
-      color: white;
-      border: none;
+      padding: 12px 28px;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      border: 2px solid var(--border-color);
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 0.9375rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
     }
 
     .btn-cancel:hover {
-      background: #4b5563;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
     }
 
     .alert {
-      padding: 15px 20px;
+      padding: 16px 20px;
       border-radius: 8px;
       margin-bottom: 20px;
       display: none;
+      border-left: 4px solid;
     }
 
     .alert.success {
-      background: #d1fae5;
-      color: #065f46;
-      border-left: 4px solid #10b981;
+      background: rgba(40, 167, 69, 0.1);
+      color: var(--success-hover);
+      border-color: var(--success);
     }
 
     .alert.error {
-      background: #fee2e2;
-      color: #991b1b;
-      border-left: 4px solid #ef4444;
+      background: rgba(220, 53, 69, 0.1);
+      color: var(--danger);
+      border-color: var(--danger);
     }
 
     .alert.active {
       display: block;
     }
 
-    @media (max-width: 1024px) {
-      .card-grid {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      }
+    /* Files Grid */
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
     }
 
+    .file-card {
+      background: var(--bg-primary);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      transition: all 0.3s;
+      box-shadow: var(--shadow);
+    }
+
+    .file-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .file-icon {
+      font-size: 3rem;
+      color: var(--accent-primary);
+      margin-bottom: 16px;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      word-break: break-word;
+      font-size: 0.875rem;
+    }
+
+    .file-info {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .btn-view {
+      flex: 1;
+      padding: 8px 16px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-view:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-delete {
+      padding: 8px 16px;
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-delete:hover {
+      background: #c82333;
+    }
+
+    .no-files {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-muted);
+      grid-column: 1 / -1;
+    }
+
+    .no-files i {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+
+    .loading-spinner {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--accent-primary);
+      grid-column: 1 / -1;
+    }
+
+    .loading-spinner i {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      animation: spin 1s linear infinite;
+    }
+
+    /* File Filters */
+    .file-filters {
+      margin-bottom: 24px;
+      padding: 20px;
+      background: var(--bg-primary);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .file-filters > div {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    /* Responsive */
     @media (max-width: 768px) {
       .menu-toggle {
         display: block;
@@ -608,7 +897,7 @@
       }
 
       .header h1 {
-        font-size: 24px;
+        font-size: 1.5rem;
       }
 
       .action-buttons {
@@ -618,6 +907,13 @@
 
       .buttons-left {
         width: 100%;
+        flex-direction: column;
+      }
+
+      .create-button,
+      .upload-button {
+        width: 100%;
+        justify-content: center;
       }
 
       .search-container {
@@ -630,129 +926,24 @@
       }
 
       .modal-content {
+        width: 95%;
+        margin: 20px;
+      }
+
+      .modal-header,
+      .modal-body,
+      .modal-actions {
         padding: 20px;
       }
 
-      .modal-actions {
-        flex-direction: column;
+      .file-filters > div {
+        grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width: 480px) {
-      .main-content {
-        padding: 15px;
-        padding-top: 80px;
-      }
-
-      .buttons-left {
-        flex-direction: column;
-      }
-
-      .create-button,
-      .upload-button {
-        width: 100%;
-        justify-content: center;
-      }
-    }/* Add these styles inside your existing <style> tag */
-
-.files-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.file-card {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  border: 1px solid #e5e7eb;
-  transition: all 0.3s;
-}
-
-.file-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.file-icon {
-  font-size: 48px;
-  color: #2196F3;
-  margin-bottom: 15px;
-}
-
-.file-name {
-  font-weight: 600;
-  color: #1a202c;
-  margin-bottom: 10px;
-  word-break: break-word;
-}
-
-.file-info {
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 5px;
-}
-
-.file-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.btn-view {
-  flex: 1;
-  padding: 8px 15px;
-  background: #2196F3;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.3s;
-}
-
-.btn-view:hover {
-  background: #1976D2;
-}
-
-.btn-delete {
-  padding: 8px 15px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-delete:hover {
-  background: #dc2626;
-}
-
-.no-files {
-  text-align: center;
-  padding: 60px 20px;
-  color: #6b7280;
-}
-
-.no-files i {
-  font-size: 64px;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
-.loading-spinner {
-  text-align: center;
-  padding: 60px 20px;
-  color: #2196F3;
-}
-
-.loading-spinner i {
-  font-size: 48px;
-  margin-bottom: 15px; 
-}
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -762,283 +953,276 @@
 
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-  <div class="sidebar" id="sidebar">
-    <img src="{% static 'Pictures/logo1.png' %}" class="logo" alt="DILG Logo" />    <h3>Select Barangay</h3>
-    <ul class="barangay-list">
-      <li onclick="selectBarangay(6, 'Barangay I', event)">Barangay I</li>
-      <li onclick="selectBarangay(7, 'Barangay II', event)">Barangay II</li>
-      <li onclick="selectBarangay(8, 'Barangay III', event)">Barangay III</li>
-      <li onclick="selectBarangay(9, 'Barangay IV', event)">Barangay IV</li>
-      <li onclick="selectBarangay(10, 'Barangay V', event)">Barangay V</li>
-      <li onclick="selectBarangay(11, 'Barangay VI', event)">Barangay VI</li>
-      <li onclick="selectBarangay(12, 'Barangay VII', event)">Barangay VII</li>
-      <li onclick="selectBarangay(13, 'Barangay VIII', event)">Barangay VIII</li>
-      <li onclick="selectBarangay(14, 'Barangay IX', event)">Barangay IX</li>
-      <li onclick="selectBarangay(15, 'Barangay X', event)">Barangay X</li>
-      <li onclick="selectBarangay(16, 'Barangay XI', event)">Barangay XI</li>
-      <li onclick="selectBarangay(17, 'Barra', event)">Barra</li>
-      <li onclick="selectBarangay(18, 'Bocohan', event)">Bocohan</li>
-      <li onclick="selectBarangay(19, 'Cotta', event)">Cotta</li>
-      <li onclick="selectBarangay(20, 'Dalahican', event)">Dalahican</li>
-      <li onclick="selectBarangay(21, 'Domoit', event)">Domoit</li>
-      <li onclick="selectBarangay(22, 'Gulang-Gulang', event)">Gulang-Gulang</li>
-      <li onclick="selectBarangay(23, 'Ibabang Dupay', event)">Ibabang Dupay</li>
-      <li onclick="selectBarangay(24, 'Ibabang Iyam', event)">Ibabang Iyam</li>
-      <li onclick="selectBarangay(25, 'Ibabang Talim', event)">Ibabang Talim</li>
-      <li onclick="selectBarangay(26, 'Ilayang Dupay', event)">Ilayang Dupay</li>
-      <li onclick="selectBarangay(27, 'Ilayang Iyam', event)">Ilayang Iyam</li>
-      <li onclick="selectBarangay(28, 'Ilayang Talim', event)">Ilayang Talim</li>
-      <li onclick="selectBarangay(29, 'Isabang', event)">Isabang</li>
-      <li onclick="selectBarangay(30, 'Market View', event)">Market View</li>
-      <li onclick="selectBarangay(31, 'Mayao Castillo', event)">Mayao Castillo</li>
-      <li onclick="selectBarangay(32, 'Mayao Crossing', event)">Mayao Crossing</li>
-      <li onclick="selectBarangay(33, 'Mayao Kanluran', event)">Mayao Kanluran</li>
-      <li onclick="selectBarangay(34, 'Mayao Parada', event)">Mayao Parada</li>
-      <li onclick="selectBarangay(35, 'Mayao Silangan', event)">Mayao Silangan</li>
-      <li onclick="selectBarangay(36, 'Ransohan', event)">Ransohan</li>
-      <li onclick="selectBarangay(37, 'Salinas', event)">Salinas</li>
-      <li onclick="selectBarangay(38, 'Talao-Talao', event)">Talao-Talao</li>
-    </ul>
-  </div>
-  
-  <div class="main-content">
-    <div class="header">
-      <h1>Brgy. Monitoring Files</h1>
-      <button class="back-button" onclick="window.location.href='/folder/'">
-        <i class="fas fa-arrow-left"></i> Back
-      </button>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <img src="{% static 'Pictures/logo1.png' %}" class="logo" alt="DILG Logo" />
+      <h3 class="menu-title">Select Barangay</h3>
+      <ul class="barangay-list">
+        <li onclick="selectBarangay(6, 'Barangay I', event)">Barangay I</li>
+        <li onclick="selectBarangay(7, 'Barangay II', event)">Barangay II</li>
+        <li onclick="selectBarangay(8, 'Barangay III', event)">Barangay III</li>
+        <li onclick="selectBarangay(9, 'Barangay IV', event)">Barangay IV</li>
+        <li onclick="selectBarangay(10, 'Barangay V', event)">Barangay V</li>
+        <li onclick="selectBarangay(11, 'Barangay VI', event)">Barangay VI</li>
+        <li onclick="selectBarangay(12, 'Barangay VII', event)">Barangay VII</li>
+        <li onclick="selectBarangay(13, 'Barangay VIII', event)">Barangay VIII</li>
+        <li onclick="selectBarangay(14, 'Barangay IX', event)">Barangay IX</li>
+        <li onclick="selectBarangay(15, 'Barangay X', event)">Barangay X</li>
+        <li onclick="selectBarangay(16, 'Barangay XI', event)">Barangay XI</li>
+        <li onclick="selectBarangay(17, 'Barra', event)">Barra</li>
+        <li onclick="selectBarangay(18, 'Bocohan', event)">Bocohan</li>
+        <li onclick="selectBarangay(19, 'Cotta', event)">Cotta</li>
+        <li onclick="selectBarangay(20, 'Dalahican', event)">Dalahican</li>
+        <li onclick="selectBarangay(21, 'Domoit', event)">Domoit</li>
+        <li onclick="selectBarangay(22, 'Gulang-Gulang', event)">Gulang-Gulang</li>
+        <li onclick="selectBarangay(23, 'Ibabang Dupay', event)">Ibabang Dupay</li>
+        <li onclick="selectBarangay(24, 'Ibabang Iyam', event)">Ibabang Iyam</li>
+        <li onclick="selectBarangay(25, 'Ibabang Talim', event)">Ibabang Talim</li>
+        <li onclick="selectBarangay(26, 'Ilayang Dupay', event)">Ilayang Dupay</li>
+        <li onclick="selectBarangay(27, 'Ilayang Iyam', event)">Ilayang Iyam</li>
+        <li onclick="selectBarangay(28, 'Ilayang Talim', event)">Ilayang Talim</li>
+        <li onclick="selectBarangay(29, 'Isabang', event)">Isabang</li>
+        <li onclick="selectBarangay(30, 'Market View', event)">Market View</li>
+        <li onclick="selectBarangay(31, 'Mayao Castillo', event)">Mayao Castillo</li>
+        <li onclick="selectBarangay(32, 'Mayao Crossing', event)">Mayao Crossing</li>
+        <li onclick="selectBarangay(33, 'Mayao Kanluran', event)">Mayao Kanluran</li>
+        <li onclick="selectBarangay(34, 'Mayao Parada', event)">Mayao Parada</li>
+        <li onclick="selectBarangay(35, 'Mayao Silangan', event)">Mayao Silangan</li>
+        <li onclick="selectBarangay(36, 'Ransohan', event)">Ransohan</li>
+        <li onclick="selectBarangay(37, 'Salinas', event)">Salinas</li>
+        <li onclick="selectBarangay(38, 'Talao-Talao', event)">Talao-Talao</li>
+      </ul>
     </div>
-
-    <div class="selected-barangay">
-      <h3>Selected Barangay: <span id="selectedBarangayName">Select a barangay</span></h3>
-    </div>
-
-    <div class="action-buttons">
-      <div class="buttons-left">
-        <button class="create-button" onclick="openCreateModal()">
-          <i class="fas fa-plus"></i> Create
-        </button>
-        <button class="upload-button" onclick="openUploadModal()">
-          <i class="fas fa-upload"></i> Upload
+    
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <h1>
+          <i class="fas fa-folder-open"></i>
+          Brgy. Monitoring Files
+        </h1>
+        <button class="back-button" onclick="window.location.href='/folder/'">
+          <i class="fas fa-arrow-left"></i> Back to Folders
         </button>
       </div>
-      <div class="search-container">
-        <input type="text" class="search-bar" placeholder="Search files..." id="globalSearch" onkeyup="searchFiles()">
+
+      <div class="selected-barangay">
+        <h3>Selected Barangay: <span id="selectedBarangayName">Select a barangay from sidebar</span></h3>
+      </div>
+
+      <div class="action-buttons">
+        <div class="buttons-left">
+          <button class="create-button" onclick="openCreateModal()">
+            <i class="fas fa-plus"></i> Create Document
+          </button>
+          <button class="upload-button" onclick="openUploadModal()">
+            <i class="fas fa-upload"></i> Upload Files
+          </button>
+        </div>
+        <div class="search-container">
+          <input type="text" class="search-bar" placeholder="Search files..." id="globalSearch" onkeyup="searchFiles()">
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="profile-card" data-category="weekly">
+          <div class="folder-icon"><i class="fas fa-folder"></i></div>
+          <h3>Weekly</h3>
+          <p>Requirements</p>
+          <p id="count-weekly">0 files</p>
+          <button class="edit-button" onclick="openFolder('weekly')">
+            <i class="fas fa-folder-open"></i> Open Folder
+          </button>
+        </div>
+        
+        <div class="profile-card" data-category="monthly">
+          <div class="folder-icon"><i class="fas fa-folder"></i></div>
+          <h3>Monthly</h3>
+          <p>Requirements</p>
+          <p id="count-monthly">0 files</p>
+          <button class="edit-button" onclick="openFolder('monthly')">
+            <i class="fas fa-folder-open"></i> Open Folder
+          </button>
+        </div>
+
+        <div class="profile-card" data-category="quarterly">
+          <div class="folder-icon"><i class="fas fa-folder"></i></div>
+          <h3>Quarterly</h3>
+          <p>Requirements</p>
+          <p id="count-quarterly">0 files</p>
+          <button class="edit-button" onclick="openFolder('quarterly')">
+            <i class="fas fa-folder-open"></i> Open Folder
+          </button>
+        </div>
+
+        <div class="profile-card" data-category="semestral">
+          <div class="folder-icon"><i class="fas fa-folder"></i></div>
+          <h3>Semestral</h3>
+          <p>Requirements</p>
+          <p id="count-semestral">0 files</p>
+          <button class="edit-button" onclick="openFolder('semestral')">
+            <i class="fas fa-folder-open"></i> Open Folder
+          </button>
+        </div>
+
+        <div class="profile-card" data-category="annually">
+          <div class="folder-icon"><i class="fas fa-folder"></i></div>
+          <h3>Annual</h3>
+          <p>Requirements</p>
+          <p id="count-annually">0 files</p>
+          <button class="edit-button" onclick="openFolder('annually')">
+            <i class="fas fa-folder-open"></i> Open Folder
+          </button>
+        </div>
       </div>
     </div>
-
-    <div class="card-grid">
-  <div class="profile-card" data-category="weekly">
-    <div class="folder-icon"><i class="fas fa-folder"></i></div>
-    <h3>Weekly</h3>
-    <p>Requirements</p>
-    <p id="count-weekly">0 files</p>
-    <button class="edit-button" onclick="openFolder('weekly')">Open</button>
-  </div>
-  
-  <div class="profile-card" data-category="monthly">
-    <div class="folder-icon"><i class="fas fa-folder"></i></div>
-    <h3>Monthly</h3>
-    <p>Requirements</p>
-    <p id="count-monthly">0 files</p>
-    <button class="edit-button" onclick="openFolder('monthly')">Open</button>
   </div>
 
-  <div class="profile-card" data-category="quarterly">
-    <div class="folder-icon"><i class="fas fa-folder"></i></div>
-    <h3>Quarterly</h3>
-    <p>Requirements</p>
-    <p id="count-quarterly">0 files</p>
-    <button class="edit-button" onclick="openFolder('quarterly')">Open</button>
-  </div>
-
-  <div class="profile-card" data-category="semestral">
-    <div class="folder-icon"><i class="fas fa-folder"></i></div>
-    <h3>Semestral</h3>
-    <p>Requirements</p>
-    <p id="count-semestral">0 files</p>
-    <button class="edit-button" onclick="openFolder('semestral')">Open</button>
-  </div>
-
-  <div class="profile-card" data-category="annually">
-    <div class="folder-icon"><i class="fas fa-folder"></i></div>
-    <h3>Annual</h3>
-    <p>Requirements</p>
-    <p id="count-annually">0 files</p>
-    <button class="edit-button" onclick="openFolder('annually')">Open</button>
-  </div>
-</div>
-  </div>
-
+  <!-- Create Document Modal -->
   <div class="modal" id="createModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Create New Document</h2>
+        <h2><i class="fas fa-file-alt"></i> Create New Document</h2>
         <button class="close-modal" onclick="closeCreateModal()">&times;</button>
       </div>
 
       <div class="alert" id="createAlert"></div>
 
-      <form id="createForm" onsubmit="handleCreateSubmit(event)">
-        <div class="form-group">
-          <label>Document Title *</label>
-          <input type="text" id="docTitle" required placeholder="e.g., Weekly Report, Monthly Summary">
-        </div>
+      <div class="modal-body">
+        <form id="createForm" onsubmit="handleCreateSubmit(event)">
+          <div class="form-group">
+            <label>Document Title *</label>
+            <input type="text" id="docTitle" required placeholder="e.g., Weekly Report, Monthly Summary">
+          </div>
 
-        <div class="form-group">
-          <label>Description</label>
-          <textarea id="docDescription" placeholder="Brief description of the document"></textarea>
-        </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="docDescription" placeholder="Brief description of the document"></textarea>
+          </div>
 
-        <div class="form-group">
-          <label>Auto-Detected Category</label>
-          <div id="autoCategoryDisplay" class="auto-category-badge">Will be detected from title</div>
-        </div>
+          <div class="form-group">
+            <label>Auto-Detected Category</label>
+            <div id="autoCategoryDisplay" class="auto-category-badge">Will be detected from title</div>
+          </div>
+        </form>
+      </div>
 
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeCreateModal()">Cancel</button>
-          <button type="submit" class="btn-submit">
-            <i class="fas fa-plus"></i> Create Document
-          </button>
-        </div>
-      </form>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeCreateModal()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button type="submit" form="createForm" class="btn-submit">
+          <i class="fas fa-plus"></i> Create Document
+        </button>
+      </div>
     </div>
   </div>
 
+  <!-- Upload Files Modal -->
   <div class="modal" id="uploadModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Upload Files</h2>
+        <h2><i class="fas fa-cloud-upload-alt"></i> Upload Files</h2>
         <button class="close-modal" onclick="closeUploadModal()">&times;</button>
       </div>
 
       <div class="alert" id="uploadAlert"></div>
 
-      <form id="uploadForm" onsubmit="handleUploadSubmit(event)">
-        <div class="form-group">
-          <label>Select Files *</label>
-          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p><strong>Click to upload</strong> or drag and drop</p>
-            <p style="font-size: 12px; color: #9ca3af;">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max 10MB)</p>
+      <div class="modal-body">
+        <form id="uploadForm" onsubmit="handleUploadSubmit(event)">
+          <div class="form-group">
+            <label>Select Files *</label>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p><strong>Click to upload</strong> or drag and drop</p>
+              <p style="font-size: 12px; color: var(--text-muted);">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max 10MB)</p>
+            </div>
+            <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onchange="handleFileSelect(event)">
           </div>
-          <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onchange="handleFileSelect(event)">
-        </div>
 
-        <div class="selected-files" id="selectedFiles"></div>
+          <div class="selected-files" id="selectedFiles"></div>
+        </form>
+      </div>
 
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeUploadModal()">Cancel</button>
-          <button type="submit" class="btn-submit">
-            <i class="fas fa-upload"></i> Upload Files
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-<!-- File Browser Modal -->
-<div class="modal" id="fileBrowser">
-  <div class="modal-content" style="max-width: 1200px;">
-    <div class="modal-header file-browser-header">
-      <h2 id="browserTitle">Files</h2>
-      <button class="close-modal" onclick="closeFileBrowser()">&times;</button>
-    </div>
-
-    <!-- Filters -->
-    <div class="file-filters" style="margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 8px;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-        <div class="form-group" style="margin: 0;">
-          <label style="font-size: 12px; margin-bottom: 5px;">Filter by Barangay</label>
-          <select id="filterBarangay" class="search-bar" style="padding: 8px;">
-            <option value="">All Barangays</option>
-            <option value="6">Barangay I</option>
-            <option value="7">Barangay II</option>
-            <option value="8">Barangay III</option>
-            <option value="9">Barangay IV</option>
-            <option value="10">Barangay V</option>
-            <option value="11">Barangay VI</option>
-            <option value="12">Barangay VII</option>
-            <option value="13">Barangay VIII</option>
-            <option value="14">Barangay IX</option>
-            <option value="15">Barangay X</option>
-            <option value="16">Barangay XI</option>
-            <option value="17">Barra</option>
-            <option value="18">Bocohan</option>
-            <option value="19">Cotta</option>
-            <option value="20">Dalahican</option>
-            <option value="21">Domoit</option>
-            <option value="22">Gulang-Gulang</option>
-            <option value="23">Ibabang Dupay</option>
-            <option value="24">Ibabang Iyam</option>
-            <option value="25">Ibabang Talim</option>
-            <option value="26">Ilayang Dupay</option>
-            <option value="27">Ilayang Iyam</option>
-            <option value="28">Ilayang Talim</option>
-            <option value="29">Isabang</option>
-            <option value="30">Market View</option>
-            <option value="31">Mayao Castillo</option>
-            <option value="32">Mayao Crossing</option>
-            <option value="33">Mayao Kanluran</option>
-            <option value="34">Mayao Parada</option>
-            <option value="35">Mayao Silangan</option>
-            <option value="36">Ransohan</option>
-            <option value="37">Salinas</option>
-            <option value="38">Talao-Talao</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin: 0;">
-          <label style="font-size: 12px; margin-bottom: 5px;">Date From</label>
-          <input type="date" id="filterDateFrom" class="search-bar" style="padding: 8px;">
-        </div>
-        <div class="form-group" style="margin: 0;">
-          <label style="font-size: 12px; margin-bottom: 5px;">Date To</label>
-          <input type="date" id="filterDateTo" class="search-bar" style="padding: 8px;">
-        </div>
-        <div style="display: flex; align-items: flex-end;">
-          <button class="upload-button" onclick="applyFilters()" style="width: 100%; margin: 0;">
-            <i class="fas fa-filter"></i> Apply
-          </button>
-        </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeUploadModal()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button type="submit" form="uploadForm" class="btn-submit">
+          <i class="fas fa-upload"></i> Upload Files
+        </button>
       </div>
     </div>
+  </div>
 
-    <!-- Files Container -->
-    <div id="filesContainer" style="min-height: 300px;">
-      <div class="loading-spinner">
-        <i class="fas fa-spinner fa-spin"></i>
-        <p>Loading files...</p>
+  <!-- File Browser Modal -->
+  <div class="modal" id="fileBrowser">
+    <div class="modal-content" style="max-width: 1200px;">
+      <div class="modal-header">
+        <h2 id="browserTitle"><i class="fas fa-folder-open"></i> Files</h2>
+        <button class="close-modal" onclick="closeFileBrowser()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Filters -->
+        <div class="file-filters">
+          <div>
+            <div class="form-group" style="margin: 0;">
+              <label style="font-size: 12px; margin-bottom: 5px;">Date From</label>
+              <input type="date" id="filterDateFrom" class="search-bar" style="padding: 8px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label style="font-size: 12px; margin-bottom: 5px;">Date To</label>
+              <input type="date" id="filterDateTo" class="search-bar" style="padding: 8px;">
+            </div>
+            <div>
+              <button class="upload-button" onclick="applyFilters()" style="width: 100%; margin: 0;">
+                <i class="fas fa-filter"></i> Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Files Container -->
+        <div id="filesContainer" style="min-height: 300px;">
+          <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading files...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeFileBrowser()">
+          <i class="fas fa-times"></i> Close
+        </button>
+        <button type="button" class="btn-submit" onclick="refreshFiles()">
+          <i class="fas fa-sync"></i> Refresh
+        </button>
       </div>
     </div>
+  </div>
 
-    <div class="modal-actions">
-      <button type="button" class="btn-cancel" onclick="closeFileBrowser()">Close</button>
-      <button type="button" class="btn-submit" onclick="refreshFiles()">
-        <i class="fas fa-sync"></i> Refresh
-      </button>
+  <!-- Image Preview Modal -->
+  <div class="modal" id="previewModal">
+    <div class="modal-content" style="max-width: 90%; max-height: 90vh; padding: 0; overflow: hidden;">
+      <div class="modal-header" style="padding: 15px 20px;">
+        <h2><i class="fas fa-image"></i> Image Preview</h2>
+        <button class="close-modal" onclick="closePreview()">&times;</button>
+      </div>
+      <div style="padding: 20px; text-align: center; background: #1a202c;">
+        <img id="previewImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; border-radius: 8px;">
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Image Preview Modal -->
-<div class="modal" id="previewModal">
-  <div class="modal-content" style="max-width: 90%; max-height: 90vh; padding: 0; overflow: hidden;">
-    <div class="modal-header" style="padding: 15px 20px;">
-      <h2>Image Preview</h2>
-      <button class="close-modal" onclick="closePreview()">&times;</button>
-    </div>
-    <div style="padding: 20px; text-align: center; background: #1a202c;">
-      <img id="previewImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; border-radius: 8px;">
-    </div>
-  </div>
-</div>
   <script>
     const csrfToken = '{{ csrf_token }}';
     let selectedBarangayId = null;
     let selectedBarangayName = null;
     let currentCategory = null;
     let selectedFiles = [];
-
-    
 
     const categoryKeywords = {
       weekly: ['week', 'weekly', 'w/', 'seven days', 'hebdomadal'],
@@ -1055,7 +1239,6 @@
       
       sidebar.classList.toggle('active');
       overlay.classList.toggle('active');
-      menuToggle.classList.toggle('active');
       
       const icon = menuToggle.querySelector('i');
       icon.className = sidebar.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
@@ -1068,7 +1251,6 @@
       
       sidebar.classList.remove('active');
       overlay.classList.remove('active');
-      menuToggle.classList.remove('active');
       
       menuToggle.querySelector('i').className = 'fas fa-bars';
     }
@@ -1083,9 +1265,11 @@
       });
       
       event.target.classList.add('active');
-      
-      // Reload file counts for this barangay
       loadFileCounts();
+      
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
     }
 
     function detectCategory(text) {
@@ -1104,7 +1288,7 @@
 
     function openCreateModal() {
       if (!selectedBarangayId) {
-        alert('Please select a barangay first');
+        alert('⚠️ Please select a barangay first');
         return;
       }
       document.getElementById('createModal').classList.add('active');
@@ -1119,7 +1303,7 @@
 
     function openUploadModal() {
       if (!selectedBarangayId) {
-        alert('Please select a barangay first');
+        alert('⚠️ Please select a barangay first');
         return;
       }
       document.getElementById('uploadModal').classList.add('active');
@@ -1132,42 +1316,6 @@
       document.getElementById('selectedFiles').innerHTML = '';
       hideAlert('uploadAlert');
     }
-
-    document.addEventListener('DOMContentLoaded', function() {
-    console.log('📊 Page loaded, initializing...');
-    loadFileCounts();
-    
-    // Add click handlers to all Open buttons
-    document.querySelectorAll('.edit-button').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const card = this.closest('.profile-card');
-            const category = card.dataset.category;
-            if (category) {
-                openFolder(category);
-            }
-        });
-    });
-});
-
-    function selectBarangay(barangayId, barangayName) {
-    console.log(`🏘️ Selected: ${barangayName} (ID: ${barangayId})`);
-    selectedBarangayId = barangayId;
-    
-    const nameElement = document.getElementById('selectedBarangayName');
-    if (nameElement) {
-        nameElement.textContent = barangayName;
-    }
-    
-    // Highlight selected barangay
-    document.querySelectorAll('.barangay-list li').forEach(li => {
-        li.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    loadFileCounts();
-}
-
 
     function handleFileSelect(event) {
       const files = Array.from(event.target.files);
@@ -1260,44 +1408,20 @@
       
       console.log('Creating document:', formData);
       
-      showAlert('createAlert', 'success', `Document "${title}" created successfully in ${category} category!`);
+      showAlert('createAlert', 'success', `✓ Document "${title}" created successfully in ${category} category!`);
       
       updateFileCount(category, 1);
       
       setTimeout(() => {
         closeCreateModal();
       }, 2000);
-      
-      /* BACKEND INTEGRATION:
-      fetch('/api/documents/create/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(formData)
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showAlert('createAlert', 'success', 'Document created successfully!');
-          updateFileCount(category, 1);
-          setTimeout(() => closeCreateModal(), 2000);
-        } else {
-          showAlert('createAlert', 'error', data.error || 'Failed to create document');
-        }
-      })
-      .catch(error => {
-        showAlert('createAlert', 'error', 'An error occurred');
-      });
-      */
     }
 
     function handleUploadSubmit(event) {
       event.preventDefault();
       
       if (selectedFiles.length === 0) {
-        showAlert('uploadAlert', 'error', 'Please select at least one file');
+        showAlert('uploadAlert', 'error', '⚠️ Please select at least one file');
         return;
       }
       
@@ -1308,7 +1432,7 @@
         categoryCounts[fileData.category] = (categoryCounts[fileData.category] || 0) + 1;
       });
       
-      showAlert('uploadAlert', 'success', `${selectedFiles.length} file(s) uploaded and auto-categorized successfully!`);
+      showAlert('uploadAlert', 'success', `✓ ${selectedFiles.length} file(s) uploaded and auto-categorized successfully!`);
       
       for (let category in categoryCounts) {
         updateFileCount(category, categoryCounts[category]);
@@ -1317,38 +1441,6 @@
       setTimeout(() => {
         closeUploadModal();
       }, 2000);
-      
-      /* BACKEND INTEGRATION:
-      const formData = new FormData();
-      selectedFiles.forEach((fileData, index) => {
-        formData.append(`file_${index}`, fileData.file);
-        formData.append(`category_${index}`, fileData.category);
-      });
-      formData.append('barangay_id', selectedBarangayId);
-      
-      fetch('/api/files/upload/', {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showAlert('uploadAlert', 'success', 'Files uploaded successfully!');
-          data.files.forEach(file => {
-            updateFileCount(file.category, 1);
-          });
-          setTimeout(() => closeUploadModal(), 2000);
-        } else {
-          showAlert('uploadAlert', 'error', data.error || 'Upload failed');
-        }
-      })
-      .catch(error => {
-        showAlert('uploadAlert', 'error', 'An error occurred during upload');
-      });
-      */
     }
 
     function updateFileCount(category, increment) {
@@ -1372,314 +1464,272 @@
       alert.textContent = '';
     }
 
-    // Open folder modal
-function openFolder(category) {
-    console.log(`📁 Opening ${category} folder`);
-    
-    currentCategory = category;
-    
-    // Category titles
-    const titles = {
+    function openFolder(category) {
+      console.log(`📁 Opening ${category} folder`);
+      
+      currentCategory = category;
+      
+      const titles = {
         'weekly': 'Weekly Requirements',
         'monthly': 'Monthly Requirements',
         'quarterly': 'Quarterly Requirements',
         'semestral': 'Semestral Requirements',
         'annually': 'Annual Requirements'
-    };
-    
-    // Get modal elements
-    const modal = document.getElementById('fileBrowser');
-    const titleElement = document.getElementById('browserTitle');
-    
-    // Check if elements exist
-    if (!modal) {
-        console.error('❌ Modal #fileBrowser not found in DOM!');
-        alert('Error: File browser modal not found. Please check the HTML.');
+      };
+      
+      const modal = document.getElementById('fileBrowser');
+      const titleElement = document.getElementById('browserTitle');
+      
+      if (!modal) {
+        console.error('❌ Modal #fileBrowser not found!');
+        alert('Error: File browser modal not found.');
         return;
+      }
+      
+      if (titleElement) {
+        titleElement.innerHTML = `<i class="fas fa-folder-open"></i> ${titles[category] || 'Files'}`;
+      }
+      
+      modal.classList.add('active');
+      loadFiles(category);
     }
-    
-    if (!titleElement) {
-        console.error('❌ Element #browserTitle not found!');
-        // Create it if missing
-        const header = modal.querySelector('.file-browser-header');
-        if (header) {
-            const h2 = document.createElement('h2');
-            h2.id = 'browserTitle';
-            h2.textContent = titles[category] || 'Files';
-            header.insertBefore(h2, header.firstChild);
-        } else {
-            alert('Error: Browser header not found. Please check the HTML.');
-            return;
-        }
-    } else {
-        titleElement.textContent = titles[category] || 'Files';
-    }
-    
-    // Set barangay filter
-    const filterBarangay = document.getElementById('filterBarangay');
-    if (filterBarangay && selectedBarangayId) {
-        filterBarangay.value = selectedBarangayId;
-    }
-    
-    // Show modal
-    modal.classList.add('active');
-    console.log('✓ Modal opened');
-    
-    // Load files
-    loadFiles(category);
-}
 
-
-    // Load files dynamically from API
-function loadFiles(category) {
-    const container = document.getElementById('filesContainer');
-    
-    if (!container) {
+    function loadFiles(category) {
+      const container = document.getElementById('filesContainer');
+      
+      if (!container) {
         console.error('❌ filesContainer not found!');
         return;
-    }
-    
-    // Show loading
-    container.innerHTML = `
+      }
+      
+      container.innerHTML = `
         <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Loading files...</p>
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Loading files...</p>
         </div>
-    `;
-    
-    // Build URL with filters
-    let url = `/api/files/category/${category}/`;
-    const params = new URLSearchParams();
-    
-    const barangayFilter = document.getElementById('filterBarangay');
-    const dateFrom = document.getElementById('filterDateFrom');
-    const dateTo = document.getElementById('filterDateTo');
-    
-    if (barangayFilter && barangayFilter.value) {
-        params.append('barangay_id', barangayFilter.value);
-    }
-    if (dateFrom && dateFrom.value) {
+      `;
+      
+      let url = `/api/files/category/${category}/`;
+      const params = new URLSearchParams();
+      
+      const filterBarangay = document.getElementById('filterBarangay');
+      const dateFrom = document.getElementById('filterDateFrom');
+      const dateTo = document.getElementById('filterDateTo');
+      
+      if (dateFrom && dateFrom.value) {
         params.append('date_from', dateFrom.value);
-    }
-    if (dateTo && dateTo.value) {
+      }
+      if (dateTo && dateTo.value) {
         params.append('date_to', dateTo.value);
-    }
-    
-    if (params.toString()) {
+      }
+      
+      if (params.toString()) {
         url += '?' + params.toString();
-    }
-    
-    console.log(`🔄 Fetching files from: ${url}`);
-    
-    // Fetch files
-    fetch(url, {
+      }
+      
+      console.log(`🔄 Fetching files from: ${url}`);
+      
+      fetch(url, {
         headers: {
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
         }
-    })
-    .then(response => response.json())
-    .then(data => {
+      })
+      .then(response => response.json())
+      .then(data => {
         console.log('✓ API Response:', data);
         
         if (data.success) {
-            renderFiles(data.files);
+          renderFiles(data.files);
         } else {
-            container.innerHTML = `
-                <div class="no-files">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <p>Error: ${data.error || 'Failed to load files'}</p>
-                </div>
-            `;
+          container.innerHTML = `
+            <div class="no-files">
+              <i class="fas fa-exclamation-circle"></i>
+              <p>Error: ${data.error || 'Failed to load files'}</p>
+            </div>
+          `;
         }
-    })
-    .catch(error => {
+      })
+      .catch(error => {
         console.error('❌ Fetch error:', error);
         container.innerHTML = `
-            <div class="no-files">
-                <i class="fas fa-exclamation-circle"></i>
-                <p>Error loading files: ${error.message}</p>
-            </div>
+          <div class="no-files">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Error loading files: ${error.message}</p>
+          </div>
         `;
-    });
-}
+      });
+    }
 
-    // Render files in the modal
-function renderFiles(files) {
-    const container = document.getElementById('filesContainer');
-    
-    if (!files || files.length === 0) {
+    function renderFiles(files) {
+      const container = document.getElementById('filesContainer');
+      
+      if (!files || files.length === 0) {
         container.innerHTML = `
-            <div class="no-files">
-                <i class="fas fa-folder-open"></i>
-                <p>No files in this folder</p>
-                <small>Files uploaded through Requirements Monitoring will appear here</small>
-            </div>
+          <div class="no-files">
+            <i class="fas fa-folder-open"></i>
+            <p>No files in this folder</p>
+            <small>Files uploaded through Requirements Monitoring will appear here</small>
+          </div>
         `;
         return;
-    }
-    
-    console.log(`📄 Rendering ${files.length} files`);
-    
-    // Create grid
-    const grid = document.createElement('div');
-    grid.className = 'files-grid';
-    
-    files.forEach(file => {
+      }
+      
+      console.log(`📄 Rendering ${files.length} files`);
+      
+      const grid = document.createElement('div');
+      grid.className = 'files-grid';
+      
+      files.forEach(file => {
         const card = document.createElement('div');
-        card.className = `file-card ${file.file_type}`;
+        card.className = 'file-card';
         
-        // Choose icon based on file type
         const icon = file.file_type === 'image' ? 
-            '<i class="fas fa-file-image"></i>' : 
-            '<i class="fas fa-file"></i>';
+          '<i class="fas fa-file-image"></i>' : 
+          '<i class="fas fa-file-alt"></i>';
         
         card.innerHTML = `
-            <div class="file-icon">${icon}</div>
-            <div class="file-name" title="${file.filename}">${file.filename}</div>
-            <div class="file-info">${file.barangay}</div>
-            <div class="file-info">${file.file_size} MB</div>
-            <div class="file-info">${file.uploaded_at}</div>
-            ${file.requirement_title ? `<div class="file-info"><small>${file.requirement_title}</small></div>` : ''}
-            <div class="file-actions">
-                <button class="btn-view" onclick="viewFile('${file.file_url}', '${file.file_type}')">
-                    <i class="fas fa-eye"></i> View
-                </button>
-                <button class="btn-delete" onclick="deleteFile(${file.id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
+          <div class="file-icon">${icon}</div>
+          <div class="file-name" title="${file.filename}">${file.filename}</div>
+          <div class="file-info">${file.barangay}</div>
+          <div class="file-info">${file.file_size} MB</div>
+          <div class="file-info">${file.uploaded_at}</div>
+          ${file.requirement_title ? `<div class="file-info"><small>${file.requirement_title}</small></div>` : ''}
+          <div class="file-actions">
+            <button class="btn-view" onclick="viewFile('${file.file_url}', '${file.file_type}')">
+              <i class="fas fa-eye"></i> View
+            </button>
+            <button class="btn-delete" onclick="deleteFile(${file.id})">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
         `;
         
         grid.appendChild(card);
-    });
-    
-    container.innerHTML = '';
-    container.appendChild(grid);
-    console.log('✓ Files rendered successfully');
-}
-
-// Apply filters
-function applyFilters() {
-    console.log('🔍 Applying filters...');
-    if (currentCategory) {
-        loadFiles(currentCategory);
+      });
+      
+      container.innerHTML = '';
+      container.appendChild(grid);
+      console.log('✓ Files rendered successfully');
     }
-}
 
+    function applyFilters() {
+      console.log('🔍 Applying filters...');
+      if (currentCategory) {
+        loadFiles(currentCategory);
+      }
+    }
 
     function viewFile(url, type) {
-    console.log(`👁️ Viewing file: ${url}`);
-    if (type === 'image') {
+      console.log(`👁️ Viewing file: ${url}`);
+      if (type === 'image') {
         const previewModal = document.getElementById('previewModal');
         const previewImage = document.getElementById('previewImage');
         
         if (previewModal && previewImage) {
-            previewImage.src = url;
-            previewModal.classList.add('active');
+          previewImage.src = url;
+          previewModal.classList.add('active');
         } else {
-            window.open(url, '_blank');
+          window.open(url, '_blank');
         }
-    } else {
+      } else {
         window.open(url, '_blank');
+      }
     }
-}
 
     function closePreview() {
-    const previewModal = document.getElementById('previewModal');
-    if (previewModal) {
+      const previewModal = document.getElementById('previewModal');
+      if (previewModal) {
         previewModal.classList.remove('active');
+      }
     }
-}
 
     function deleteFile(fileId) {
-    if (!confirm('Are you sure you want to delete this file?')) {
+      if (!confirm('⚠️ Are you sure you want to delete this file?')) {
         return;
-    }
-    
-    console.log(`🗑️ Deleting file ID: ${fileId}`);
-    
-    fetch(`/api/files/${fileId}/delete/`, {
+      }
+      
+      console.log(`🗑️ Deleting file ID: ${fileId}`);
+      
+      fetch(`/api/files/${fileId}/delete/`, {
         method: 'DELETE',
         headers: {
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
         }
-    })
-    .then(response => response.json())
-    .then(data => {
+      })
+      .then(response => response.json())
+      .then(data => {
         if (data.success) {
-            alert('✓ File deleted successfully');
-            refreshFiles();
-            loadFileCounts();
+          alert('✓ File deleted successfully');
+          refreshFiles();
+          loadFileCounts();
         } else {
-            alert('❌ Error: ' + (data.error || 'Failed to delete file'));
+          alert('❌ Error: ' + (data.error || 'Failed to delete file'));
         }
-    })
-    .catch(error => {
+      })
+      .catch(error => {
         console.error('❌ Delete error:', error);
         alert('❌ Error deleting file: ' + error.message);
-    });
-}
-    // Refresh files
-function refreshFiles() {
-    console.log('🔄 Refreshing files...');
-    if (currentCategory) {
+      });
+    }
+
+    function refreshFiles() {
+      console.log('🔄 Refreshing files...');
+      if (currentCategory) {
         loadFiles(currentCategory);
+      }
     }
-}
-
-// Close file browser
-function closeFileBrowser() {
-    const modal = document.getElementById('fileBrowser');
-    if (modal) {
-        modal.classList.remove('active');
-        console.log('✓ Modal closed');
-    }
-}
-
-// Upload modal (redirect to requirements page)
-function showUploadModal() {
-    alert('To upload files:\n\n1. Go to Requirements Monitoring page\n2. Select your barangay\n3. Open a requirement\n4. Upload files there\n\nFiles will automatically appear in the correct category folder here!');
-}
 
     function closeFileBrowser() {
-      document.getElementById('fileBrowser').classList.remove('active');
+      const modal = document.getElementById('fileBrowser');
+      if (modal) {
+        modal.classList.remove('active');
+      }
     }
-
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
-        }
-      }
-      return cookieValue;
-    }
-
-    // Close preview when clicking outside
-    document.getElementById('previewModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closePreview();
-      }
-    });
-
-    // Close file browser when clicking outside
-    document.getElementById('fileBrowser').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeFileBrowser();
-      }
-    });
-
 
     function searchFiles() {
       const query = document.getElementById('globalSearch').value.toLowerCase();
-      console.log('Searching for:', query);
+      console.log('🔍 Searching for:', query);
+    }
+
+    function loadFileCounts() {
+      console.log('📊 Loading file counts...');
+      const categories = ['weekly', 'monthly', 'quarterly', 'semestral', 'annually'];
+      
+      categories.forEach(category => {
+        let url = `/api/files/category/${category}/`;
+        
+        const params = new URLSearchParams();
+        if (selectedBarangayId) {
+          params.append('barangay_id', selectedBarangayId);
+        }
+        
+        if (params.toString()) {
+          url += '?' + params.toString();
+        }
+        
+        fetch(url, {
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const countElement = document.getElementById(`count-${category}`);
+            if (countElement) {
+              const count = data.total_count || 0;
+              countElement.textContent = `${count} file${count !== 1 ? 's' : ''}`;
+              console.log(`✓ ${category}: ${count} files`);
+            }
+          }
+        })
+        .catch(error => {
+          console.error(`❌ Error loading count for ${category}:`, error);
+        });
+      });
     }
 
     function getCookie(name) {
@@ -1697,65 +1747,58 @@ function showUploadModal() {
       return cookieValue;
     }
 
-    function loadFileCounts() {
-    console.log('📊 Loading file counts...');
-    const categories = ['weekly', 'monthly', 'quarterly', 'semestral', 'annually'];
-    
-    categories.forEach(category => {
-        let url = `/api/files/category/${category}/`;
-        
-        // Add barangay filter if selected
-        const params = new URLSearchParams();
-        if (selectedBarangayId) {
-            params.append('barangay_id', selectedBarangayId);
-        }
-        
-        if (params.toString()) {
-            url += '?' + params.toString();
-        }
-        
-        fetch(url, {
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const countElement = document.getElementById(`count-${category}`);
-                if (countElement) {
-                    const count = data.total_count || 0;
-                    countElement.textContent = `${count} file${count !== 1 ? 's' : ''}`;
-                    console.log(`✓ ${category}: ${count} files`);
-                }
-            }
-        })
-        .catch(error => {
-            console.error(`❌ Error loading count for ${category}:`, error);
-        });
-    });
-}
-    document.addEventListener('click', function(event) {
-      const sidebar = document.getElementById('sidebar');
-      const menuToggle = document.getElementById('menuToggle');
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('📊 Page loaded, initializing...');
+      loadFileCounts();
       
-      if (window.innerWidth <= 768 && 
-          sidebar.classList.contains('active') && 
-          !sidebar.contains(event.target) && 
-          !menuToggle.contains(event.target)) {
-        closeSidebar();
-      }
-    });
+      // Close modal when clicking outside
+      document.getElementById('previewModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+          closePreview();
+        }
+      });
 
-    window.addEventListener('click', function(event) {
-      if (event.target.classList.contains('modal')) {
-        if (event.target.id === 'createModal') {
+      document.getElementById('fileBrowser')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeFileBrowser();
+        }
+      });
+
+      document.getElementById('createModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
           closeCreateModal();
-        } else if (event.target.id === 'uploadModal') {
+        }
+      });
+
+      document.getElementById('uploadModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
           closeUploadModal();
         }
-      }
+      });
+
+      // Auto-detect category from title
+      document.getElementById('docTitle')?.addEventListener('input', function() {
+        const title = this.value;
+        const category = detectCategory(title);
+        const badge = document.getElementById('autoCategoryDisplay');
+        if (badge) {
+          badge.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        }
+      });
+
+      // Close sidebar when clicking outside on mobile
+      document.addEventListener('click', function(event) {
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menuToggle');
+        
+        if (window.innerWidth <= 768 && 
+            sidebar.classList.contains('active') && 
+            !sidebar.contains(event.target) && 
+            !menuToggle.contains(event.target)) {
+          closeSidebar();
+        }
+      });
     });
   </script>
 </body>

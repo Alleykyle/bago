@@ -1,4 +1,5 @@
 /* General styles */
+
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
@@ -51,16 +52,15 @@ body {
   }
   
   /* Hover effect for all items */
-  .nav-menu li:hover {
-    background-color: #2456f3;
-    color: white;
-  }
-  
-  /* Active (selected) item */
-  .nav-menu li.active {
-    background-color: #2456f3;
-    color: white;
-  }
+  .nav-menu a:hover {
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+
+    .nav-menu a.active {
+      background: #0b1a50;
+      color: white;
+    }
 
   .nav-menu li a {
     text-decoration: none;

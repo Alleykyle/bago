@@ -89,6 +89,7 @@ class Employee(models.Model):
     position = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='active')
     task = models.CharField(max_length=100, blank=True, null=True, default='Unassigned')
+    archived = models.BooleanField(default=False)  # Add this field
     
     # Dates
     hire_date = models.DateField(null=True, blank=True)
@@ -285,6 +286,7 @@ class EligibilityRequest(models.Model):
     middle_initial = models.CharField(max_length=5, blank=True, null=True)
     email = models.EmailField(max_length=254, blank=True, null=True)
     barangay = models.CharField(max_length=100)  # ADD THIS LINE
+    archived = models.BooleanField(default=False)
     
     position_type = models.CharField(max_length=20, choices=[
         ('appointive', 'Appointive'),

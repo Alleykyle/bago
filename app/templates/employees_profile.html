@@ -2,51 +2,296 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Employee Profile</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DILG Employees Profile</title>
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/theme-system.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/employees_profile.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #e9ecef;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-muted: #868e96;
+      --border-color: #dee2e6;
+      --shadow: 0 2px 4px rgba(0,0,0,0.1);
+      --shadow-hover: 0 4px 8px rgba(0,0,0,0.15);
+      --accent-primary: #007bff;
+      --accent-hover: #0056b3;
+      --success: #28a745;
+      --success-hover: #218838;
+      --warning: #ffc107;
+      --danger: #dc3545;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      overflow-x: hidden;
+    }
+
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .sidebar .logo {
+      width: 140px;
+      margin: 24px auto;
+      display: block;
+    }
+
+    .menu-title {
+      padding: 16px 24px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav-menu {
+      list-style: none;
+      padding: 0 12px;
+    }
+
+    .nav-menu li {
+      margin-bottom: 4px;
+    }
+
+    .nav-menu a {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-menu a:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .nav-menu a.active {
+      background: var(--bg-tertiary);
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      padding: 32px;
+      background: linear-gradient(to bottom, #f5f6fa, #0b1a50);
+      color: #0b1a50;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .back-button {
+      padding: 10px 20px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Action Bar */
+    .action-bar {
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-container {
+      flex: 1;
+      max-width: 400px;
+      min-width: 250px;
+    }
+
+    .search-form {
+      display: flex;
+      background: var(--bg-secondary);
+      border-radius: 25px;
+      overflow: hidden;
+      border: 2px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    .search-form:focus-within {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    .search-bar {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      outline: none;
+      font-size: 0.9375rem;
+      background: transparent;
+    }
+
+    .search-btn {
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .add-button {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .add-button:hover {
+      background: var(--success-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* View Toggle Buttons */
+    .view-toggle-btn {
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .view-toggle-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .view-toggle-btn.active {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    /* Restore Button */
+    .restore-button {
+      background: var(--success);
+      color: white;
+    }
+
+    .restore-button:hover {
+      background: var(--success-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    /* Archived Card Style */
+    .profile-card.archived {
+      border-left-color: var(--text-muted);
+      opacity: 0.85;
+    }
+
+    .profile-card.archived::before {
+      background: var(--text-muted);
+    }
+
+    /* Card Grid */
     .card-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 20px;
-      max-width: 1200px; 
-      margin: 0 auto; 
-      padding: 20px 0;
+      margin-top: 20px;
     }
 
-    @media (min-width: 768px) {
-      .card-grid {
-        grid-template-columns: repeat(auto-fit, minmax(300px, 350px)); 
-        justify-content: start; 
-        gap: 24px;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .card-grid {
-        grid-template-columns: repeat(3, 1fr); 
-        max-width: 1100px;
-      }
-    }
-
-    @media (min-width: 1400px) {
-      .card-grid {
-        grid-template-columns: repeat(4, 1fr); 
-        max-width: 1400px;
-      }
-    }
-
+    /* Profile Cards */
     .profile-card {
-      background: white;
-      border-radius: 15px;
+      background: var(--bg-primary);
+      border-radius: 8px;
       padding: 24px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--accent-primary);
       transition: all 0.3s ease;
-      border: 1px solid rgba(0, 0, 0, 0.05);
       position: relative;
       overflow: hidden;
     }
@@ -55,70 +300,66 @@
       content: '';
       position: absolute;
       top: 0;
-      left: 0;
       right: 0;
-      height: 4px;
-      background: linear-gradient(45deg, #1c45c0, #2456f3);
+      width: 100px;
+      height: 100px;
+      background: var(--accent-primary);
+      opacity: 0.03;
+      border-radius: 50%;
+      transform: translate(30%, -30%);
     }
 
     .profile-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
     }
 
     .avatar-placeholder {
       width: 80px;
       height: 80px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #1c45c0 0%, #2456f3 100%);
+      background: linear-gradient(135deg, var(--accent-primary) 0%, #0056b3 100%);
       margin: 0 auto 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 24px;
-      font-weight: bold;
-      position: relative;
+      font-size: 28px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
     }
 
     .profile-card h3 {
-      font-size: 1.3rem;
-      color: #333;
+      font-size: 1.25rem;
+      color: var(--text-primary);
       margin-bottom: 12px;
       text-align: center;
       font-weight: 600;
     }
 
     .profile-card p {
-      color: #666;
+      color: var(--text-secondary);
       margin-bottom: 8px;
-      font-size: 0.95rem;
+      font-size: 0.9375rem;
       text-align: center;
     }
 
     .profile-card p strong {
-      color: #333;
+      color: var(--text-primary);
       font-weight: 600;
     }
 
     .task-badge {
       display: inline-block;
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.8125rem;
       font-weight: 600;
       margin: 8px auto;
       text-align: center;
-      width: fit-content;
+      background: var(--accent-primary);
+      color: white;
     }
-    .task-badge span{
-      background-color: #0b1a50;
-    }
-
-    .task-documentation { background: #0b1a50; color: white; }
-    .task-monitoring { background: #0b1a50; color: white; }
-    .task-filing { background: #0b1a50; color: white; }
-    .task-supervision { background: #0b1a50; color: white; }
 
     .action-buttons-container {
       display: flex;
@@ -128,169 +369,46 @@
       margin-top: 16px;
     }
 
-    /* Fixed button styling - both buttons now have identical sizing */
     .edit-button,
-    .delete-button {
+    .archive-button {
       border: none;
       padding: 10px 16px;
-      border-radius: 25px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.875rem;
       font-weight: 600;
       transition: all 0.3s ease;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      position: relative;
-      overflow: hidden;
-      width: 110px !important;
-      height: 42px !important;
-      box-sizing: border-box;
-      min-width: 110px;
-      max-width: 110px;
-      flex-shrink: 0;
-      white-space: nowrap;
-      margin: 0;
-      vertical-align: top;
-      line-height: 1;
+      gap: 6px;
+      flex: 1;
     }
-   
+
     .edit-button {
-      background: linear-gradient(45deg, #1c45c0, #2456f3) !important;
-      color: white !important;
+      background: var(--accent-primary);
+      color: white;
     }
 
     .edit-button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-      color: white !important;
-      text-decoration: none;
-    }
-
-    .delete-button {
-      background: linear-gradient(45deg, #dc3545, #c82333) !important;
-      color: white !important;
-    }
-
-    .delete-button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
-      color: white !important;
-      text-decoration: none;
-    }
-
-    .main-content {
-      padding: 20px 30px;
-    }
-
-    .action-buttons {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-    .search-container {
-      flex: 1;
-      max-width: 400px;
-    }
-
-    .search-form {
-      width: 100%;
-    }
-
-    .search-container .search-container {
-      display: flex;
-      align-items: center;
-      background: white;
-      border-radius: 25px;
-      overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .search-bar {
-      flex: 1;
-      padding: 12px 20px;
-      border: none;
-      outline: none;
-      font-size: 0.95rem;
-    }
-
-    .search-btn {
-      background: linear-gradient(45deg, #1c45c0, #2456f3);
-      color: white;
-      border: none;
-      padding: 12px 16px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .search-btn:hover {
-      background: linear-gradient(45deg, #5a6fd8, #2456f3);
-    }
-
-    .add-button {
-      background: linear-gradient(45deg, #4CAF50, #45a049);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 25px;
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
-    }
-
-    .add-button:hover {
+      background: var(--accent-hover);
       transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
     }
 
-    .add-form-container {
-      display: none !important;
+    .archive-button {
+      background: var(--warning);
+      color: #212529;
     }
 
-    @media (max-width: 768px) {
-      .card-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-        padding: 16px;
-      }
-      
-      .action-buttons {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .search-container {
-        max-width: 100%;
-      }
-
-      .action-buttons-container {
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .edit-button,
-      .delete-button {
-        width: 100%;
-      }
+    .archive-button:hover {
+      background: #e0a800;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
     }
 
-    @media (max-width: 480px) {
-      .profile-card {
-        padding: 20px;
-      }
-      
-      .main-content {
-        padding: 16px;
-      }
-    }
-
+    /* Modal Overlay */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -312,7 +430,7 @@
 
     .modal {
       background: white;
-      border-radius: 20px;
+      border-radius: 12px;
       padding: 30px;
       width: 90%;
       max-width: 500px;
@@ -322,7 +440,6 @@
       transform: scale(0.7);
       opacity: 0;
       transition: all 0.3s ease;
-      position: relative;
     }
 
     .modal-overlay.active .modal {
@@ -336,13 +453,14 @@
       align-items: center;
       margin-bottom: 25px;
       padding-bottom: 15px;
-      border-bottom: 2px solid #f0f0f0;
+      border-bottom: 2px solid var(--border-color);
     }
 
     .modal-title {
       font-size: 1.5rem;
-      color: #333;
+      color: var(--text-primary);
       margin: 0;
+      font-weight: 600;
     }
 
     .close-btn {
@@ -350,8 +468,8 @@
       border: none;
       font-size: 1.5rem;
       cursor: pointer;
-      color: #999;
-      transition: color 0.3s ease;
+      color: var(--text-muted);
+      transition: all 0.3s ease;
       width: 30px;
       height: 30px;
       display: flex;
@@ -361,8 +479,8 @@
     }
 
     .close-btn:hover {
-      color: #333;
-      background: #f0f0f0;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
     }
 
     .modal-form-group {
@@ -373,44 +491,44 @@
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
+      font-size: 0.9375rem;
     }
 
     .modal-form-group input,
     .modal-form-group select {
       width: 100%;
       padding: 12px 16px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.9375rem;
       transition: all 0.3s ease;
-      background: #fafafa;
-      box-sizing: border-box;
+      background: var(--bg-secondary);
     }
 
     .modal-form-group input:focus,
     .modal-form-group select:focus {
       outline: none;
-      border-color: #1c45c0;
+      border-color: var(--accent-primary);
       background: white;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
     }
 
     .modal-actions {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       justify-content: flex-end;
       margin-top: 30px;
       padding-top: 20px;
-      border-top: 2px solid #f0f0f0;
+      border-top: 2px solid var(--border-color);
     }
 
     .modal-btn {
       padding: 12px 24px;
       border: none;
-      border-radius: 10px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 0.9375rem;
       font-weight: 600;
       transition: all 0.3s ease;
       display: flex;
@@ -419,87 +537,97 @@
     }
 
     .modal-btn-primary {
-      background: linear-gradient(45deg, #1c45c0, #2456f3);
+      background: var(--accent-primary);
       color: white;
     }
 
     .modal-btn-primary:hover {
+      background: var(--accent-hover);
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
     }
 
     .modal-btn-secondary {
-      background: #f8f9fa;
-      color: #666;
-      border: 2px solid #e9ecef;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
     }
 
     .modal-btn-secondary:hover {
-      background: #e9ecef;
-      color: #333;
+      background: var(--border-color);
+      color: var(--text-primary);
     }
 
     .modal-btn-add {
-      background: linear-gradient(45deg, #2456f3, #0b1a50);
+      background: var(--success);
       color: white;
     }
 
     .modal-btn-add:hover {
+      background: var(--success-hover);
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px #2456f3;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
     }
 
-    .modal-btn-danger {
-      background: linear-gradient(45deg, #dc3545, #c82333);
-      color: white;
+    .modal-btn-archive {
+      background: var(--warning);
+      color: #212529;
     }
 
-    .modal-btn-danger:hover {
+    .modal-btn-archive:hover {
+      background: #e0a800;
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    }
+
+    .success-message,
+    .modal-error-message {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9375rem;
     }
 
     .success-message {
       background: #d4edda;
       color: #155724;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
       border: 1px solid #c3e6cb;
-      display: none;
     }
 
-    .success-message.show {
-      display: block;
-      animation: slideInUp 0.3s ease;
-    }
-
-    /* Fixed Error Message Styling */
     .modal-error-message {
       background: #f8d7da;
       color: #721c24;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
       border: 1px solid #f5c6cb;
-      display: none;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
-      line-height: 1.4;
     }
 
+    .success-message.show,
     .modal-error-message.show {
       display: flex;
       animation: slideInUp 0.3s ease;
     }
 
-    .modal-error-icon {
-      font-size: 1.1rem;
-      flex-shrink: 0;
+    .archive-confirmation {
+      text-align: center;
+      padding: 20px 0;
     }
 
-    /* Notification container for page-level notifications */
+    .archive-icon {
+      font-size: 4rem;
+      color: var(--warning);
+      margin-bottom: 20px;
+    }
+
+    .employee-info {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      border-left: 4px solid var(--warning);
+      text-align: left;
+    }
+
     .notification-container {
       position: fixed;
       top: 20px;
@@ -512,68 +640,20 @@
     }
 
     .notification {
-      background: #f8d7da;
-      color: #721c24;
-      padding: 12px 16px;
+      background: white;
+      padding: 16px 20px;
       border-radius: 8px;
-      border: 1px solid #f5c6cb;
+      border-left: 4px solid var(--danger);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       display: flex;
       align-items: center;
-      gap: 8px;
-      transform: translateX(100%);
-      opacity: 0;
+      gap: 12px;
+      transform: translateX(400px);
       animation: slideInRight 0.3s ease forwards;
     }
 
     .notification.success {
-      background: #d4edda;
-      color: #155724;
-      border-color: #c3e6cb;
-    }
-
-    .notification-close {
-      margin-left: auto;
-      background: none;
-      border: none;
-      color: inherit;
-      cursor: pointer;
-      font-size: 1.2rem;
-      padding: 0;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .delete-confirmation {
-      text-align: center;
-      padding: 20px 0;
-    }
-
-    .delete-confirmation .warning-icon {
-      font-size: 4rem;
-      color: #dc3545;
-      margin-bottom: 20px;
-    }
-
-    .delete-confirmation h3 {
-      color: #333;
-      margin-bottom: 10px;
-    }
-
-    .delete-confirmation p {
-      color: #666;
-      margin-bottom: 20px;
-    }
-
-    .employee-info {
-      background: #f8f9fa;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 20px 0;
-      border-left: 4px solid #dc3545;
+      border-left-color: var(--success);
     }
 
     @keyframes fadeIn {
@@ -583,7 +663,7 @@
 
     @keyframes slideInUp {
       from { 
-        transform: translateY(50px);
+        transform: translateY(20px);
         opacity: 0;
       }
       to { 
@@ -594,12 +674,69 @@
 
     @keyframes slideInRight {
       from {
-        transform: translateX(100%);
+        transform: translateX(400px);
         opacity: 0;
       }
       to {
         transform: translateX(0);
         opacity: 1;
+      }
+    }
+
+    @media (max-width: 1400px) {
+      .card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+      }
+      
+      .main-content {
+        margin-left: 200px;
+        padding: 20px;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-container {
+        max-width: 100%;
+      }
+
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 16px;
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
       }
     }
   </style>
@@ -608,82 +745,102 @@
   <div class="dashboard-container">
     <!-- Sidebar -->
     <div class="sidebar">
-      <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
-      <ul class="nav-menu">     
-        <li><a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Dashboard</a></li>
-        <li><a href="{% url 'application_request' %}" {% if request.resolver_match.url_name == 'application_request' %}class="active"{% endif %}>Application Request</a></li>
-        <li><a href="{% url 'history' %}" {% if request.resolver_match.url_name == 'history' %}class="active"{% endif %}>History</a></li>
-        <li><a href="{% url 'employees_profile' %}" {% if request.resolver_match.url_name == 'employees_profile' %}class="active"{% endif %}>Employees Profile</a></li>
-        <li><a href="{% url 'folder' %}" {% if request.resolver_match.url_name == 'folder' %}class="active"{% endif %}>Folders</a></li>
-        <li><a href="{% url 'settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>Settings</a></li>
+      <a href="{% url 'landing_menu' %}">
+        <img src="{% static 'Pictures/logo1.png' %}" alt="DILG Logo" class="logo">
+      </a>
+      <div class="menu-title">Navigation</div>
+      <ul class="nav-menu">
+        <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li><a href="{% url 'application_request' %}">Application Request</a></li>
+        <li><a href="{% url 'employees_profile' %}" class="active">Employees Profile</a></li>
+        <li><a href="{% url 'folder' %}">Folders</a></li>
+        <li><a href="{% url 'settings' %}">Settings</a></li>
       </ul>
     </div>
 
+    <!-- Main Content -->
     <div class="main-content">
+      <!-- Header -->
       <div class="header">
         <h1>Employees Profile</h1>
-        <a href="/dashboard/" class="back-button">← Back</a>
+        <a href="{% url 'dashboard' %}" class="back-button">
+          <i class="fa fa-arrow-left"></i> Back to Dashboard
+        </a>
       </div>
 
-      <div class="action-buttons">
+      <!-- Action Bar -->
+      <div class="action-bar">
         <div class="search-container">
           <form method="GET" class="search-form" id="searchForm">
-            <div class="search-container">
-              <input 
-                type="text" 
-                name="search" 
-                id="searchInput"
-                placeholder="Search employees..." 
-                class="search-bar" 
-                value="{{ request.GET.search }}"
-              >
-              <button type="submit" class="search-btn" id="searchBtn">
-                <i class="fa fa-search"></i>
-              </button>
-            </div>
+            <input 
+              type="text" 
+              name="search" 
+              id="searchInput"
+              placeholder="Search employees by name, ID, or task..." 
+              class="search-bar" 
+              value="{{ request.GET.search }}"
+            >
+            <button type="submit" class="search-btn">
+              <i class="fa fa-search"></i>
+            </button>
           </form>
         </div>
 
-        <button type="button" class="add-button" onclick="openAddModal()">+ Add Employee</button>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <!-- View Toggle Buttons -->
+          <div style="display: flex; gap: 8px; background: var(--bg-secondary); padding: 4px; border-radius: 6px;">
+            <button type="button" class="view-toggle-btn active" id="activeViewBtn" onclick="switchView('active')">
+              <i class="fa fa-users"></i> Active
+            </button>
+            <button type="button" class="view-toggle-btn" id="archivedViewBtn" onclick="switchView('archived')">
+              <i class="fa fa-archive"></i> Archived
+            </button>
+          </div>
+
+          <button type="button" class="add-button" onclick="openAddModal()">
+            <i class="fa fa-plus"></i> Add Employee
+          </button>
+        </div>
       </div>
 
-      <div id="add-employee-form" class="add-form-container" style="display: none;">
-        <form method="POST" action="{% url 'employees_profile' %}">
-          {% csrf_token %}
-          <h3>Add New Employee</h3>
-          <div class="form-row">
-            <input type="text" name="name" placeholder="Full Name" required />
-            <input type="text" name="id_no" placeholder="ID No." required />
-            <input type="text" name="task" placeholder="Task Assign" />
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="save-button">Save</button>
-            <button type="button" onclick="toggleAddForm()" class="cancel-button">Cancel</button>
-          </div>
-        </form>
-      </div>
-
+      <!-- Messages -->
       {% if messages %}
-        <div class="messages">
+        <div class="notification-container">
           {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            <div class="notification {{ message.tags }}">
+              <span>{{ message }}</span>
+            </div>
           {% endfor %}
         </div>
       {% endif %}
 
-      <div class="card-grid">
+      <!-- Employee Cards Grid -->
+      <div class="card-grid" id="employeeCardsGrid">
         {% for emp in page_obj %}
-        <div class="profile-card" data-employee-id="{{ emp.id }}">
+        <div class="profile-card {% if emp.archived %}archived{% endif %}" 
+             data-employee-id="{{ emp.id }}"
+             data-archived="{{ emp.archived|yesno:'true,false' }}">
           <div class="avatar-placeholder">
             {{ emp.name|first|upper }}
           </div>
           <h3 class="employee-name">{{ emp.name }}</h3>
-          <p>Id No. <strong class="employee-id">{{ emp.id_no }}</strong></p>
-          <p>Task Assign <strong class="employee-task">{{ emp.task }}</strong></p>
+          <p>ID No. <strong class="employee-id">{{ emp.id_no }}</strong></p>
+          <p>Task Assignment: <strong class="employee-task">{{ emp.task }}</strong></p>
           <div style="text-align: center;">
-            <span class="task-badge task-{{ emp.task|lower }}">{{ emp.task }}</span>
+            <span class="task-badge">{{ emp.task }}</span>
+            {% if emp.archived %}
+            <span class="task-badge" style="background: var(--text-muted); margin-left: 8px;">Archived</span>
+            {% endif %}
           </div>
           <div class="action-buttons-container">
+            {% if emp.archived %}
+            <button class="restore-button edit-button" 
+                    data-name="{{ emp.name }}" 
+                    data-id-no="{{ emp.id_no }}" 
+                    data-emp-id="{{ emp.id }}">
+              <i class="fa fa-undo"></i> Restore
+            </button>
+            {% else %}
             <button class="edit-button" 
                     data-name="{{ emp.name }}" 
                     data-id-no="{{ emp.id_no }}" 
@@ -691,21 +848,24 @@
                     data-emp-id="{{ emp.id }}">
               <i class="fa fa-edit"></i> Edit
             </button>
-            <button class="delete-button" 
+            <button class="archive-button" 
                     data-name="{{ emp.name }}" 
                     data-id-no="{{ emp.id_no }}" 
                     data-emp-id="{{ emp.id }}">
-              <i class="fa fa-trash"></i> Delete
+              <i class="fa fa-archive"></i> Archive
             </button>
+            {% endif %}
           </div>
         </div>
         {% empty %}
-        <div style="text-align: center; padding: 40px; color: #666;">
-          <h3>No employees found</h3>
-          <p>Click "Add Employee" to get started!</p>
+        <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow);">
+          <i class="fa fa-users" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 20px;"></i>
+          <h3 style="color: var(--text-primary); margin-bottom: 10px;">No employees found</h3>
+          <p style="color: var(--text-secondary);">Click "Add Employee" to get started!</p>
         </div>
         {% endfor %}
       </div>
+    </div>
   </div>
 
   <!-- Add Employee Modal -->
@@ -717,12 +877,12 @@
       </div>
 
       <div class="success-message" id="addSuccessMessage">
-        ✅ Employee added successfully!
+        <i class="fa fa-check-circle"></i>
+        Employee added successfully!
       </div>
 
-      <!-- Fixed error message positioning -->
       <div class="modal-error-message" id="addModalError">
-        <span class="modal-error-icon">⚠️</span>
+        <i class="fa fa-exclamation-triangle"></i>
         <span id="addModalErrorText">Error message will appear here</span>
       </div>
 
@@ -752,10 +912,10 @@
 
         <div class="modal-actions">
           <button type="button" class="modal-btn modal-btn-secondary" onclick="closeAddModal()">
-            Cancel
+            <i class="fa fa-times"></i> Cancel
           </button>
           <button type="submit" class="modal-btn modal-btn-add">
-            ➕ Add Employee
+            <i class="fa fa-plus"></i> Add Employee
           </button>
         </div>
       </form>
@@ -771,12 +931,12 @@
       </div>
 
       <div class="success-message" id="successMessage">
-        ✅ Employee information updated successfully!
+        <i class="fa fa-check-circle"></i>
+        Employee information updated successfully!
       </div>
 
-      <!-- Fixed error message positioning -->
       <div class="modal-error-message" id="editModalError">
-        <span class="modal-error-icon">⚠️</span>
+        <i class="fa fa-exclamation-triangle"></i>
         <span id="editModalErrorText">Error message will appear here</span>
       </div>
 
@@ -807,81 +967,85 @@
 
         <div class="modal-actions">
           <button type="button" class="modal-btn modal-btn-secondary" onclick="closeEditModal()">
-            Cancel
+            <i class="fa fa-times"></i> Cancel
           </button>
           <button type="submit" class="modal-btn modal-btn-primary">
-            💾 Save Changes
+            <i class="fa fa-save"></i> Save Changes
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Notification container for page-level notifications -->
-  <div class="notification-container" id="notificationContainer">
-    <!-- Notifications will be dynamically added here -->
-  </div>
-
-  <!-- Delete Confirmation Modal -->
-  <div class="modal-overlay" id="deleteModal">
+  <!-- Archive Confirmation Modal -->
+  <div class="modal-overlay" id="archiveModal">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Delete Employee</h2>
-        <button class="close-btn" onclick="closeDeleteModal()">×</button>
+        <h2 class="modal-title">Archive Employee</h2>
+        <button class="close-btn" onclick="closeArchiveModal()">×</button>
       </div>
 
-      <div class="success-message" id="deleteSuccessMessage">
-        ✅ Employee deleted successfully!
+      <div class="success-message" id="archiveSuccessMessage">
+        <i class="fa fa-check-circle"></i>
+        Employee archived successfully!
       </div>
 
-      <div class="delete-confirmation">
-        <div class="warning-icon">⚠️</div>
-        <h3>Are you sure you want to delete this employee?</h3>
-        <p>This action cannot be undone.</p>
+      <div class="archive-confirmation">
+        <div class="archive-icon">
+          <i class="fa fa-archive"></i>
+        </div>
+        <h3>Are you sure you want to archive this employee?</h3>
+        <p style="color: var(--text-secondary);">The employee data will be moved to the archive. You can restore it later if needed.</p>
         
-        <div class="employee-info" id="deleteEmployeeInfo">
+        <div class="employee-info" id="archiveEmployeeInfo">
           <!-- Employee info will be populated here -->
         </div>
       </div>
 
       <div class="modal-actions">
-        <button type="button" class="modal-btn modal-btn-secondary" onclick="closeDeleteModal()">
-          Cancel
+        <button type="button" class="modal-btn modal-btn-secondary" onclick="closeArchiveModal()">
+          <i class="fa fa-times"></i> Cancel
         </button>
-        <button type="button" class="modal-btn modal-btn-danger" onclick="confirmDelete()">
-          🗑️ Delete Employee
+        <button type="button" class="modal-btn modal-btn-archive" onclick="confirmArchive()">
+          <i class="fa fa-archive"></i> Archive Employee
         </button>
       </div>
     </div>
   </div>
 
+  <!-- Notification Container -->
+  <div class="notification-container" id="notificationContainer"></div>
+
   <script>
     // Modal elements
     const editModal = document.getElementById('editModal');
     const addModal = document.getElementById('addModal');
-    const deleteModal = document.getElementById('deleteModal');
+    const archiveModal = document.getElementById('archiveModal');
     const editForm = document.getElementById('editForm');
     const addForm = document.getElementById('addForm');
     const successMessage = document.getElementById('successMessage');
     const addSuccessMessage = document.getElementById('addSuccessMessage');
-    const deleteSuccessMessage = document.getElementById('deleteSuccessMessage');
-    
-    // Error message elements
+    const archiveSuccessMessage = document.getElementById('archiveSuccessMessage');
     const addModalError = document.getElementById('addModalError');
     const addModalErrorText = document.getElementById('addModalErrorText');
     const editModalError = document.getElementById('editModalError');
     const editModalErrorText = document.getElementById('editModalErrorText');
     
-    let employeeToDelete = null;
+    let employeeToArchive = null;
 
     // Initialize event listeners when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
       initializeEditButtons();
-      initializeDeleteButtons();
+      initializeArchiveButtons();
+      initializeRestoreButtons();
+      
+      // Load saved view preference or default to active
+      const savedView = localStorage.getItem('employeeView') || 'active';
+      switchView(savedView);
     });
 
     function initializeEditButtons() {
-      const editButtons = document.querySelectorAll('.edit-button');
+      const editButtons = document.querySelectorAll('.edit-button:not(.restore-button)');
       editButtons.forEach(button => {
         button.addEventListener('click', function(e) {
           e.preventDefault();
@@ -890,24 +1054,146 @@
           const task = this.getAttribute('data-task');
           const empId = this.getAttribute('data-emp-id');
           
-          console.log('Edit button clicked:', {name, idNo, task, empId}); // Debug log
           openEditModal(name, idNo, task, empId);
         });
       });
     }
 
-    function initializeDeleteButtons() {
-      const deleteButtons = document.querySelectorAll('.delete-button');
-      deleteButtons.forEach(button => {
+    function initializeArchiveButtons() {
+      const archiveButtons = document.querySelectorAll('.archive-button');
+      archiveButtons.forEach(button => {
         button.addEventListener('click', function(e) {
           e.preventDefault();
           const name = this.getAttribute('data-name');
           const idNo = this.getAttribute('data-id-no');
           const empId = this.getAttribute('data-emp-id');
           
-          console.log('Delete button clicked:', {name, idNo, empId}); // Debug log
-          openDeleteModal(name, idNo, empId);
+          openArchiveModal(name, idNo, empId);
         });
+      });
+    }
+
+    function initializeRestoreButtons() {
+      const restoreButtons = document.querySelectorAll('.restore-button');
+      restoreButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const name = this.getAttribute('data-name');
+          const idNo = this.getAttribute('data-id-no');
+          const empId = this.getAttribute('data-emp-id');
+          
+          restoreEmployee(empId, name);
+        });
+      });
+    }
+
+    // Switch between Active and Archived views
+    function switchView(view) {
+      const activeBtn = document.getElementById('activeViewBtn');
+      const archivedBtn = document.getElementById('archivedViewBtn');
+      const allCards = document.querySelectorAll('.profile-card');
+      
+      // Update button states
+      if (view === 'active') {
+        activeBtn.classList.add('active');
+        archivedBtn.classList.remove('active');
+        
+        // Show only active employees
+        allCards.forEach(card => {
+          const isArchived = card.getAttribute('data-archived') === 'true';
+          card.style.display = isArchived ? 'none' : 'block';
+        });
+      } else {
+        activeBtn.classList.remove('active');
+        archivedBtn.classList.add('active');
+        
+        // Show only archived employees
+        allCards.forEach(card => {
+          const isArchived = card.getAttribute('data-archived') === 'true';
+          card.style.display = isArchived ? 'block' : 'none';
+        });
+      }
+      
+      // Save preference
+      localStorage.setItem('employeeView', view);
+      
+      // Check if there are any visible cards
+      checkEmptyState(view);
+    }
+
+    function checkEmptyState(view) {
+      const visibleCards = Array.from(document.querySelectorAll('.profile-card'))
+        .filter(card => card.style.display !== 'none' && !card.id);
+      
+      let emptyMessage = document.getElementById('emptyStateMessage');
+      
+      if (visibleCards.length === 0) {
+        if (!emptyMessage) {
+          emptyMessage = document.createElement('div');
+          emptyMessage.id = 'emptyStateMessage';
+          emptyMessage.style.cssText = `
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+          `;
+          document.getElementById('employeeCardsGrid').appendChild(emptyMessage);
+        }
+        
+        if (view === 'archived') {
+          emptyMessage.innerHTML = `
+            <i class="fa fa-archive" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 20px;"></i>
+            <h3 style="color: var(--text-primary); margin-bottom: 10px;">No archived employees</h3>
+            <p style="color: var(--text-secondary);">Archived employees will appear here</p>
+          `;
+        } else {
+          emptyMessage.innerHTML = `
+            <i class="fa fa-users" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 20px;"></i>
+            <h3 style="color: var(--text-primary); margin-bottom: 10px;">No active employees</h3>
+            <p style="color: var(--text-secondary);">Click "Add Employee" to get started!</p>
+          `;
+        }
+        emptyMessage.style.display = 'block';
+      } else if (emptyMessage) {
+        emptyMessage.style.display = 'none';
+      }
+    }
+
+    // Restore archived employee
+    function restoreEmployee(employeeId, employeeName) {
+      if (!confirm(`Are you sure you want to restore ${employeeName}?`)) {
+        return;
+      }
+
+      fetch(`/api/employees/restore/${employeeId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ archived: false })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          showNotification('Employee restored successfully!', 'success');
+          setTimeout(() => {
+            location.reload();
+          }, 1000);
+        } else {
+          showNotification('Error restoring employee: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error restoring employee. Please try again.');
       });
     }
 
@@ -937,25 +1223,20 @@
       const notification = document.createElement('div');
       notification.className = `notification ${type}`;
       
+      const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
       notification.innerHTML = `
-        <span class="modal-error-icon">${type === 'success' ? '✅' : '⚠️'}</span>
+        <i class="fa ${icon}"></i>
         <span>${message}</span>
-        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+        <button onclick="this.parentElement.remove()" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: inherit;">×</button>
       `;
       
       container.appendChild(notification);
       
-      // Auto remove after 5 seconds
       setTimeout(() => {
         if (notification.parentElement) {
           notification.remove();
         }
       }, 5000);
-    }
-
-    function toggleAddForm() {
-      const form = document.getElementById('add-employee-form');
-      form.style.display = form.style.display === 'none' || form.style.display === '' ? 'block' : 'none';
     }
 
     function openAddModal() {
@@ -973,8 +1254,6 @@
     }
 
     function openEditModal(name, idNo, task, primaryId) {
-      console.log('Opening edit modal with:', {name, idNo, task, primaryId}); // Debug log
-      
       document.getElementById('employeeName').value = name || '';
       document.getElementById('employeeId').value = idNo || '';
       document.getElementById('employeeTask').value = task || '';
@@ -993,35 +1272,35 @@
       editForm.reset();
     }
 
-    function openDeleteModal(name, idNo, employeeId) {
-      employeeToDelete = employeeId;
+    function openArchiveModal(name, idNo, employeeId) {
+      employeeToArchive = employeeId;
       
-      // Populate employee info in delete confirmation
-      document.getElementById('deleteEmployeeInfo').innerHTML = `
+      document.getElementById('archiveEmployeeInfo').innerHTML = `
         <strong>Name:</strong> ${name}<br>
         <strong>ID Number:</strong> ${idNo}
       `;
       
-      deleteModal.classList.add('active');
+      archiveModal.classList.add('active');
       document.body.style.overflow = 'hidden';
     }
 
-    function closeDeleteModal() {
-      deleteModal.classList.remove('active');
+    function closeArchiveModal() {
+      archiveModal.classList.remove('active');
       document.body.style.overflow = 'auto';
-      deleteSuccessMessage.classList.remove('show');
-      employeeToDelete = null;
+      archiveSuccessMessage.classList.remove('show');
+      employeeToArchive = null;
     }
 
-    function confirmDelete() {
-      if (!employeeToDelete) return;
+    function confirmArchive() {
+      if (!employeeToArchive) return;
 
-      fetch(`/api/employees/delete/${employeeToDelete}/`, {  // ✅ FIXED PATH
-        method: 'DELETE',
+      fetch(`/api/employees/archive/${employeeToArchive}/`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken')
-        }
+        },
+        body: JSON.stringify({ archived: true })
       })
       .then(response => {
         if (!response.ok) {
@@ -1031,29 +1310,29 @@
       })
       .then(data => {
         if (data.success) {
-          deleteSuccessMessage.classList.add('show');
+          archiveSuccessMessage.classList.add('show');
           
           setTimeout(() => {
-            closeDeleteModal();
+            closeArchiveModal();
             location.reload();
           }, 1500);
         } else {
-          showNotification('Error deleting employee: ' + (data.error || 'Unknown error'));
+          showNotification('Error archiving employee: ' + (data.error || 'Unknown error'));
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        showNotification('Error deleting employee. Please try again.');
+        showNotification('Error archiving employee. Please try again.');
       });
     }
 
     // Close modals when clicking outside
-    [addModal, editModal, deleteModal].forEach(modal => {
+    [addModal, editModal, archiveModal].forEach(modal => {
       modal.addEventListener('click', function(e) {
         if (e.target === modal) {
           if (modal === addModal) closeAddModal();
           if (modal === editModal) closeEditModal();
-          if (modal === deleteModal) closeDeleteModal();
+          if (modal === archiveModal) closeArchiveModal();
         }
       });
     });
@@ -1061,15 +1340,9 @@
     // Close modals with Escape key
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
-        if (addModal.classList.contains('active')) {
-          closeAddModal();
-        }
-        if (editModal.classList.contains('active')) {
-          closeEditModal();
-        }
-        if (deleteModal.classList.contains('active')) {
-          closeDeleteModal();
-        }
+        if (addModal.classList.contains('active')) closeAddModal();
+        if (editModal.classList.contains('active')) closeEditModal();
+        if (archiveModal.classList.contains('active')) closeArchiveModal();
       }
     });
 
@@ -1083,7 +1356,6 @@
       const id_no = formData.get('id_no');
       const task = formData.get('task');
 
-      // Basic validation
       if (!name.trim()) {
         showAddError('Please enter a valid name');
         return;
@@ -1128,6 +1400,7 @@
       });
     });
 
+    // Edit employee form submission
     editForm.addEventListener('submit', function(e) {
       e.preventDefault();
       hideEditError();
@@ -1138,14 +1411,11 @@
       const id_no = formData.get('id_no');
       const task = formData.get('task');
 
-      console.log('Submitting edit form:', {employeeId, name, id_no, task}); // Debug log
-
       if (!employeeId) {
         showEditError('Employee ID is missing. Please try again.');
         return;
       }
 
-      // Basic validation
       if (!name.trim()) {
         showEditError('Please enter a valid name');
         return;
@@ -1167,17 +1437,12 @@
         },
         body: JSON.stringify({ name, id_no, task })
       })
-      .then(response => {
-        console.log('Edit response status:', response.status); // Debug log
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log('Edit response data:', data); // Debug log
         if (data.success) {
           successMessage.classList.add('show');
           hideEditError();
 
-          // Update the card in real-time
           updateEmployeeCard(employeeId, { name, id_no, task });
 
           setTimeout(() => {
@@ -1199,20 +1464,17 @@
     const searchInput = document.getElementById('searchInput');
     const allCards = document.querySelectorAll('.profile-card');
 
-    // Real-time search as user types
     searchInput.addEventListener('input', function(e) {
       const searchTerm = e.target.value.toLowerCase().trim();
       filterEmployees(searchTerm);
     });
 
-    // Search form submission
     searchForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const searchTerm = searchInput.value.toLowerCase().trim();
       filterEmployees(searchTerm);
     });
 
-    // Filter employees function
     function filterEmployees(searchTerm) {
       let visibleCount = 0;
 
@@ -1239,11 +1501,9 @@
         }
       });
 
-      // Show "no results" message if no employees match
       showNoResultsMessage(visibleCount, searchTerm);
     }
 
-    // Show or hide "no results" message
     function showNoResultsMessage(visibleCount, searchTerm) {
       const cardGrid = document.querySelector('.card-grid');
       let noResultsDiv = document.getElementById('noResultsMessage');
@@ -1253,16 +1513,19 @@
           noResultsDiv = document.createElement('div');
           noResultsDiv.id = 'noResultsMessage';
           noResultsDiv.style.cssText = `
-            text-align: center; 
-            padding: 40px; 
-            color: #666; 
             grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
           `;
           cardGrid.appendChild(noResultsDiv);
         }
         noResultsDiv.innerHTML = `
-          <h3>No employees found</h3>
-          <p>No employees match your search for "${searchTerm}"</p>
+          <i class="fa fa-search" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 20px;"></i>
+          <h3 style="color: var(--text-primary); margin-bottom: 10px;">No employees found</h3>
+          <p style="color: var(--text-secondary);">No employees match your search for "${searchTerm}"</p>
         `;
         noResultsDiv.style.display = 'block';
       } else if (noResultsDiv) {
@@ -1270,7 +1533,6 @@
       }
     }
 
-    // Get CSRF token from cookies
     function getCookie(name) {
       let cookieValue = null;
       if (document.cookie && document.cookie !== '') {
@@ -1286,32 +1548,25 @@
       return cookieValue;
     }
 
-    // Update employee card in DOM after successful edit
     function updateEmployeeCard(employeeId, data) {
       const card = document.querySelector(`[data-employee-id="${employeeId}"]`);
       if (card) {
-        // Update name
         const nameElement = card.querySelector('.employee-name');
         if (nameElement) nameElement.textContent = data.name;
         
-        // Update ID
         const idElement = card.querySelector('.employee-id');
         if (idElement) idElement.textContent = data.id_no;
         
-        // Update task
         const taskElement = card.querySelector('.employee-task');
         if (taskElement) taskElement.textContent = data.task;
         
-        // Update task badge
         const badgeElement = card.querySelector('.task-badge');
         if (badgeElement) {
           badgeElement.textContent = data.task;
-          badgeElement.className = `task-badge task-${data.task.toLowerCase()}`;
         }
         
-        // Update button data attributes
         const editButton = card.querySelector('.edit-button');
-        const deleteButton = card.querySelector('.delete-button');
+        const archiveButton = card.querySelector('.archive-button');
         
         if (editButton) {
           editButton.setAttribute('data-name', data.name);
@@ -1319,213 +1574,15 @@
           editButton.setAttribute('data-task', data.task);
         }
         
-        if (deleteButton) {
-          deleteButton.setAttribute('data-name', data.name);
-          deleteButton.setAttribute('data-id-no', data.id_no);
+        if (archiveButton) {
+          archiveButton.setAttribute('data-name', data.name);
+          archiveButton.setAttribute('data-id-no', data.id_no);
         }
         
-        // Update avatar placeholder
         const avatarElement = card.querySelector('.avatar-placeholder');
         if (avatarElement) {
           avatarElement.textContent = data.name.charAt(0).toUpperCase();
         }
-      }
-    }
- 
-    // Global Theme Management System
-    class GlobalThemeManager {
-      constructor() {
-        this.currentTheme = 'light';
-        this.currentFontSize = 'medium';
-        this.currentAnimationSpeed = 'normal';
-        this.init();
-      }
-
-      init() {
-        // Load saved preferences on every page load
-        this.loadPreferences();
-        // Apply saved theme immediately
-        this.applyTheme(this.currentTheme);
-        this.applyFontSize(this.currentFontSize);
-        this.applyAnimationSpeed(this.currentAnimationSpeed);
-        // Listen for system theme changes
-        this.watchSystemTheme();
-      }
-
-      loadPreferences() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
-        this.currentFontSize = localStorage.getItem('fontSize') || 'medium';
-        this.currentAnimationSpeed = localStorage.getItem('animationSpeed') || 'normal';
-      }
-
-      applyTheme(theme) {
-        const html = document.documentElement;
-        
-        // Add transition class for smooth theme switching
-        html.classList.add('theme-transition');
-        
-        // Set theme attribute
-        html.setAttribute('data-theme', theme);
-        
-        // Store current theme
-        this.currentTheme = theme;
-        localStorage.setItem('theme', theme);
-
-        // Remove transition class after animation
-        setTimeout(() => {
-          html.classList.remove('theme-transition');
-        }, 300);
-
-        // Update theme selector if it exists on the page
-        const themeSelector = document.getElementById('change-theme');
-        if (themeSelector) {
-          themeSelector.value = theme;
-        }
-      }
-
-      applyFontSize(size) {
-        const root = document.documentElement;
-        const sizeMap = {
-          'small': '14px',
-          'medium': '15px',
-          'large': '16px'
-        };
-        
-        
-        root.style.fontSize = sizeMap[size];
-        this.currentFontSize = size;
-        localStorage.setItem('fontSize', size);
-
-        // Update font size selector if it exists
-        const fontSizeSelector = document.getElementById('font-size');
-        if (fontSizeSelector) {
-          fontSizeSelector.value = size;
-        }
-      }
-
-      applyAnimationSpeed(speed) {
-        const root = document.documentElement;
-        const speedMap = {
-          'slow': '0.6s',
-          'normal': '0.3s',
-          'fast': '0.15s',
-          'none': '0s'
-        };
-        
-        root.style.setProperty('--transition-duration', speedMap[speed]);
-        this.currentAnimationSpeed = speed;
-        localStorage.setItem('animationSpeed', speed);
-
-        // Update all transition durations
-        const style = document.createElement('style');
-        style.textContent = `
-          .theme-transition * {
-            transition-duration: ${speedMap[speed]} !important;
-          }
-        `;
-        
-        // Remove previous speed style if exists
-        const oldStyle = document.getElementById('animation-speed-style');
-        if (oldStyle) oldStyle.remove();
-        
-        style.id = 'animation-speed-style';
-        document.head.appendChild(style);
-
-        // Update animation speed selector if it exists
-        const animationSpeedSelector = document.getElementById('animation-speed');
-        if (animationSpeedSelector) {
-          animationSpeedSelector.value = speed;
-        }
-      }
-
-      watchSystemTheme() {
-        if (window.matchMedia) {
-          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-          mediaQuery.addListener((e) => {
-            if (this.currentTheme === 'auto') {
-              // Force re-application of auto theme
-              this.applyTheme('auto');
-            }
-          });
-        }
-      }
-
-      // Method to change theme programmatically
-      setTheme(theme) {
-        this.applyTheme(theme);
-      }
-
-      // Method to get current theme
-      getTheme() {
-        return this.currentTheme;
-      }
-
-      // Method to toggle between light and dark
-      toggleTheme() {
-        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-        this.applyTheme(newTheme);
-        return newTheme;
-      }
-
-      showSuccessMessage(message) {
-        // Remove existing message if any
-        const existing = document.querySelector('.success-message');
-        if (existing) existing.remove();
-
-        // Create new message
-        const messageEl = document.createElement('div');
-        messageEl.className = 'success-message';
-        messageEl.textContent = message;
-        document.body.appendChild(messageEl);
-
-        // Show message
-        setTimeout(() => messageEl.classList.add('show'), 100);
-
-        // Hide and remove message
-        setTimeout(() => {
-          messageEl.classList.remove('show');
-          setTimeout(() => messageEl.remove(), 300);
-        }, 3000);
-      }
-    }
-
-    // Initialize global theme manager
-    let globalThemeManager;
-
-    // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      globalThemeManager = new GlobalThemeManager();
-      
-      // Add event listeners if theme controls exist on current page
-      const themeSelector = document.getElementById('change-theme');
-      if (themeSelector) {
-        themeSelector.addEventListener('change', function(e) {
-          globalThemeManager.setTheme(e.target.value);
-        });
-      }
-
-      const fontSizeSelector = document.getElementById('font-size');
-      if (fontSizeSelector) {
-        fontSizeSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyFontSize(e.target.value);
-        });
-      }
-
-      const animationSpeedSelector = document.getElementById('animation-speed');
-      if (animationSpeedSelector) {
-        animationSpeedSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyAnimationSpeed(e.target.value);
-        });
-      }
-    });
-
-    // Make theme manager globally accessible
-    window.globalThemeManager = globalThemeManager;
-
-    // Global functions
-    function toggleTheme() {
-      if (window.globalThemeManager) {
-        return window.globalThemeManager.toggleTheme();
       }
     }
   </script>

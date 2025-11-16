@@ -39,6 +39,7 @@ import pytesseract, PyPDF2
 
 
 
+
 try:
     from .models import AuditLog
 except ImportError:
@@ -145,74 +146,6 @@ def landing_menu(request):
 
 
 
-def dashboard(request):
-    """
-    Safe Analytics Dashboard View - No attribute errors
-    """
-    try:
-        # Basic Employee Statistics - These should always work
-        total_employees = Employee.objects.count()
-        active_employees = Employee.objects.filter(status='active').count()
-        
-        # Simple stats that don't depend on unknown fields
-        context = {
-            'total_employees': total_employees,
-            'active_employees': active_employees,
-            'new_employees_30d': 0,  # We'll calculate this safely later
-            'dept_stats': [],  # Empty for now
-            'task_stats': [],  # Empty for now
-            'user_activity': [],  # Empty for now
-            'recent_activities': [],  # Empty for now
-            'table_stats': [('Employees', total_employees)],
-            'db_size': None,
-        }
-        
-        print(f"Dashboard stats: Total={total_employees}, Active={active_employees}")
-        return render(request, 'dashboard.html', context)
-        
-    except Exception as e:
-        print(f"Dashboard error: {e}")
-        # Return safe empty context
-        context = {
-            'total_employees': 0,
-            'active_employees': 0,
-            'new_employees_30d': 0,
-            'dept_stats': [],
-            'task_stats': [],
-            'user_activity': [],
-            'recent_activities': [],
-            'table_stats': [],
-            'db_size': None,
-        }
-        return render(request, 'dashboard.html', context)
-
-
-@login_required
-def refresh_analytics(request):
-    """
-    Safe AJAX endpoint to refresh analytics data
-    """
-    if request.method == 'GET':
-        try:
-            total_employees = Employee.objects.count()
-            active_employees = Employee.objects.filter(status='active').count()
-            
-            return JsonResponse({
-                'success': True,
-                'data': {
-                    'total_employees': total_employees,
-                    'active_employees': active_employees,
-                    'timestamp': timezone.now().strftime('%B %d, %H:%M')
-                }
-            })
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            })
-    
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
 
 # DEBUG VIEW - Add this temporarily to see your model structure
 @login_required 
@@ -247,10 +180,35 @@ def debug_employee(request):
         return JsonResponse({'error': str(e)})
 
 
-
+#------------APPLICATION REQUEST VIEW------------#
 def application_request(request):
     return render(request, 'application_request.html')
 
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
+
+@require_http_methods(["POST"])
+def archive_application(request, application_id):
+    try:
+        app = get_object_or_404(EligibilityRequest, id=application_id)
+        app.archived = True
+        app.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+def restore_application(request, application_id):
+    try:
+        app = get_object_or_404(EligibilityRequest, id=application_id)
+        app.archived = False
+        app.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+#------------APPLICATION REQUEST VIEW END------------#
 
 def history(request):
     return render(request, 'history.html')
@@ -569,6 +527,9 @@ def activity_stats(request):
 
 
 
+
+#------------EMPLOYEES PROFILE VIEW------------#
+
 def employees_profile(request):
     # Handle POST - Add new employee with validation
     if request.method == 'POST':
@@ -792,14 +753,257 @@ def delete_employee(request, employee_id):
         }, status=500)
 
 
+# In your views.py
+
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+
+@require_http_methods(["POST"])
+def archive_employee(request, employee_id):
+    try:
+        employee = get_object_or_404(Employee, id=employee_id)
+        employee.archived = True
+        employee.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+def restore_employee(request, employee_id):
+    try:
+        employee = get_object_or_404(Employee, id=employee_id)
+        employee.archived = False
+        employee.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+#------------EMPLOYEES PROFILE VIEW END------------#
+
 def folder(request):
     return render(request, 'folder.html')
+
+#-----------SETTINGS VIEW-----------#
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
+import json
 
 
 def settings(request):
     return render(request, 'settings.html')
 
 
+@login_required
+def update_profile(request):
+    """Update user profile information"""
+    if request.method == 'POST':
+        try:
+            user = request.user
+            user.first_name = request.POST.get('firstName', '').strip()
+            user.last_name = request.POST.get('lastName', '').strip()
+            user.email = request.POST.get('email', '').strip()
+            user.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Profile updated successfully'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@login_required
+def update_account(request):
+    """Update user account settings (role)"""
+    if request.method == 'POST':
+        try:
+            user = request.user
+            role = request.POST.get('role', '').strip().lower()
+            
+            # Validate role against ROLE_CHOICES
+            valid_roles = ['barangay official', 'municipal officer', 'dilg staff']
+            
+            if role not in valid_roles:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Invalid role selected'
+                })
+            
+            # Update role in profile
+            if hasattr(user, 'userprofile'):
+                user.userprofile.role = role
+                user.userprofile.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Account updated successfully',
+                    'role': role
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'User profile not found'
+                })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+@login_required
+def change_password(request):
+    """Change user password"""
+    if request.method == 'POST':
+        try:
+            user = request.user
+            current_password = request.POST.get('currentPassword', '')
+            new_password = request.POST.get('newPassword', '')
+            
+            # Check if current password is correct
+            if not user.check_password(current_password):
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Current password is incorrect'
+                })
+            
+            # Validate new password length
+            if len(new_password) < 8:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Password must be at least 8 characters'
+                })
+            
+            # Set new password
+            user.set_password(new_password)
+            user.save()
+            
+            # Keep user logged in after password change
+            update_session_auth_hash(request, user)
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Password changed successfully'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@login_required
+def get_notification_preferences(request):
+    try:
+        profile = request.user.userprofile
+        prefs = profile.notification_preferences or {
+            'emailApplications': True,
+            'emailCertificates': True,
+            'emailAnnouncements': True,
+            'pushDesktop': False,
+            'pushMobile': False
+        }
+        
+        return JsonResponse({'success': True, 'preferences': prefs})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@login_required
+def update_notifications(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            profile = request.user.userprofile
+            profile.notification_preferences = data
+            profile.save()
+            
+            return JsonResponse({'success': True, 'message': 'Preferences saved'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+
+@login_required
+def toggle_2fa(request):
+    """Toggle two-factor authentication"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            enabled = data.get('enabled', False)
+            
+            # Store in session (or add field to UserProfile later)
+            request.session['two_factor_enabled'] = enabled
+            
+            return JsonResponse({
+                'success': True,
+                'message': '2FA ' + ('enabled' if enabled else 'disabled')
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@login_required
+def delete_account(request):
+    """Delete user account (soft delete)"""
+    if request.method == 'POST':
+        try:
+            user = request.user
+            # Soft delete - deactivate account
+            user.is_active = False
+            user.save()
+            
+            # Or hard delete (uncomment if you want permanent deletion):
+            # user.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Account deleted successfully'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@login_required
+def get_user_stats(request):
+    """Get user statistics for dashboard"""
+    try:
+        user = request.user
+        profile = user.userprofile
+        
+        # You can add logic to count actual requests from your models
+        # For now, returning basic stats
+        stats = {
+            'loginCount': profile.login_count,
+            'requestCount': 0,  # Add your logic to count requests
+            'memberSince': user.date_joined.year
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'stats': stats
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
+
+
+#-----------SETTINGS VIEW END-----------#
 
 def civil_service_certification(request):
     """Render the public certification form"""
@@ -962,122 +1166,388 @@ def export_employees(request):
     return response
 
 
+
+
+
+
+#---------------ANALYTICS DASHBOARD VIEW---------------#
 @login_required
 @role_required('dilg staff')
-def analytics_dashboard(request):
-    """Advanced analytics dashboard"""
-    
-    # Time-based statistics
-    today = timezone.now().date()
-    last_30_days = today - timedelta(days=30)
-    last_7_days = today - timedelta(days=7)
-    
-    # Employee metrics
-    total_employees = Employee.objects.count()
-    print(f"DEBUG: Total employees found: {total_employees}")
-    
-    # Fix for new employees - check if created_at field exists and has data
-    if hasattr(Employee, 'created_at'):
-        new_employees_30d = Employee.objects.filter(created_at__date__gte=last_30_days).count()
-    else:
-        new_employees_30d = 0
-    
-    # Fix for active employees - count all OR only active status
-    if hasattr(Employee, 'status'):
-        # Count employees with active status OR null/empty status (treat as active)
+def dashboard(request):
+    """
+    Main Analytics Dashboard - Real-Time with Chart Data
+    Shows: Employee stats, certification trends, barangay performance
+    """
+    try:
+        from datetime import timedelta
+        current_year = timezone.now().year
+        current_month = timezone.now().month
+        
+        print(f"🔍 Loading dashboard for year={current_year}, month={current_month}")
+        
+        # ============================================
+        # STATS CARDS
+        # ============================================
+        total_employees = Employee.objects.count()
         active_employees = Employee.objects.filter(
             Q(status='active') | Q(status__isnull=True) | Q(status='')
         ).count()
-        print(f"DEBUG: Active employees: {active_employees}")
         
-        # If still 0, just count all employees as active
-        if active_employees == 0:
+        # Fallback: if no active status, assume all are active
+        if active_employees == 0 and total_employees > 0:
             active_employees = total_employees
-    else:
-        active_employees = total_employees
-    
-    # Department statistics - with better error handling
-    dept_stats = []
-    try:
-        dept_stats = list(Employee.objects.values('department')
-                         .annotate(count=Count('id'))
-                         .order_by('-count'))
-        print(f"DEBUG: Department stats: {dept_stats}")
         
-        # Clean up None departments
-        for stat in dept_stats:
-            if not stat['department']:
-                stat['department'] = 'Unassigned'
-                
-    except Exception as e:
-        print(f"DEBUG: Error getting dept stats: {e}")
-        pass
-    
-    # Task distribution - with better error handling
-    task_stats = []
-    try:
-        task_stats = list(Employee.objects.exclude(task__isnull=True)
-                         .exclude(task='')
-                         .values('task')
-                         .annotate(count=Count('id'))
-                         .order_by('-count')[:10])
-        print(f"DEBUG: Task stats: {task_stats}")
-    except Exception as e:
-        print(f"DEBUG: Error getting task stats: {e}")
-        pass
-    
-    # Recent activities from audit log
-    recent_activities = []
-    user_activity = []
-    try:
-        recent_activities = AuditLog.objects.select_related('user')\
-                                          .filter(timestamp__date__gte=last_7_days)\
-                                          .order_by('-timestamp')[:20]
+        approved_certificates = EligibilityRequest.objects.filter(
+            status='approved',
+            date_processed__year=current_year
+        ).count()
         
-        # User activity stats
-        user_activity = AuditLog.objects.filter(action='LOGIN', timestamp__date__gte=last_30_days)\
-                                       .values('user__username')\
-                                       .annotate(login_count=Count('id'))\
-                                       .order_by('-login_count')[:10]
-    except Exception as e:
-        print(f"DEBUG: Error getting audit logs: {e}")
-        pass
-    
-    # System health metrics
-    db_size = 0
-    table_stats = []
-    try:
-        with connection.cursor() as cursor:
-            # Database size (SQLite specific)
-            cursor.execute("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();")
-            result = cursor.fetchone()
-            if result:
-                db_size = result[0]
+        # ============================================
+        # SECONDARY STATS
+        # ============================================
+        pending_requests = EligibilityRequest.objects.filter(
+            status='pending'
+        ).count()
+        
+        total_requests = EligibilityRequest.objects.count()
+        processing_rate = round((approved_certificates / total_requests * 100), 1) if total_requests > 0 else 0
+        
+        # Calculate average processing time
+        processed_requests = EligibilityRequest.objects.filter(
+            status='approved',
+            date_processed__isnull=False,
+            date_submitted__isnull=False
+        )
+        
+        avg_processing_days = 0
+        if processed_requests.exists():
+            total_days = 0
+            count = 0
+            for req in processed_requests:
+                delta = req.date_processed - req.date_submitted
+                total_days += delta.days
+                count += 1
+            avg_processing_days = round(total_days / count) if count > 0 else 0
+        
+        # This month's certifications - FIX: Use current_month variable
+        this_month_certs = EligibilityRequest.objects.filter(
+            status='approved',
+            date_processed__year=current_year,
+            date_processed__month=current_month
+        ).count()
+        
+        print(f"📅 This month (month {current_month}): {this_month_certs} certificates")
+        print(f"   Query: year={current_year}, month={current_month}, status='approved'")
+        
+        # ============================================
+        # CHART 1: Certifications by Month
+        # ============================================
+        certifications_by_month = []
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        for month_num in range(1, 13):
+            elective_count = EligibilityRequest.objects.filter(
+                status='approved',
+                date_processed__year=current_year,
+                date_processed__month=month_num,
+                position_type='elective'
+            ).count()
             
-            # Basic table stats
-            table_stats = [
-                ('Employees', Employee.objects.count()),
-                ('Users', User.objects.count()),
-            ]
+            appointive_count = EligibilityRequest.objects.filter(
+                status='approved',
+                date_processed__year=current_year,
+                date_processed__month=month_num,
+                position_type='appointive'
+            ).count()
+            
+            certifications_by_month.append({
+                'month': months[month_num - 1],
+                'elective': elective_count,
+                'appointive': appointive_count
+            })
+        
+        # ============================================
+        # CHART 2: Top Performing Barangays
+        # ============================================
+        barangay_stats = []
+        
+        for barangay in Barangay.objects.all():
+            total_submissions = RequirementSubmission.objects.filter(
+                barangay=barangay
+            ).count()
+            
+            # Only include barangays with submissions
+            if total_submissions > 0:
+                approved = RequirementSubmission.objects.filter(
+                    barangay=barangay,
+                    status='approved'
+                ).count()
+                
+                accomplished = RequirementSubmission.objects.filter(
+                    barangay=barangay,
+                    status='accomplished'
+                ).count()
+                
+                # Compliance = completed tasks / total submissions
+                completed = approved + accomplished
+                compliance_rate = round((completed / total_submissions) * 100, 1)
+                
+                barangay_stats.append({
+                    'name': barangay.name,
+                    'total_submissions': total_submissions,
+                    'approved': approved,
+                    'accomplished': accomplished,
+                    'compliance_rate': compliance_rate
+                })
+        
+        # Sort by compliance rate, take top 10
+        top_barangays = sorted(
+            barangay_stats, 
+            key=lambda x: (x['compliance_rate'], x['accomplished']), 
+            reverse=True
+        )[:10]
+        
+        # ============================================
+        # BUILD CONTEXT
+        # ============================================
+        context = {
+            'total_employees': total_employees,
+            'active_employees': active_employees,
+            'approved_certificates': approved_certificates,
+            'current_year': current_year,
+            'certifications_by_month': certifications_by_month,
+            'top_barangays': top_barangays,
+            # Secondary stats
+            'pending_requests': pending_requests,
+            'processing_rate': processing_rate,
+            'avg_processing_days': avg_processing_days,
+            'this_month_certs': this_month_certs,
+        }
+        
+        print(f"✅ Dashboard loaded: Employees={total_employees}, "
+              f"Certs={approved_certificates}, "
+              f"Pending={pending_requests}, "
+              f"This Month={this_month_certs}, "
+              f"Barangays={len(top_barangays)}")
+        
+        return render(request, 'dashboard.html', context)
+        
     except Exception as e:
-        print(f"DEBUG: Error getting system stats: {e}")
-        pass
-    
-    context = {
-        'total_employees': total_employees,
-        'new_employees_30d': new_employees_30d,
-        'active_employees': active_employees,
-        'dept_stats': dept_stats,
-        'task_stats': task_stats,
-        'recent_activities': recent_activities,
-        'user_activity': user_activity,
-        'db_size': db_size,
-        'table_stats': table_stats,
-    }
-    
-    print(f"DEBUG: Final context: {context}")
-    return render(request, 'analytics_dashboard.html', context)
+        print(f"❌ Dashboard error: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Safe fallback context
+        context = {
+            'total_employees': 0,
+            'active_employees': 0,
+            'approved_certificates': 0,
+            'current_year': timezone.now().year,
+            'certifications_by_month': [],
+            'top_barangays': [],
+            'pending_requests': 0,
+            'processing_rate': 0,
+            'avg_processing_days': 0,
+            'this_month_certs': 0,
+        }
+        return render(request, 'dashboard.html', context)
 
+
+# ===============================================
+# API ENDPOINTS - Real-Time Data Refresh
+# ===============================================
+
+@login_required
+@require_http_methods(["GET"])
+def refresh_analytics(request):
+    """
+    API: Refresh stats cards data
+    Returns: total_employees, active_employees, approved_certificates, timestamp
+    """
+    try:
+        from datetime import timedelta
+        current_year = timezone.now().year
+        current_month = timezone.now().month
+        
+        total_employees = Employee.objects.count()
+        
+        active_employees = Employee.objects.filter(
+            Q(status='active') | Q(status__isnull=True) | Q(status='')
+        ).count()
+        
+        if active_employees == 0 and total_employees > 0:
+            active_employees = total_employees
+        
+        approved_certificates = EligibilityRequest.objects.filter(
+            status='approved',
+            date_processed__year=current_year
+        ).count()
+        
+        # Additional metrics for secondary stats
+        pending_requests = EligibilityRequest.objects.filter(
+            status='pending'
+        ).count()
+        
+        total_requests = EligibilityRequest.objects.count()
+        processing_rate = round((approved_certificates / total_requests * 100), 1) if total_requests > 0 else 0
+        
+        # Calculate average processing time
+        processed_requests = EligibilityRequest.objects.filter(
+            status='approved',
+            date_processed__isnull=False
+        )
+        
+        avg_processing_days = 0
+        if processed_requests.exists():
+            total_days = 0
+            count = 0
+            for req in processed_requests:
+                if req.date_submitted and req.date_processed:
+                    delta = req.date_processed - req.date_submitted
+                    total_days += delta.days
+                    count += 1
+            avg_processing_days = round(total_days / count) if count > 0 else 0
+        
+        # This month's certifications
+        this_month_certs = EligibilityRequest.objects.filter(
+            status='approved',
+            date_processed__year=current_year,
+            date_processed__month=current_month
+        ).count()
+        
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'total_employees': total_employees,
+                'active_employees': active_employees,
+                'approved_certificates': approved_certificates,
+                'pending_requests': pending_requests,
+                'processing_rate': processing_rate,
+                'avg_processing_days': avg_processing_days,
+                'this_month_certs': this_month_certs,
+                'timestamp': timezone.now().strftime('%B %d, %Y • %I:%M %p')
+            }
+        })
+    except Exception as e:
+        print(f"❌ Error refreshing analytics: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_http_methods(["GET"])
+def certifications_data(request):
+    """
+    API: Get monthly certification data (elective vs appointive)
+    Returns: labels (months), elective counts, appointive counts
+    """
+    try:
+        current_year = timezone.now().year
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        elective_data = []
+        appointive_data = []
+        
+        for month_num in range(1, 13):
+            elective = EligibilityRequest.objects.filter(
+                status='approved',
+                date_processed__year=current_year,
+                date_processed__month=month_num,
+                position_type='elective'
+            ).count()
+            
+            appointive = EligibilityRequest.objects.filter(
+                status='approved',
+                date_processed__year=current_year,
+                date_processed__month=month_num,
+                position_type='appointive'
+            ).count()
+            
+            elective_data.append(elective)
+            appointive_data.append(appointive)
+        
+        return JsonResponse({
+            'success': True,
+            'certifications': {
+                'labels': months,
+                'elective': elective_data,
+                'appointive': appointive_data
+            }
+        })
+    except Exception as e:
+        print(f"❌ Error fetching certifications: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_http_methods(["GET"])
+def barangays_data(request):
+    """
+    API: Get top performing barangays by compliance rate
+    Returns: labels (names), compliance rates, detailed stats
+    """
+    try:
+        barangay_stats = []
+        
+        for barangay in Barangay.objects.all():
+            total_submissions = RequirementSubmission.objects.filter(
+                barangay=barangay
+            ).count()
+            
+            # Only include barangays with submissions
+            if total_submissions > 0:
+                approved = RequirementSubmission.objects.filter(
+                    barangay=barangay,
+                    status='approved'
+                ).count()
+                
+                accomplished = RequirementSubmission.objects.filter(
+                    barangay=barangay,
+                    status='accomplished'
+                ).count()
+                
+                completed = approved + accomplished
+                compliance_rate = round((completed / total_submissions) * 100, 1)
+                
+                barangay_stats.append({
+                    'name': barangay.name,
+                    'total': total_submissions,
+                    'approved': approved,
+                    'accomplished': accomplished,
+                    'compliance_rate': compliance_rate
+                })
+        
+        # Sort by compliance rate and take top 10
+        top_barangays = sorted(
+            barangay_stats,
+            key=lambda x: (x['compliance_rate'], x['accomplished']),
+            reverse=True
+        )[:10]
+        
+        return JsonResponse({
+            'success': True,
+            'barangays': {
+                'labels': [b['name'] for b in top_barangays],
+                'data': [b['compliance_rate'] for b in top_barangays],
+                'details': top_barangays
+            }
+        })
+    except Exception as e:
+        print(f"❌ Error fetching barangays: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+#--------------END OF ANALYTICS DASHBOARD VIEW--------------#
 
 # Advanced search API
 @login_required
