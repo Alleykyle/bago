@@ -147,7 +147,7 @@ def landing_menu(request):
 
 
 
-# DEBUG VIEW - Add this temporarily to see your model structure
+
 @login_required 
 def debug_employee(request):
     """
@@ -1729,10 +1729,10 @@ def submit_eligibility_request(request):
         position_type = request.POST.get('position_type', '').strip()
         certifier = request.POST.get('certifier', '').strip()
         
-        print(f"👤 Applicant: {first_name} {last_name}")
-        print(f"📧 Email: {email}")
-        print(f"🏢 Barangay: {barangay}")
-        print(f"📋 Position Type: {position_type}")
+        print(f" Applicant: {first_name} {last_name}")
+        print(f" Email: {email}")
+        print(f" Barangay: {barangay}")
+        print(f" Position Type: {position_type}")
         
         # Validation
         if not all([last_name, first_name, email, barangay, position_type, certifier]):
@@ -1801,7 +1801,7 @@ def submit_eligibility_request(request):
         files_processed = []
         
         # Process ID Front
-        print(f"\n📄 Processing ID Front...")
+        print(f"\n Processing ID Front...")
         id_front_category = smart_categorize_file(id_front, 'id_front')
         id_front_path = save_categorized_eligibility_file(
             file=id_front,
@@ -1817,7 +1817,7 @@ def submit_eligibility_request(request):
         })
         
         # Process ID Back
-        print(f"\n📄 Processing ID Back...")
+        print(f"\n Processing ID Back...")
         id_back_category = smart_categorize_file(id_back, 'id_back')
         id_back_path = save_categorized_eligibility_file(
             file=id_back,
@@ -1833,7 +1833,7 @@ def submit_eligibility_request(request):
         })
         
         # 🔥 FIX: Process Signature WITH white background correction
-        print(f"\n📄 Processing Signature...")
+        print(f"\n Processing Signature...")
         
         # Process signature to fix black background issue
         processed_signature = process_signature_image(signature)

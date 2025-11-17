@@ -7,7 +7,6 @@
   <title>Eligibility Certification</title>
   <link rel="stylesheet" href="{% static 'CSS/dashboard.css' %}">
   <link rel="stylesheet" href="{% static 'CSS/civil_service_certification.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/theme-system.css' %}">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -659,19 +658,6 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="certificate-actions">
-              <button type="button" onclick="printCertificate()" class="cert-btn cert-btn-print">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                </svg>
-                Print Certificate
-              </button>
-              <button type="button" onclick="downloadCertificate()" class="cert-btn cert-btn-download">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Download PDF
-              </button>
               <button type="button" onclick="backToSuccess()" class="cert-btn cert-btn-back">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -1100,7 +1086,6 @@ function setupElectiveCalculations() {
 
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Page loaded, initializing...');
-      setupSignatureCanvas();
       setupEventListeners();
       // These functions are called when step2 is shown, not on page load
       showStep('intro');
@@ -1174,10 +1159,16 @@ function setupElectiveCalculations() {
         currentStepEl.style.display = 'block';
       }
       
+      // ✅ ADD THIS SECTION HERE - Right after showing the step
+      // Initialize signature canvas ONLY when user reaches step5
+      if (stepId === 'step5' && !signatureCanvas) {
+        console.log('🖊️ Initializing signature canvas for step5');
+        setupSignatureCanvas();
+      }
+      
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
     function showIntroPage() {
       showStep('intro');
     }
@@ -1207,12 +1198,17 @@ function setupElectiveCalculations() {
 
     function setupSignatureCanvas() {
       signatureCanvas = document.getElementById('signature-canvas');
+      
+      // ✅ EARLY EXIT if canvas doesn't exist
+      if (!signatureCanvas) {
+        console.log('⚠️ Signature canvas not found - skipping initialization');
+        return;
+      }
+      
       const canvasWrapper = document.getElementById('canvasWrapper');
       const placeholder = document.getElementById('placeholder');
       const statusDot = document.getElementById('statusDot');
       const statusText = document.getElementById('statusText');
-      
-      if (!signatureCanvas) return;
       
       signatureCtx = signatureCanvas.getContext('2d');
       signatureCtx.strokeStyle = '#000';
@@ -1259,7 +1255,7 @@ function setupElectiveCalculations() {
         e.preventDefault();
         const touch = e.touches[0];
         const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
-                                         e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                                        e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
           clientX: touch.clientX,
           clientY: touch.clientY
         });
@@ -1887,7 +1883,7 @@ if (positionType === 'elective') {
     // Around line 1730 in civil_service_certification.html
 // Update the showCertificate function to properly show incomplete term info
 
-function showCertificate() {
+    function showCertificate() {
   console.log('=== DEBUG showCertificate ===');
   console.log('formData:', formData);
   console.log('positionType:', positionType);
@@ -1916,7 +1912,57 @@ function showCertificate() {
   }
   
   if (positionType === 'appointive') {
-    // ... appointive logic (keep existing)
+    console.log('Showing APPOINTIVE certificate');
+    
+    // ✅ ADD ALL THIS CODE for appointive certificate
+    const nameEl = document.getElementById('cert-full-name');
+    const barangayEl = document.getElementById('cert-barangay');
+    
+    if (nameEl) nameEl.textContent = fullName;
+    if (document.getElementById('cert-full-name-2')) {
+      document.getElementById('cert-full-name-2').textContent = fullName;
+    }
+    if (barangayEl) barangayEl.textContent = formData.barangay || 'Not specified';
+    
+    if (document.getElementById('cert-appointment-date')) {
+      document.getElementById('cert-appointment-date').textContent = formatDate(formData.appointment_from);
+    }
+    if (document.getElementById('cert-date-from')) {
+      document.getElementById('cert-date-from').textContent = formatDate(formData.appointment_from);
+    }
+    if (document.getElementById('cert-date-to')) {
+      document.getElementById('cert-date-to').textContent = formatDate(formData.appointment_to);
+    }
+    if (document.getElementById('cert-years-served')) {
+      document.getElementById('cert-years-served').textContent = formData.years_in_service ? `${formData.years_in_service} yrs` : '0 yrs';
+    }
+    if (document.getElementById('cert-pb-name')) {
+      document.getElementById('cert-pb-name').textContent = formData.appointing_punong_barangay || 'N/A';
+    }
+    if (document.getElementById('cert-pb-date')) {
+      document.getElementById('cert-pb-date').textContent = formatDate(formData.pb_date_elected);
+    }
+    if (document.getElementById('cert-pb-years')) {
+      document.getElementById('cert-pb-years').textContent = formData.pb_years_service ? `${formData.pb_years_service} yrs` : '0 yrs';
+    }
+    if (document.getElementById('cert-date')) {
+      document.getElementById('cert-date').textContent = certDate;
+    }
+    
+    console.log('✓ Populated appointive certificate fields');
+    console.log('About to call showStep("certificate")');
+    
+    // ✅ SHOW THE CERTIFICATE
+    showStep('certificate');
+    
+    const certificateDiv = document.getElementById('certificate');
+    if (certificateDiv) {
+      certificateDiv.classList.add('active');
+      certificateDiv.style.display = 'block';
+      console.log('✓ Certificate div shown');
+    } else {
+      console.log('❌ Certificate div not found!');
+    }
     
   } else if (positionType === 'elective') {
     console.log('Showing ELECTIVE certificate');
@@ -1949,7 +1995,6 @@ function showCertificate() {
       document.getElementById('cert-elec-date').textContent = certDate;
     }
     
-    // 🔥 CRITICAL: Handle completion status with days not served
     const yesCheck = document.getElementById('cert-elec-yes-check');
     const noCheck = document.getElementById('cert-elec-no-check');
     const reasonSection = document.getElementById('cert-elec-reason-section');
@@ -1970,7 +2015,6 @@ function showCertificate() {
       if (noCheck) noCheck.textContent = '√';
       if (reasonSection) reasonSection.style.display = 'block';
       
-      // 🔥 Get the calculated days not served from the hidden field
       const daysNotServedValue = document.getElementById('days_not_served_value')?.value || '0';
       console.log('Days not served:', daysNotServedValue);
       
@@ -1989,12 +2033,15 @@ function showCertificate() {
     const certificateDiv = document.getElementById('certificate-elective');
     if (certificateDiv) {
       certificateDiv.classList.add('active');
+      certificateDiv.style.display = 'block';
+      console.log('✓ Elective certificate div shown');
+    } else {
+      console.log('❌ Elective certificate div not found!');
     }
   }
   
   console.log('=== END DEBUG ===');
 }
-
 
     function backToSuccess() {
   // Restore container width
@@ -2200,179 +2247,7 @@ function showCertificate() {
       printCertificate();
     });
 }
-  </script>
 
-
-  <script>
-    // Global Theme Management System
-    class GlobalThemeManager {
-      constructor() {
-        this.currentTheme = 'light';
-        this.currentFontSize = 'medium';
-        this.currentAnimationSpeed = 'normal';
-        this.init();
-      }
-
-      init() {
-        this.loadPreferences();
-        this.applyTheme(this.currentTheme);
-        this.applyFontSize(this.currentFontSize);
-        this.applyAnimationSpeed(this.currentAnimationSpeed);
-        this.watchSystemTheme();
-      }
-
-      loadPreferences() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
-        this.currentFontSize = localStorage.getItem('fontSize') || 'medium';
-        this.currentAnimationSpeed = localStorage.getItem('animationSpeed') || 'normal';
-      }
-
-      applyTheme(theme) {
-        const html = document.documentElement;
-        
-        html.classList.add('theme-transition');
-        html.setAttribute('data-theme', theme);
-        
-        this.currentTheme = theme;
-        localStorage.setItem('theme', theme);
-
-        setTimeout(() => {
-          html.classList.remove('theme-transition');
-        }, 300);
-
-        const themeSelector = document.getElementById('change-theme');
-        if (themeSelector) {
-          themeSelector.value = theme;
-        }
-      }
-
-      applyFontSize(size) {
-        const root = document.documentElement;
-        const sizeMap = {
-          'small': '14px',
-          'medium': '15px',
-          'large': '16px'
-        };
-        
-        root.style.fontSize = sizeMap[size];
-        this.currentFontSize = size;
-        localStorage.setItem('fontSize', size);
-
-        const fontSizeSelector = document.getElementById('font-size');
-        if (fontSizeSelector) {
-          fontSizeSelector.value = size;
-        }
-      }
-
-      applyAnimationSpeed(speed) {
-        const root = document.documentElement;
-        const speedMap = {
-          'slow': '0.6s',
-          'normal': '0.3s',
-          'fast': '0.15s',
-          'none': '0s'
-        };
-        
-        root.style.setProperty('--transition-duration', speedMap[speed]);
-        this.currentAnimationSpeed = speed;
-        localStorage.setItem('animationSpeed', speed);
-
-        const style = document.createElement('style');
-        style.textContent = `
-          .theme-transition * {
-            transition-duration: ${speedMap[speed]} !important;
-          }
-        `;
-        
-        const oldStyle = document.getElementById('animation-speed-style');
-        if (oldStyle) oldStyle.remove();
-        
-        style.id = 'animation-speed-style';
-        document.head.appendChild(style);
-
-        const animationSpeedSelector = document.getElementById('animation-speed');
-        if (animationSpeedSelector) {
-          animationSpeedSelector.value = speed;
-        }
-      }
-
-      watchSystemTheme() {
-        if (window.matchMedia) {
-          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-          mediaQuery.addListener((e) => {
-            if (this.currentTheme === 'auto') {
-              this.applyTheme('auto');
-            }
-          });
-        }
-      }
-
-      setTheme(theme) {
-        this.applyTheme(theme);
-      }
-
-      getTheme() {
-        return this.currentTheme;
-      }
-
-      toggleTheme() {
-        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-        this.applyTheme(newTheme);
-        return newTheme;
-      }
-
-      showSuccessMessage(message) {
-        const existing = document.querySelector('.success-message');
-        if (existing) existing.remove();
-
-        const messageEl = document.createElement('div');
-        messageEl.className = 'success-message';
-        messageEl.textContent = message;
-        document.body.appendChild(messageEl);
-
-        setTimeout(() => messageEl.classList.add('show'), 100);
-
-        setTimeout(() => {
-          messageEl.classList.remove('show');
-          setTimeout(() => messageEl.remove(), 300);
-        }, 3000);
-      }
-    }
-
-    let globalThemeManager;
-
-    document.addEventListener('DOMContentLoaded', function() {
-      globalThemeManager = new GlobalThemeManager();
-      
-      const themeSelector = document.getElementById('change-theme');
-      if (themeSelector) {
-        themeSelector.addEventListener('change', function(e) {
-          globalThemeManager.setTheme(e.target.value);
-        });
-      }
-
-      const fontSizeSelector = document.getElementById('font-size');
-      if (fontSizeSelector) {
-        fontSizeSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyFontSize(e.target.value);
-        });
-      }
-
-      const animationSpeedSelector = document.getElementById('animation-speed');
-      if (animationSpeedSelector) {
-        animationSpeedSelector.addEventListener('change', function(e) {
-          globalThemeManager.applyAnimationSpeed(e.target.value);
-        });
-      }
-    });
-
-    window.globalThemeManager = globalThemeManager;
-
-    function toggleTheme() {
-      if (window.globalThemeManager) {
-        return window.globalThemeManager.toggleTheme();
-      }
-    }
   </script>
 </body>
 </html>

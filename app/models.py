@@ -386,7 +386,7 @@ def send_certificate_notification_async(eligibility_request):
                     
                 elif eligibility_request.status == 'approved':
                     subject = '✅ Certificate Approved - Ready to Print!'
-                    applicant_message = 'Congratulations! Your certificate has been approved, you can print your eligibility certification'
+                    applicant_message = 'Congratulations! Your certificate has been approved, you can pick-up your eligibility certification'
                     
                 elif eligibility_request.status == 'rejected':
                     subject = '❌ Certificate Application - Status Update'
