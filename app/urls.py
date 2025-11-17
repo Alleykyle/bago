@@ -9,7 +9,11 @@ urlpatterns = [
     path('login/', views.login_page, name='login_page'),
     path('signup/', views.signup_page, name='signup_page'),
     path('logout/', views.logout_view, name='logout'),
-    
+    path('signup/pending/', views.signup_pending, name='signup_pending'),
+    path('user-approvals/', views.pending_users, name='pending_users'),
+    path('user-approvals/approve/<int:user_id>/', views.approve_user, name='approve_user'),
+    path('user-approvals/reject/<int:user_id>/', views.reject_user, name='reject_user'),
+        
     # ============================================
     # BARANGAY OFFICIAL - SUBMISSION PAGES
     # ============================================
