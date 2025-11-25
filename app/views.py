@@ -52,7 +52,7 @@ except ImportError:
         def create(**kwargs):
             pass
 
-
+#------------USER ACCESS LOGIN/LOGOUT VIEW------------#
 def get_client_ip(request):
     """Helper function to get client IP address"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -82,7 +82,6 @@ def logout_view(request):
     logout(request)
     messages.success(request, "You have successfully logged out.")
     return redirect('landing_page')
-
 
 def login_page(request):
     if request.method == 'POST':
@@ -120,33 +119,8 @@ def login_page(request):
     return render(request, 'login_page.html')
 
 
-@login_required
-def logout_view(request):
-    """Handle user logout with audit log"""
-    user = request.user
-    ip_address = get_client_ip(request)
-    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
-
-    # Log the logout action
-    AuditLog.objects.create(
-        user=user,
-        action='LOGOUT',
-        ip_address=ip_address,
-        user_agent=user_agent,
-        description=f"{user.username} logged out",
-    )
-
-    logout(request)
-    messages.info(request, "You have been logged out successfully.")
-    return redirect('login')  # change to your login page URL name
-
-
 def landing_menu(request):
     return render(request, 'landing_menu.html')
-
-
-
-
 
 @login_required 
 def debug_employee(request):
@@ -210,323 +184,8 @@ def restore_application(request, application_id):
 
 #------------APPLICATION REQUEST VIEW END------------#
 
-def history(request):
+
     return render(request, 'history.html')
-
-@login_required
-def history_api(request):
-    """AJAX endpoint for history page real-time updates"""
-    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({'error': 'Invalid request'}, status=400)
-    
-    try:
-        # Get the last activity ID from the request to check for new activities
-        last_activity_id = request.GET.get('last_id', 0)
-        
-        # Check if there are new activities since the last check
-        new_activities_count = AuditLog.objects.filter(id__gt=last_activity_id).count()
-        
-        # Get activity statistics
-        today = timezone.now().date()
-        stats = {
-            'total_activities': AuditLog.objects.count(),
-            'today_activities': AuditLog.objects.filter(timestamp__date=today).count(),
-            'unique_users': AuditLog.objects.exclude(user__isnull=True).values('user').distinct().count(),
-            'action_types': AuditLog.objects.values('action').distinct().count(),
-            'has_new_activities': new_activities_count > 0,
-            'new_activities_count': new_activities_count
-        }
-        
-        return JsonResponse({
-            'success': True,
-            'stats': stats
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-    
-@login_required
-def export_history(request):
-    """Export history data as CSV or Excel"""
-    try:
-        format_type = request.GET.get('format', 'csv')
-        
-        # Apply same filters as history view
-        activities = AuditLog.objects.select_related('user', 'content_type').order_by('-timestamp')
-        
-        # Apply filters
-        action_filter = request.GET.get('action', '')
-        user_filter = request.GET.get('user', '')
-        date_from = request.GET.get('date_from', '')
-        date_to = request.GET.get('date_to', '')
-        search_query = request.GET.get('search', '')
-        
-        if action_filter:
-            activities = activities.filter(action=action_filter)
-        
-        if user_filter:
-            activities = activities.filter(user__username__icontains=user_filter)
-        
-        if date_from:
-            activities = activities.filter(timestamp__date__gte=date_from)
-        
-        if date_to:
-            activities = activities.filter(timestamp__date__lte=date_to)
-        
-        if search_query:
-            activities = activities.filter(
-                Q(description__icontains=search_query) |
-                Q(user__username__icontains=search_query) |
-                Q(action__icontains=search_query)
-            )
-        
-        # Limit export to prevent performance issues
-        activities = activities[:5000]  # Max 5000 records
-        
-        if format_type == 'excel':
-            import openpyxl
-            from openpyxl.styles import Font, Alignment
-            
-            response = HttpResponse(
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            response['Content-Disposition'] = f'attachment; filename="activity_history_{timezone.now().strftime("%Y%m%d_%H%M")}.xlsx"'
-            
-            workbook = openpyxl.Workbook()
-            worksheet = workbook.active
-            worksheet.title = 'Activity History'
-            
-            # Headers
-            headers = [
-                'ID', 'User', 'Action', 'Description', 'Timestamp', 
-                'IP Address', 'Content Type', 'Object ID', 'Old Values', 'New Values'
-            ]
-            
-            # Style headers
-            header_font = Font(bold=True)
-            header_alignment = Alignment(horizontal='center')
-            
-            for col, header in enumerate(headers, 1):
-                cell = worksheet.cell(row=1, column=col, value=header)
-                cell.font = header_font
-                cell.alignment = header_alignment
-            
-            # Data rows
-            for row, activity in enumerate(activities, 2):
-                worksheet.cell(row=row, column=1, value=activity.id)
-                worksheet.cell(row=row, column=2, value=activity.user.username if activity.user else 'System')
-                worksheet.cell(row=row, column=3, value=activity.action)
-                worksheet.cell(row=row, column=4, value=activity.description)
-                worksheet.cell(row=row, column=5, value=activity.timestamp.strftime('%Y-%m-%d %H:%M:%S'))
-                worksheet.cell(row=row, column=6, value=activity.ip_address or '')
-                worksheet.cell(row=row, column=7, value=str(activity.content_type) if activity.content_type else '')
-                worksheet.cell(row=row, column=8, value=activity.object_id or '')
-                worksheet.cell(row=row, column=9, value=json.dumps(activity.old_values) if activity.old_values else '')
-                worksheet.cell(row=row, column=10, value=json.dumps(activity.new_values) if activity.new_values else '')
-            
-            # Auto-adjust column widths
-            for column in worksheet.columns:
-                max_length = 0
-                column_letter = column[0].column_letter
-                for cell in column:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
-                worksheet.column_dimensions[column_letter].width = adjusted_width
-            
-            workbook.save(response)
-            
-        else:  # CSV format
-            response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = f'attachment; filename="activity_history_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
-            
-            writer = csv.writer(response)
-            writer.writerow([
-                'ID', 'User', 'Action', 'Description', 'Timestamp', 
-                'IP Address', 'Content Type', 'Object ID', 'Old Values', 'New Values'
-            ])
-            
-            for activity in activities:
-                writer.writerow([
-                    activity.id,
-                    activity.user.username if activity.user else 'System',
-                    activity.action,
-                    activity.description,
-                    activity.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                    activity.ip_address or '',
-                    str(activity.content_type) if activity.content_type else '',
-                    activity.object_id or '',
-                    json.dumps(activity.old_values) if activity.old_values else '',
-                    json.dumps(activity.new_values) if activity.new_values else ''
-                ])
-        
-        # Log the export activity
-        try:
-            AuditLog.objects.create(
-                user=request.user,
-                action='EXPORT',
-                ip_address=get_client_ip(request),
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                description=f"Exported activity history as {format_type.upper()}",
-                new_values={
-                    'export_format': format_type,
-                    'record_count': activities.count(),
-                    'filters_applied': {
-                        'action': action_filter,
-                        'user': user_filter,
-                        'date_from': date_from,
-                        'date_to': date_to,
-                        'search': search_query
-                    }
-                }
-            )
-        except:
-            pass
-        
-        return response
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Export failed: {str(e)}'
-        }, status=500)
-
-@login_required
-def bulk_history_operations(request):
-    """Bulk operations on history records (for admins)"""
-    if not request.user.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
-    
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'Invalid method'}, status=405)
-    
-    try:
-        data = json.loads(request.body)
-        action = data.get('action')
-        activity_ids = data.get('activity_ids', [])
-        
-        if not activity_ids:
-            return JsonResponse({'success': False, 'error': 'No activities selected'})
-        
-        activities = AuditLog.objects.filter(id__in=activity_ids)
-        count = activities.count()
-        
-        if action == 'delete':
-            # Store info about deleted activities for logging
-            deleted_info = list(activities.values('id', 'action', 'description', 'user__username'))
-            activities.delete()
-            
-            # Log the bulk deletion
-            AuditLog.objects.create(
-                user=request.user,
-                action='BULK_DELETE',
-                ip_address=get_client_ip(request),
-                description=f"Bulk deleted {count} activity records",
-                old_values={'deleted_activities': deleted_info}
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'{count} activities deleted successfully'
-            })
-        
-        elif action == 'archive':
-            # Mark as archived (you could add an 'archived' field to AuditLog)
-            # For now, just add a note to the description
-            activities.update(description=F('description') + ' [ARCHIVED]')
-            
-            AuditLog.objects.create(
-                user=request.user,
-                action='BULK_ARCHIVE',
-                ip_address=get_client_ip(request),
-                description=f"Bulk archived {count} activity records",
-                new_values={'archived_count': count, 'activity_ids': activity_ids}
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'{count} activities archived successfully'
-            })
-        
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid action'})
-            
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Bulk operation failed: {str(e)}'
-        }, status=500)
-    
-@login_required
-def activity_stats(request):
-    """Get activity statistics for the dashboard"""
-    try:
-        today = timezone.now().date()
-        yesterday = today - timedelta(days=1)
-        last_7_days = today - timedelta(days=7)
-        last_30_days = today - timedelta(days=30)
-        
-        stats = {
-            'total_activities': AuditLog.objects.count(),
-            'today_activities': AuditLog.objects.filter(timestamp__date=today).count(),
-            'yesterday_activities': AuditLog.objects.filter(timestamp__date=yesterday).count(),
-            'week_activities': AuditLog.objects.filter(timestamp__date__gte=last_7_days).count(),
-            'month_activities': AuditLog.objects.filter(timestamp__date__gte=last_30_days).count(),
-            'unique_users': AuditLog.objects.exclude(user__isnull=True).values('user').distinct().count(),
-            'action_types': AuditLog.objects.values('action').distinct().count(),
-        }
-        
-        # Activity breakdown by action type
-        action_breakdown = list(
-            AuditLog.objects.values('action')
-            .annotate(count=Count('id'))
-            .order_by('-count')[:10]
-        )
-        
-        # Daily activity trend for the last 7 days
-        daily_trend = []
-        for i in range(7):
-            date = today - timedelta(days=i)
-            count = AuditLog.objects.filter(timestamp__date=date).count()
-            daily_trend.append({
-                'date': date.strftime('%Y-%m-%d'),
-                'count': count
-            })
-        
-        # Most active users
-        active_users = list(
-            AuditLog.objects.exclude(user__isnull=True)
-            .values('user__username')
-            .annotate(count=Count('id'))
-            .order_by('-count')[:10]
-        )
-        
-        stats.update({
-            'action_breakdown': action_breakdown,
-            'daily_trend': daily_trend,
-            'active_users': active_users
-        })
-        
-        return JsonResponse({
-            'success': True,
-            'stats': stats
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-
-
-
-
 
 #------------EMPLOYEES PROFILE VIEW------------#
 
@@ -778,6 +437,101 @@ def restore_employee(request, employee_id):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def employee_search_api(request):
+    """AJAX endpoint for advanced employee search"""
+    query = request.GET.get('q', '').strip()
+    
+    if len(query) < 2:
+        return JsonResponse({'employees': []})
+    
+    # Complex search across multiple fields
+    try:
+        employees = Employee.objects.filter(
+            Q(name__icontains=query) |
+            Q(id_no__icontains=query) |
+            Q(email__icontains=query) |
+            Q(position__icontains=query) |
+            Q(department__icontains=query)
+        ).values('id', 'name', 'id_no', 'email', 'department', 'status')[:10]
+    except:
+        employees = Employee.objects.filter(
+            Q(name__icontains=query) |
+            Q(id_no__icontains=query)
+        ).values('id', 'name', 'id_no')[:10]
+    
+    return JsonResponse({
+        'employees': list(employees)
+    })
+
+
+# Bulk operations
+@login_required
+@require_http_methods(["POST"])
+def bulk_employee_operations(request):
+    """Handle bulk operations on employees"""
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+        employee_ids = data.get('employee_ids', [])
+        
+        if not employee_ids:
+            return JsonResponse({'success': False, 'error': 'No employees selected'})
+        
+        with transaction.atomic():
+            employees = Employee.objects.filter(id__in=employee_ids)
+            
+            if action == 'delete':
+                count = employees.count()
+                employees.delete()
+                message = f'{count} employees deleted successfully'
+                
+            elif action == 'activate':
+                if hasattr(Employee, 'status'):
+                    count = employees.update(status='active')
+                    message = f'{count} employees activated'
+                else:
+                    return JsonResponse({'success': False, 'error': 'Status field not available'})
+                
+            elif action == 'deactivate':
+                if hasattr(Employee, 'status'):
+                    count = employees.update(status='inactive')
+                    message = f'{count} employees deactivated'
+                else:
+                    return JsonResponse({'success': False, 'error': 'Status field not available'})
+                
+            elif action == 'update_department':
+                department = data.get('department')
+                if not department:
+                    return JsonResponse({'success': False, 'error': 'Department required'})
+                if hasattr(Employee, 'department'):
+                    count = employees.update(department=department)
+                    message = f'{count} employees moved to {department}'
+                else:
+                    return JsonResponse({'success': False, 'error': 'Department field not available'})
+                
+            else:
+                return JsonResponse({'success': False, 'error': 'Invalid action'})
+            
+            # Log bulk operation
+            try:
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='UPDATE',
+                    description=f"Bulk operation: {action} on {len(employee_ids)} employees"
+                )
+            except:
+                pass  # Skip audit logging if AuditLog doesn't exist
+            
+            # Clear cache
+            cache.delete('employee_stats')
+            
+            return JsonResponse({'success': True, 'message': message})
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
 
 #------------EMPLOYEES PROFILE VIEW END------------#
 
@@ -1167,9 +921,6 @@ def export_employees(request):
 
 
 
-
-
-
 #---------------ANALYTICS DASHBOARD VIEW---------------#
 @login_required
 @role_required('dilg staff')
@@ -1549,102 +1300,9 @@ def barangays_data(request):
         }, status=500)
 #--------------END OF ANALYTICS DASHBOARD VIEW--------------#
 
-# Advanced search API
-@login_required
-def employee_search_api(request):
-    """AJAX endpoint for advanced employee search"""
-    query = request.GET.get('q', '').strip()
-    
-    if len(query) < 2:
-        return JsonResponse({'employees': []})
-    
-    # Complex search across multiple fields
-    try:
-        employees = Employee.objects.filter(
-            Q(name__icontains=query) |
-            Q(id_no__icontains=query) |
-            Q(email__icontains=query) |
-            Q(position__icontains=query) |
-            Q(department__icontains=query)
-        ).values('id', 'name', 'id_no', 'email', 'department', 'status')[:10]
-    except:
-        employees = Employee.objects.filter(
-            Q(name__icontains=query) |
-            Q(id_no__icontains=query)
-        ).values('id', 'name', 'id_no')[:10]
-    
-    return JsonResponse({
-        'employees': list(employees)
-    })
 
-
-# Bulk operations
-@login_required
-@require_http_methods(["POST"])
-def bulk_employee_operations(request):
-    """Handle bulk operations on employees"""
-    try:
-        data = json.loads(request.body)
-        action = data.get('action')
-        employee_ids = data.get('employee_ids', [])
-        
-        if not employee_ids:
-            return JsonResponse({'success': False, 'error': 'No employees selected'})
-        
-        with transaction.atomic():
-            employees = Employee.objects.filter(id__in=employee_ids)
-            
-            if action == 'delete':
-                count = employees.count()
-                employees.delete()
-                message = f'{count} employees deleted successfully'
-                
-            elif action == 'activate':
-                if hasattr(Employee, 'status'):
-                    count = employees.update(status='active')
-                    message = f'{count} employees activated'
-                else:
-                    return JsonResponse({'success': False, 'error': 'Status field not available'})
-                
-            elif action == 'deactivate':
-                if hasattr(Employee, 'status'):
-                    count = employees.update(status='inactive')
-                    message = f'{count} employees deactivated'
-                else:
-                    return JsonResponse({'success': False, 'error': 'Status field not available'})
-                
-            elif action == 'update_department':
-                department = data.get('department')
-                if not department:
-                    return JsonResponse({'success': False, 'error': 'Department required'})
-                if hasattr(Employee, 'department'):
-                    count = employees.update(department=department)
-                    message = f'{count} employees moved to {department}'
-                else:
-                    return JsonResponse({'success': False, 'error': 'Department field not available'})
-                
-            else:
-                return JsonResponse({'success': False, 'error': 'Invalid action'})
-            
-            # Log bulk operation
-            try:
-                AuditLog.objects.create(
-                    user=request.user,
-                    action='UPDATE',
-                    description=f"Bulk operation: {action} on {len(employee_ids)} employees"
-                )
-            except:
-                pass  # Skip audit logging if AuditLog doesn't exist
-            
-            # Clear cache
-            cache.delete('employee_stats')
-            
-            return JsonResponse({'success': True, 'message': message})
-            
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
     
-
+#----------------CATEGORIZATION VIEW----------------#
 from PIL import Image, ImageOps
 import io
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -3525,72 +3183,37 @@ def user_profile(request):
             'member_since': request.user.date_joined.strftime('%B %d, %Y')
         }
     })
+
 @login_required
 def requirements_monitoring(request):
-    user_profile = request.user.userprofile  
+    """
+    Requirements submission page - BARANGAY OFFICIALS ONLY
+    Each official only sees their assigned barangay
+    """
+    user_profile = request.user.userprofile
+    
+    # 🔒 STRICT ACCESS CONTROL
     if user_profile.role == 'dilg staff':
-        messages.info(request, 'As DILG Admin, please use the Admin Submissions page.')
-        return redirect('admin_submissions')
-    barangays = Barangay.objects.all()
-    barangay_statuses = {}
-    today = date.today()   
-    for barangay in barangays:
-        submissions = RequirementSubmission.objects.filter(barangay=barangay)
-        
-        if not submissions.exists():
-            # No requirements yet
-            barangay_statuses[barangay.id] = {
-                'status': 'no_data',
-                'color': 'gray',
-                'tooltip': 'No requirements assigned'
-            }
-            continue
-        
-        # Count different statuses
-        total = submissions.count()
-        overdue = submissions.filter(
-            Q(status__in=['pending', 'in_progress']) & Q(due_date__lt=today)
-        ).count()
-        pending = submissions.filter(status='pending').count()
-        in_progress = submissions.filter(status='in_progress').count()
-        accomplished = submissions.filter(status='accomplished').count()
-        
-        # Determine color based on priority
-        if overdue > 0:
-            status = 'overdue'
-            color = 'red'
-            tooltip = f'{overdue} overdue requirement(s)'
-        elif pending > 0 or in_progress > 0:
-            status = 'in_progress'
-            color = 'yellow'
-            tooltip = f'{pending} pending, {in_progress} in progress'
-        elif accomplished == total:
-            status = 'completed'
-            color = 'green'
-            tooltip = f'All {total} requirements completed!'
-        else:
-            status = 'partial'
-            color = 'blue'
-            tooltip = f'{accomplished}/{total} completed'
-        
-        barangay_statuses[barangay.id] = {
-            'status': status,
-            'color': color,
-            'tooltip': tooltip,
-            'counts': {
-                'total': total,
-                'overdue': overdue,
-                'pending': pending,
-                'in_progress': in_progress,
-                'accomplished': accomplished
-            }
-        }
+        messages.warning(request, '⚠️ DILG Admin should use the Admin Submissions page.')
+        return redirect('admin_submissions_page')
+    
+    if user_profile.role not in ['barangay official', 'municipal officer']:
+        messages.error(request, '🚫 Access Denied: This page is only for Barangay Officials.')
+        return redirect('dashboard')
+    
+    # 🆕 FILTER BARANGAYS - Only show user's assigned barangay
+    if user_profile.barangay:
+        barangays = Barangay.objects.filter(id=user_profile.barangay.id)
+    else:
+        barangays = Barangay.objects.none()
+        messages.error(request, '⚠️ You are not assigned to any barangay. Contact admin.')
     
     context = {
         'barangays': barangays,
-        'barangay_statuses': barangay_statuses,
         'user_role': user_profile.role,
-        'is_submitter': user_profile.role == 'barangay official',
+        'page_title': 'Submit Requirements',
+        'is_submitter': True,
+        'assigned_barangay': user_profile.barangay,  # 🆕 Pass assigned barangay
     }
     return render(request, 'requirements_monitoring.html', context)
 
@@ -3734,22 +3357,35 @@ def get_barangay_status(request, barangay_id):
 def api_requirements_list(request):
     """API endpoint to list requirements for a barangay"""
     try:
-        barangay_id = request.GET.get('barangay_id')
+        from django.utils import timezone
+        
+        # Get barangay from logged-in user instead of parameter
+        user_profile = request.user.userprofile
+        
+        if user_profile.role != 'barangay official':
+            return JsonResponse({
+                'success': False, 
+                'error': 'Only barangay officials can access this'
+            }, status=403)
+        
+        barangay = user_profile.barangay
+        
+        if not barangay:
+            return JsonResponse({
+                'success': False, 
+                'error': 'No barangay assigned to your account'
+            }, status=400)
+        
         period = request.GET.get('period', 'weekly')
         week = request.GET.get('week', 1)
         search = request.GET.get('search', '').strip()
-        
-        if not barangay_id:
-            return JsonResponse({'success': False, 'error': 'Barangay ID required'}, status=400)
-        
-        barangay = get_object_or_404(Barangay, id=barangay_id)
         
         # Get submissions for this barangay and period
         submissions = RequirementSubmission.objects.filter(
             barangay=barangay,
             requirement__period=period,
             requirement__is_active=True
-        )
+        ).select_related('requirement')
         
         # Filter by week if period is weekly
         if period == 'weekly':
@@ -3765,32 +3401,83 @@ def api_requirements_list(request):
         # Prepare response data
         submissions_data = []
         for sub in submissions:
+            # Calculate is_overdue safely
+            is_overdue = False
+            if sub.due_date and sub.status not in ['approved', 'accomplished']:
+                is_overdue = timezone.now().date() > sub.due_date
+            
+            # Calculate last_update safely
+            last_update = 'Never'
+            if sub.updated_at:
+                diff = timezone.now() - sub.updated_at
+                if diff.days > 0:
+                    last_update = f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+                else:
+                    hours = diff.seconds // 3600
+                    if hours > 0:
+                        last_update = f"{hours} hour{'s' if hours > 1 else ''} ago"
+                    else:
+                        minutes = (diff.seconds % 3600) // 60
+                        last_update = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+            
             submissions_data.append({
                 'id': sub.id,
                 'title': sub.requirement.title,
                 'description': sub.requirement.description,
                 'status': sub.status,
                 'status_display': sub.get_status_display(),
-                'due_date': sub.due_date.strftime('%B %d, %Y'),
-                'is_overdue': sub.is_overdue,
-                'last_update': sub.updated_at.strftime('%B %d, %Y at %I:%M %p'),
-                'update_text': sub.update_text,
+                'due_date': sub.due_date.strftime('%B %d, %Y') if sub.due_date else 'N/A',
+                'is_overdue': is_overdue,
+                'last_update': last_update,
+                'update_text': sub.update_text or '',
             })
         
         return JsonResponse({
             'success': True,
-            'submissions': submissions_data
+            'submissions': submissions_data,
+            'barangay_name': barangay.name
         })
         
     except Exception as e:
+        import traceback
+        print(f"❌ Error in api_requirements_list:")
+        print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_user_session(request):
+    """Get current user session info"""
+    try:
+        user_profile = request.user.userprofile
+        
+        return JsonResponse({
+            'success': True,
+            'user': {
+                'id': request.user.id,
+                'username': request.user.username,
+                'full_name': request.user.get_full_name() or request.user.username,
+                'role': user_profile.role,
+            },
+            'barangay_id': user_profile.barangay.id if user_profile.barangay else None,
+            'barangay_name': user_profile.barangay.name if user_profile.barangay else None,
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
 
 @login_required
 @require_http_methods(["GET"])
 def api_submission_detail(request, submission_id):
     """API endpoint to get submission details"""
     try:
-        # Use select_related and prefetch_related for efficiency
+        from django.utils import timezone
+        import os
+        
         submission = get_object_or_404(
             RequirementSubmission.objects.select_related(
                 'requirement', 'barangay', 'submitted_by'
@@ -3798,20 +3485,38 @@ def api_submission_detail(request, submission_id):
             id=submission_id
         )
         
+        # Calculate is_overdue
+        is_overdue = False
+        if submission.due_date and submission.status not in ['approved', 'accomplished']:
+            is_overdue = timezone.now().date() > submission.due_date
+        
+        # Calculate last_update
+        last_update = 'Never'
+        if submission.updated_at:
+            diff = timezone.now() - submission.updated_at
+            if diff.days > 0:
+                last_update = f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+            else:
+                hours = diff.seconds // 3600
+                if hours > 0:
+                    last_update = f"{hours} hour{'s' if hours > 1 else ''} ago"
+                else:
+                    minutes = (diff.seconds % 3600) // 60
+                    last_update = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+        
         # Get attachments safely
         attachments = []
         for att in submission.attachments.all():
             try:
                 file_name = os.path.basename(att.file.name) if att.file else 'Unknown'
                 file_url = att.file.url if att.file else ''
-                file_size = att.file_size_kb if hasattr(att, 'file_size_kb') else round(att.file_size / 1024, 2)
+                file_size = round(att.file.size / 1024) if att.file else 0
                 
                 attachments.append({
                     'id': att.id,
                     'file_name': file_name,
                     'file_size': file_size,
                     'file_url': file_url,
-                    'uploaded_at': att.uploaded_at.strftime('%B %d, %Y at %I:%M %p'),
                 })
             except Exception as att_error:
                 print(f"Error processing attachment {att.id}: {att_error}")
@@ -3819,21 +3524,14 @@ def api_submission_detail(request, submission_id):
         
         data = {
             'id': submission.id,
-            'requirement': {
-                'title': submission.requirement.title,
-                'description': submission.requirement.description,
-                'period': submission.requirement.period,
-            },
-            'barangay': {
-                'id': submission.barangay.id,
-                'name': submission.barangay.name,
-            },
+            'title': submission.requirement.title,
+            'description': submission.requirement.description,
             'status': submission.status,
             'status_display': submission.get_status_display(),
-            'due_date': submission.due_date.strftime('%B %d, %Y'),
-            'is_overdue': submission.is_overdue,
+            'due_date': submission.due_date.strftime('%B %d, %Y') if submission.due_date else 'N/A',
+            'is_overdue': is_overdue,
             'update_text': submission.update_text or '',
-            'last_update': submission.updated_at.strftime('%B %d, %Y at %I:%M %p'),
+            'last_update': last_update,
             'attachments': attachments,
         }
         
@@ -3848,18 +3546,125 @@ def api_submission_detail(request, submission_id):
             'error': f'Submission with ID {submission_id} not found'
         }, status=404)
     except Exception as e:
-        # Log the full error for debugging
         import traceback
         print(f"=== ERROR in api_submission_detail ===")
-        print(f"Submission ID: {submission_id}")
         print(f"Error: {str(e)}")
         print(f"Traceback:\n{traceback.format_exc()}")
         
         return JsonResponse({
             'success': False, 
-            'error': f'Internal server error: {str(e)}'
+            'error': str(e)
         }, status=500)
 
+
+@login_required
+@require_http_methods(["POST"])
+def api_submission_submit(request, submission_id):
+    """
+    Submit requirement to admin (mark as accomplished)
+    THIS IS THE ACTUAL FUNCTION BEING CALLED!
+    """
+    try:
+        from .models import RequirementSubmission, AuditLog
+        
+        print(f"\n{'='*60}")
+        print(f"🚀 API SUBMISSION SUBMIT")
+        print(f"{'='*60}")
+        print(f"👤 User: {request.user.username}")
+        print(f"📋 Submission ID: {submission_id}")
+        
+        submission = RequirementSubmission.objects.select_related(
+            'requirement', 'barangay'
+        ).get(id=submission_id)
+        
+        # Check permission
+        user_profile = request.user.userprofile
+        
+        if user_profile.role == 'barangay official':
+            if submission.barangay != user_profile.barangay:
+                print(f"❌ ERROR: Unauthorized - wrong barangay")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Unauthorized'
+                }, status=403)
+        
+        print(f"📄 Requirement: {submission.requirement.title}")
+        print(f"🏘️ Barangay: {submission.barangay.name}")
+        
+        # Get update text from request
+        data = json.loads(request.body) if request.body else {}
+        update_text = data.get('update_text', '').strip()
+        
+        print(f"📝 Update text: {update_text[:50] if update_text else 'None'}...")
+        
+        # Update submission
+        old_status = submission.status
+        submission.status = 'accomplished'
+        submission.submitted_at = timezone.now()
+        submission.submitted_by = request.user
+        if update_text:
+            submission.update_text = update_text
+        submission.save()
+        
+        print(f"✅ Submission updated:")
+        print(f"   Old status: {old_status}")
+        print(f"   New status: {submission.status}")
+        print(f"   Submitted at: {submission.submitted_at}")
+        print(f"   Submitted by: {request.user.username}")
+        
+        # ========== CREATE NOTIFICATIONS FOR ADMINS ==========
+        print(f"\n🔔 Creating admin notifications...")
+        notifications_sent = notify_admins(
+            title=f"📋 New Submission: {submission.requirement.title}",
+            message=f"{submission.barangay.name} submitted '{submission.requirement.title}' for review.",
+            notification_type='new_submission',
+            submission=submission
+        )
+        print(f"✅ Notifications sent to {notifications_sent} admins")
+        # ====================================================
+        
+        # Log the submission
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='UPDATE',
+                content_object=submission,
+                description=f"Submitted requirement: {submission.requirement.title} to admin"
+            )
+            print(f"✅ Audit log created")
+        except Exception as audit_error:
+            print(f"⚠️ Audit log failed: {str(audit_error)}")
+        
+        print(f"\n✅ SUBMISSION COMPLETE")
+        print(f"   Total notifications sent: {notifications_sent}")
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Requirement submitted successfully! Waiting for admin approval.',
+            'notifications_sent': notifications_sent
+        })
+        
+    except RequirementSubmission.DoesNotExist:
+        print(f"❌ ERROR: Submission {submission_id} not found")
+        return JsonResponse({
+            'success': False,
+            'error': 'Submission not found'
+        }, status=404)
+        
+    except Exception as e:
+        print(f"\n{'='*60}")
+        print(f"❌ SUBMIT ERROR")
+        print(f"{'='*60}")
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 @login_required
 def debug_submission(request, submission_id):
@@ -3883,6 +3688,12 @@ def api_submission_update(request, submission_id):
         submission = get_object_or_404(RequirementSubmission, id=submission_id)
         
         update_text = request.POST.get('update_text', '').strip()
+
+        if not user_profile.can_access_barangay(submission.barangay):
+            return JsonResponse({
+                'success': False,
+                'error': '🚫 Access Denied'
+            }, status=403)
         
         if not update_text:
             return JsonResponse({'success': False, 'error': 'Update text required'}, status=400)
@@ -3911,46 +3722,24 @@ def api_submission_update(request, submission_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
 @login_required
 @require_http_methods(["POST"])
-def api_attachment_upload(request):
-    """
-    FIXED: API endpoint to upload file attachments with proper error handling
-    """
+def api_attachment_upload(request, submission_id):
+    """API endpoint to upload file attachments"""
     try:
-        # Debug logging
-        print("\n" + "="*60)
-        print("📁 FILE UPLOAD REQUEST")
-        print("="*60)
-        print(f"User: {request.user.username}")
-        print(f"POST data: {dict(request.POST)}")
-        print(f"FILES: {list(request.FILES.keys())}")
+        import os
         
-        # Get submission_id
-        submission_id = request.POST.get('submission_id')
+        submission = get_object_or_404(RequirementSubmission, id=submission_id)
         
-        if not submission_id:
+        # Check access
+        user_profile = request.user.userprofile
+        if user_profile.role == 'barangay official' and submission.barangay != user_profile.barangay:
             return JsonResponse({
-                'success': False, 
-                'error': 'Submission ID is required'
-            }, status=400)
+                'success': False,
+                'error': 'Access Denied'
+            }, status=403)
         
-        print(f"Looking for submission: {submission_id}")
-        
-        # Get submission
-        try:
-            submission = RequirementSubmission.objects.select_related(
-                'requirement', 'barangay'
-            ).get(id=submission_id)
-            print(f"✓ Found: {submission.requirement.title} - {submission.barangay.name}")
-        except RequirementSubmission.DoesNotExist:
-            print(f"✗ Submission {submission_id} not found")
-            return JsonResponse({
-                'success': False, 
-                'error': f'Submission {submission_id} not found'
-            }, status=404)
-        
-        # Check for file
         if 'file' not in request.FILES:
             return JsonResponse({
                 'success': False, 
@@ -3958,104 +3747,43 @@ def api_attachment_upload(request):
             }, status=400)
         
         uploaded_file = request.FILES['file']
-        print(f"File: {uploaded_file.name}")
-        print(f"Size: {uploaded_file.size} bytes ({round(uploaded_file.size/1024, 2)} KB)")
-        print(f"Type: {uploaded_file.content_type}")
         
-        # Validate file type
-        allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-        if uploaded_file.content_type not in allowed_types:
-            return JsonResponse({
-                'success': False, 
-                'error': f'Invalid file type: {uploaded_file.content_type}. Only images allowed.'
-            }, status=400)
-        
-        # Validate file size (5MB)
-        max_size = 5 * 1024 * 1024
+        # Validate file size (10MB)
+        max_size = 10 * 1024 * 1024
         if uploaded_file.size > max_size:
             return JsonResponse({
                 'success': False, 
-                'error': f'File too large ({round(uploaded_file.size/(1024*1024), 2)}MB). Max: 5MB'
+                'error': 'File too large. Max: 10MB'
             }, status=400)
         
-        # Create attachment - WRAP IN TRY/EXCEPT
-        print("Creating RequirementAttachment...")
-        try:
-            attachment = RequirementAttachment.objects.create(
-                submission=submission,
-                file=uploaded_file,
-                file_type=uploaded_file.content_type,
-                file_size=uploaded_file.size,
-                uploaded_by=request.user
-            )
-            print(f"✓ Attachment created: ID {attachment.id}")
-        except Exception as create_error:
-            print(f"✗ Failed to create attachment: {create_error}")
-            print(f"Traceback:\n{traceback.format_exc()}")
-            return JsonResponse({
-                'success': False,
-                'error': f'Failed to save file: {str(create_error)}'
-            }, status=500)
-        
-        # Log the upload (optional)
-        try:
-            AuditLog.objects.create(
-                user=request.user,
-                action='CREATE',
-                content_object=attachment,
-                description=f"Uploaded: {uploaded_file.name} for {submission.requirement.title}"
-            )
-        except Exception as log_err:
-            print(f"⚠️ Audit log failed: {log_err}")
-        
-        # Prepare response
-        try:
-            response_data = {
-                'success': True,
-                'message': 'File uploaded successfully',
-                'attachment': {
-                    'id': attachment.id,
-                    'file_name': os.path.basename(attachment.file.name),
-                    'file_size': attachment.file_size_kb,
-                    'file_url': attachment.file.url,
-                    'uploaded_at': attachment.uploaded_at.strftime('%B %d, %Y at %I:%M %p'),
-                }
-            }
-        except Exception as response_err:
-            print(f"⚠️ Error building response: {response_err}")
-            # Fallback response
-            response_data = {
-                'success': True,
-                'message': 'File uploaded successfully',
-                'attachment': {
-                    'id': attachment.id,
-                    'file_name': uploaded_file.name,
-                    'file_size': round(uploaded_file.size / 1024, 2),
-                    'file_url': '',
-                    'uploaded_at': timezone.now().strftime('%B %d, %Y at %I:%M %p'),
-                }
-            }
-        
-        print(f"✓ SUCCESS")
-        print(f"Response: {response_data}")
-        print("="*60 + "\n")
-        
-        return JsonResponse(response_data)
-        
-    except Exception as e:
-        print("\n" + "="*60)
-        print("❌ UPLOAD ERROR")
-        print("="*60)
-        print(f"Error: {str(e)}")
-        print(f"Type: {type(e).__name__}")
-        print(f"Traceback:\n{traceback.format_exc()}")
-        print("="*60 + "\n")
+        # Create attachment
+        attachment = RequirementAttachment.objects.create(
+            submission=submission,
+            file=uploaded_file,
+            file_type=uploaded_file.content_type,
+            file_size=uploaded_file.size,
+            uploaded_by=request.user
+        )
         
         return JsonResponse({
+            'success': True,
+            'message': 'File uploaded successfully',
+            'attachment': {
+                'id': attachment.id,
+                'file_name': os.path.basename(attachment.file.name),
+                'file_size': round(attachment.file.size / 1024),
+                'file_url': attachment.file.url,
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ Upload error: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
             'success': False, 
-            'error': f'Upload failed: {str(e)}'
+            'error': str(e)
         }, status=500)
-
 
 
 @login_required
@@ -4086,97 +3814,6 @@ def api_attachment_delete(request, attachment_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-@login_required
-@require_http_methods(["POST"])
-def api_submission_submit(request, submission_id):
-    """
-    API endpoint to submit requirement to admin
-    When barangay official submits, DILG admin automatically sees it
-    """
-    try:
-        # 🔒 Access Control - Only Barangay Officials can submit
-        user_profile = request.user.userprofile
-        if user_profile.role not in ['barangay official', 'municipal officer']:
-            return JsonResponse({
-                'success': False,
-                'error': 'Only Barangay Officials can submit requirements'
-            }, status=403)
-        
-        submission = get_object_or_404(RequirementSubmission, id=submission_id)
-        
-        # Get update_text from POST
-        update_text = request.POST.get('update_text', '').strip()
-        
-        if update_text:
-            submission.update_text = update_text
-            submission.save()
-        
-        # Validate required fields
-        if not submission.update_text:
-            return JsonResponse({
-                'success': False, 
-                'error': 'Please add update details before submitting'
-            }, status=400)
-        
-        if not submission.attachments.exists():
-            return JsonResponse({
-                'success': False,
-                'error': 'Please upload at least one image before submitting'
-            }, status=400)
-        
-        # ✅ SUBMIT TO ADMIN - Change status to 'accomplished'
-        # This makes it visible to DILG admin immediately
-        submission.status = 'accomplished'
-        submission.submitted_by = request.user
-        submission.submitted_at = timezone.now()
-        submission.save()
-        
-        # 📧 Optional: Send email notification to DILG admin
-        # (You can add this if needed)
-        try:
-            from django.core.mail import send_mail
-            send_mail(
-                subject=f'New Requirement Submitted: {submission.requirement.title}',
-                message=f'{submission.barangay.name} submitted: {submission.requirement.title}',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[settings.EMAIL_HOST_USER],  # DILG admin email
-                fail_silently=True,
-            )
-        except:
-            pass  # Don't fail submission if email fails
-        
-        # Log the submission
-        try:
-            AuditLog.objects.create(
-                user=request.user,
-                action='UPDATE',
-                content_object=submission,
-                description=f"Submitted requirement to DILG Admin: {submission.requirement.title} from {submission.barangay.name}"
-            )
-        except:
-            pass
-        
-        return JsonResponse({
-            'success': True,
-            'message': '✅ Successfully submitted to DILG Admin!',
-            'submission': {
-                'id': submission.id,
-                'status': submission.status,
-                'status_display': submission.get_status_display(),
-                'submitted_at': submission.submitted_at.strftime('%B %d, %Y at %I:%M %p')
-            }
-        })
-        
-    except Exception as e:
-        import traceback
-        print(f"=== SUBMIT ERROR ===")
-        print(f"Error: {str(e)}")
-        print(f"Traceback:\n{traceback.format_exc()}")
-        
-        return JsonResponse({
-            'success': False, 
-            'error': str(e)
-        }, status=500)
 
 
 
@@ -4212,30 +3849,39 @@ def api_submission_delete(request, submission_id):
 def requirements_monitoring(request):
     """
     Requirements submission page - BARANGAY OFFICIALS ONLY
-    This is where barangay officials submit their requirements
+    Each official only sees their assigned barangay
     """
     user_profile = request.user.userprofile
     
-    # 🔒 STRICT ACCESS CONTROL - Only Barangay Officials
+    # 🔒 ACCESS CONTROL
     if user_profile.role == 'dilg staff':
-        messages.warning(request, '⚠️ DILG Admin should use the Admin Submissions page to review submissions.')
-        return redirect('admin_submissions_page')  # Redirect to admin page
+        messages.warning(request, '⚠️ DILG Staff should use the Admin Submissions page.')
+        return redirect('admin_submissions_page')
     
     if user_profile.role not in ['barangay official', 'municipal officer']:
         messages.error(request, '🚫 Access Denied: This page is only for Barangay Officials.')
         return redirect('dashboard')
     
-    # Get barangays for barangay officials
-    barangays = Barangay.objects.all().order_by('id') 
+    # 🆕 FILTER BARANGAYS BASED ON ROLE
+    if user_profile.role == 'barangay official':
+        # Barangay officials only see their assigned barangay
+        if user_profile.barangay:
+            barangays = Barangay.objects.filter(id=user_profile.barangay.id)
+        else:
+            barangays = Barangay.objects.none()
+            messages.error(request, '⚠️ You are not assigned to any barangay. Contact DILG Admin.')
+    else:
+        # Municipal officers see all barangays
+        barangays = Barangay.objects.all().order_by('name')
     
     context = {
         'barangays': barangays,
         'user_role': user_profile.role,
         'page_title': 'Submit Requirements',
-        'is_submitter': True,  # Flag to show this is submission page
+        'is_submitter': True,
+        'assigned_barangay': user_profile.barangay,  # 🆕 Pass to template
     }
     return render(request, 'requirements_monitoring.html', context)
-
 
 @login_required
 @require_http_methods(["GET"])
@@ -4255,16 +3901,27 @@ def get_requirements_list(request):
         
         barangay = get_object_or_404(Barangay, id=barangay_id)
         
+        # 🔒 VERIFY ACCESS
+        user_profile = request.user.userprofile
+        if not user_profile.can_access_barangay(barangay):
+            return JsonResponse({
+                'success': False,
+                'error': '🚫 Access Denied: You can only view your assigned barangay.'
+            }, status=403)
+        
         # Get current year and week
         current_year = timezone.now().year
         current_week = int(week)
         
-        # Get requirements for this period
+        # 🆕 Get requirements for this period that apply to this barangay
+        # Either: no specific barangays (applies to all) OR includes this barangay
         requirements = Requirement.objects.filter(
-            Q(period=period) & Q(is_active=True)
+            period=period,
+            is_active=True
         ).filter(
-            Q(applicable_barangays=barangay) | Q(applicable_barangays__isnull=True)
-        )
+            Q(applicable_barangays__isnull=True) | 
+            Q(applicable_barangays=barangay)
+        ).distinct()
         
         # Apply search filter
         if search:
@@ -4272,7 +3929,7 @@ def get_requirements_list(request):
                 Q(title__icontains=search) | Q(description__icontains=search)
             )
         
-        # Get or create submissions for these requirements
+        # 🆕 Get or create submissions for these requirements
         submissions_data = []
         for req in requirements:
             # Get or create submission for this week/period
@@ -4310,11 +3967,13 @@ def get_requirements_list(request):
         })
         
     except Exception as e:
+        import traceback
+        print(f"Error in get_requirements_list: {str(e)}")
+        print(traceback.format_exc())
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
-
 
 @login_required
 @require_http_methods(["GET"])
@@ -4327,6 +3986,14 @@ def get_submission_detail(request, submission_id):
             ).prefetch_related('attachments'),
             id=submission_id
         )
+        
+        # 🆕 VERIFY ACCESS
+        user_profile = request.user.userprofile
+        if not user_profile.can_access_barangay(submission.barangay):
+            return JsonResponse({
+                'success': False,
+                'error': '🚫 Access Denied: You cannot view this submission.'
+            }, status=403)
         
         # Get attachments
         attachments = []
@@ -4590,46 +4257,655 @@ def delete_submission(request, submission_id):
         }, status=500)
 
 
-# Helper function
+from datetime import datetime, timedelta
+from django.utils import timezone
+
+from app.models import Requirement, Barangay, RequirementSubmission
+from django.utils import timezone
+from datetime import datetime, timedelta
+
+# Define calculate_due_date function
 def calculate_due_date(period, week_number, year):
-    """Calculate due date based on period and week number"""
+    today = timezone.now().date()
+    
     if period == 'weekly':
-        # Calculate the last day of the specified week
-        jan_1 = datetime(year, 1, 1)
-        days_to_add = (week_number - 1) * 7 + (6 - jan_1.weekday())
-        return (jan_1 + timedelta(days=days_to_add)).date()
+        january_1 = datetime(year, 1, 1).date()
+        days_to_add = (week_number - 1) * 7
+        week_start = january_1 + timedelta(days=days_to_add - january_1.weekday())
+        return week_start + timedelta(days=6)
     
     elif period == 'monthly':
-        # Last day of current month
-        if timezone.now().month == 12:
-            return datetime(year + 1, 1, 1).date() - timedelta(days=1)
+        current_month = today.month
+        current_year = today.year
+        if current_month == 12:
+            next_month = datetime(current_year + 1, 1, 1)
         else:
-            return datetime(year, timezone.now().month + 1, 1).date() - timedelta(days=1)
+            next_month = datetime(current_year, current_month + 1, 1)
+        return (next_month - timedelta(days=1)).date()
     
     elif period == 'quarterly':
-        # End of current quarter
-        current_quarter = (timezone.now().month - 1) // 3
-        quarter_end_month = (current_quarter + 1) * 3
+        current_quarter = (today.month - 1) // 3 + 1
+        quarter_end_month = current_quarter * 3
         if quarter_end_month == 12:
-            return datetime(year, 12, 31).date()
+            next_month = datetime(today.year + 1, 1, 1)
         else:
-            return datetime(year, quarter_end_month + 1, 1).date() - timedelta(days=1)
+            next_month = datetime(today.year, quarter_end_month + 1, 1)
+        return (next_month - timedelta(days=1)).date()
     
     elif period == 'semestral':
-        # End of semester (June 30 or December 31)
-        if timezone.now().month <= 6:
-            return datetime(year, 6, 30).date()
+        if today.month <= 6:
+            return datetime(today.year, 6, 30).date()
         else:
-            return datetime(year, 12, 31).date()
+            return datetime(today.year, 12, 31).date()
     
     elif period == 'annually':
-        # End of year
-        return datetime(year, 12, 31).date()
+        return datetime(today.year, 12, 31).date()
     
-    return timezone.now().date()
+    else:
+        return today + timedelta(days=30)
+
+# Now create submissions
+print("🔧 Creating submissions for ALL barangays...")
+print("=" * 70)
+
+current_year = timezone.now().year
+current_week = 46  # Current week number
+
+total_created = 0
+total_existing = 0
+
+for barangay in Barangay.objects.all().order_by('name'):
+    print(f"\n📍 {barangay.name}:")
+    barangay_created = 0
+    
+    for req in Requirement.objects.filter(is_active=True):
+        # Determine week_number based on period
+        week_num = current_week if req.period == 'weekly' else None
+        
+        submission, created = RequirementSubmission.objects.get_or_create(
+            requirement=req,
+            barangay=barangay,
+            week_number=week_num,
+            year=current_year,
+            defaults={
+                'due_date': calculate_due_date(req.period, current_week, current_year),
+                'status': 'pending'
+            }
+        )
+        
+        if created:
+            print(f"  ✅ {req.title} ({req.get_period_display()})")
+            barangay_created += 1
+            total_created += 1
+        else:
+            total_existing += 1
+    
+    if barangay_created == 0:
+        print(f"  ⏭️  All submissions already exist")
+
+print("\n" + "=" * 70)
+print(f"✅ DONE!")
+print(f"   Created: {total_created} new submissions")
+print(f"   Already existed: {total_existing}")
+print(f"   Total barangays: {Barangay.objects.count()}")
 
 
-#DILG ADMIN
+
+#--------Admin Views and APIs --------#
+# ============== NOTIFICATION HELPER FUNCTIONS ==============
+# Place these at the top of your views.py file
+def create_notification_for_user(user, title, message, notification_type='info', 
+                                  submission=None, announcement=None, barangay=None):
+    """
+    Master notification creator with extensive error handling
+    """
+    try:
+        from .models import Notification
+        
+        print(f"\n🔔 CREATING NOTIFICATION:")
+        print(f"   User: {user.username} (ID: {user.id})")
+        print(f"   Title: {title}")
+        print(f"   Type: {notification_type}")
+        
+        notification = Notification.objects.create(
+            user=user,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            submission=submission,
+            announcement=announcement,
+            barangay=barangay,
+            is_read=False,
+            created_at=timezone.now()
+        )
+        
+        print(f"   ✅ Notification created successfully (ID: {notification.id})")
+        return notification
+        
+    except Exception as e:
+        print(f"   ❌ ERROR creating notification: {str(e)}")
+        traceback.print_exc()
+        return None
+
+def notify_admins(title, message, notification_type='info', submission=None):
+    """
+    Send notification to ALL admin users (DILG Staff)
+    """
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # Get all admin users (DILG staff OR superusers) in a single query
+        all_admins = User.objects.filter(
+            Q(userprofile__role='dilg staff') | Q(is_superuser=True)
+        ).distinct()
+        
+        print(f"\n📢 NOTIFYING ADMINS:")
+        print(f"   Found {all_admins.count()} admin users")
+        print(f"   Title: {title}")
+        
+        notifications_created = 0
+        for admin in all_admins:
+            notif = create_notification_for_user(
+                user=admin,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                submission=submission
+            )
+            if notif:
+                notifications_created += 1
+        
+        print(f"   ✅ Total: {notifications_created} admin notifications created\n")
+        return notifications_created
+        
+    except Exception as e:
+        print(f"   ❌ ERROR notifying admins: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return 0
+
+
+def notify_barangay_user(submission, title, message, notification_type='info'):
+    """
+    Send notification to the barangay user(s) who own the submission
+    """
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # Get all users from this barangay
+        barangay_users = User.objects.filter(
+            userprofile__barangay=submission.barangay,
+            userprofile__role='barangay official'
+        )
+        
+        print(f"\n📢 NOTIFYING BARANGAY:")
+        print(f"   Barangay: {submission.barangay.name}")
+        print(f"   Found {barangay_users.count()} barangay users")
+        print(f"   Title: {title}")
+        
+        if not barangay_users.exists():
+            print(f"   ⚠️ WARNING: No barangay users found for {submission.barangay.name}")
+            return 0
+        
+        notifications_created = 0
+        for user in barangay_users:
+            notif = create_notification_for_user(
+                user=user,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                submission=submission,
+                barangay=submission.barangay
+            )
+            if notif:
+                notifications_created += 1
+        
+        print(f"   ✅ Total: {notifications_created} barangay notifications created\n")
+        return notifications_created
+        
+    except Exception as e:
+        print(f"   ❌ ERROR notifying barangay: {str(e)}")
+        traceback.print_exc()
+        return 0
+
+
+@login_required
+@require_POST
+def create_announcement(request):
+    """Create a new announcement and send notifications to barangays"""
+    try:
+        from .models import Announcement, Notification
+        
+        data = json.loads(request.body)
+        
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        priority = data.get('priority', 'medium')
+        send_notification = data.get('send_notification', False)
+        
+        print(f"\n{'='*60}")
+        print(f"📢 CREATE ANNOUNCEMENT")
+        print(f"{'='*60}")
+        print(f"👤 Admin: {request.user.username}")
+        print(f"📋 Title: {title}")
+        print(f"📊 Priority: {priority}")
+        print(f"🔔 Send notification: {send_notification}")
+        
+        # Validation
+        if not title or not content:
+            return JsonResponse({
+                'success': False,
+                'error': 'Title and content are required'
+            }, status=400)
+        
+        # Create announcement
+        announcement = Announcement.objects.create(
+            title=title,
+            content=content,
+            priority=priority,
+            posted_by=request.user,
+            posted_at=timezone.now()
+        )
+        
+        print(f"✅ Announcement created (ID: {announcement.id})")
+        
+        notifications_sent = 0
+        
+        # Send notifications to all barangay users if enabled
+        if send_notification:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            # Get ALL barangay officials
+            barangay_users = User.objects.filter(
+                userprofile__role='barangay official',
+                is_active=True
+            ).distinct()
+            
+            print(f"\n🔔 Creating notifications for {barangay_users.count()} barangay users...")
+            
+            # Priority emoji mapping
+            priority_emoji = {
+                'low': 'ℹ️',
+                'medium': '📢',
+                'high': '🚨'
+            }
+            
+            emoji = priority_emoji.get(priority, '📢')
+            
+            # Create notification for each barangay user
+            for user in barangay_users:
+                try:
+                    Notification.objects.create(
+                        user=user,
+                        title=f"{emoji} New Announcement: {title}",
+                        message=f"{content[:150]}{'...' if len(content) > 150 else ''}",
+                        notification_type='info',
+                        announcement=announcement,
+                        is_read=False,
+                        created_at=timezone.now()
+                    )
+                    notifications_sent += 1
+                    print(f"   ✅ Notified: {user.username}")
+                except Exception as notif_error:
+                    print(f"   ❌ Failed to notify {user.username}: {notif_error}")
+            
+            print(f"\n✅ Total notifications sent: {notifications_sent}")
+        
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'announcement': {
+                'id': announcement.id,
+                'title': announcement.title,
+                'content': announcement.content,
+                'priority': announcement.priority,
+                'posted_at': announcement.posted_at.strftime('%B %d, %Y'),
+                'posted_by': announcement.posted_by.get_full_name() or announcement.posted_by.username
+            },
+            'notifications_sent': notifications_sent
+        })
+        
+    except Exception as e:
+        print(f"\n{'='*60}")
+        print(f"❌ CREATE ANNOUNCEMENT ERROR")
+        print(f"{'='*60}")
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+import sys
+import logging
+
+# Force console output
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+def force_print(*args, **kwargs):
+    """Force print even if stdout is redirected"""
+    message = ' '.join(str(arg) for arg in args)
+    print(message, **kwargs)
+    sys.stdout.flush()
+    logger.info(message)
+
+@login_required
+@require_http_methods(["POST"])
+def api_submit_requirement(request, submission_id):
+    """
+    EMERGENCY DEBUG VERSION - Shows exactly what's happening
+    """
+    force_print("\n" + "="*80)
+    force_print("🚨 API_SUBMIT_REQUIREMENT CALLED!")
+    force_print("="*80)
+    force_print(f"Time: {timezone.now()}")
+    force_print(f"User: {request.user.username}")
+    force_print(f"Submission ID: {submission_id}")
+    force_print(f"Request method: {request.method}")
+    force_print(f"Request path: {request.path}")
+    force_print(f"Request body: {request.body[:200] if request.body else 'Empty'}")
+    
+    try:
+        from .models import RequirementSubmission, Notification
+        from django.db import transaction
+        
+        force_print("\n📦 Models imported successfully")
+        
+        # Get the submission
+        force_print(f"\n🔍 Looking for submission #{submission_id}...")
+        submission = RequirementSubmission.objects.select_related(
+            'requirement', 'barangay', 'submitted_by'
+        ).get(id=submission_id)
+        
+        force_print(f"✅ Submission found:")
+        force_print(f"   Requirement: {submission.requirement.title}")
+        force_print(f"   Barangay: {submission.barangay.name}")
+        force_print(f"   Current status: {submission.status}")
+        
+        # Check permission
+        if not hasattr(request.user, 'userprofile'):
+            force_print("❌ ERROR: User has no profile")
+            return JsonResponse({
+                'success': False,
+                'error': 'User profile not found'
+            }, status=403)
+        
+        force_print(f"\n✅ User profile found:")
+        force_print(f"   User barangay: {request.user.userprofile.barangay.name}")
+        force_print(f"   Submission barangay: {submission.barangay.name}")
+        
+        if submission.barangay != request.user.userprofile.barangay:
+            force_print("❌ ERROR: Permission denied")
+            return JsonResponse({
+                'success': False,
+                'error': 'Permission denied'
+            }, status=403)
+        
+        # Get update text from request body
+        try:
+            data = json.loads(request.body) if request.body else {}
+            update_text = data.get('update_text', '')
+            force_print(f"\n📝 Update text length: {len(update_text)} characters")
+        except Exception as e:
+            force_print(f"⚠️ Could not parse request body: {str(e)}")
+            update_text = ''
+        
+        # ✅ Use atomic transaction
+        force_print("\n💾 Starting database transaction...")
+        
+        with transaction.atomic():
+            # Update submission status
+            old_status = submission.status
+            submission.status = 'accomplished'
+            submission.submitted_at = timezone.now()
+            submission.submitted_by = request.user
+            if update_text:
+                submission.update_text = update_text
+            submission.save()
+            
+            force_print(f"✅ Submission updated:")
+            force_print(f"   Old status: {old_status}")
+            force_print(f"   New status: {submission.status}")
+            force_print(f"   Submitted at: {submission.submitted_at}")
+            
+            # ========== GET ALL ADMIN USERS ==========
+            from django.contrib.auth import get_user_model
+            from django.db.models.functions import Lower
+            
+            User = get_user_model()
+            
+            force_print(f"\n🔍 FINDING ADMIN USERS...")
+            
+            # Find admins - case insensitive
+            admin_users = User.objects.annotate(
+                role_lower=Lower('userprofile__role')
+            ).filter(
+                role_lower__icontains='dilg'
+            ).distinct()
+            
+            force_print(f"   Found {admin_users.count()} users with 'dilg' in role")
+            
+            superusers = User.objects.filter(is_superuser=True)
+            force_print(f"   Found {superusers.count()} superusers")
+            
+            all_admins = (admin_users | superusers).distinct()
+            
+            force_print(f"\n   ✅ TOTAL ADMINS: {all_admins.count()}")
+            for admin in all_admins:
+                role = getattr(admin.userprofile, 'role', 'superuser') if hasattr(admin, 'userprofile') else 'superuser'
+                force_print(f"     - {admin.username} (role: '{role}')")
+            
+            if all_admins.count() == 0:
+                force_print(f"\n   ⚠️ WARNING: NO ADMINS FOUND!")
+                force_print(f"   Checking what users exist:")
+                all_users = User.objects.filter(userprofile__isnull=False)[:10]
+                for u in all_users:
+                    force_print(f"     - {u.username}: role='{u.userprofile.role}'")
+            
+            # ========== CREATE NOTIFICATIONS ==========
+            force_print(f"\n🔔 CREATING NOTIFICATIONS...")
+            notifications_created = 0
+            
+            title = f"📋 New Submission: {submission.requirement.title}"
+            message = f"{submission.barangay.name} submitted '{submission.requirement.title}' for review."
+            
+            force_print(f"   Title: {title}")
+            force_print(f"   Message: {message}")
+            
+            for admin in all_admins:
+                try:
+                    force_print(f"\n   Creating notification for {admin.username}...")
+                    
+                    # ✅ CRITICAL: Explicitly set is_read=False
+                    notification = Notification.objects.create(
+                        user=admin,
+                        title=title,
+                        message=message,
+                        notification_type='new_submission',
+                        submission=submission,
+                        barangay=submission.barangay,
+                        is_read=False,
+                        created_at=timezone.now()
+                    )
+                    
+                    notifications_created += 1
+                    force_print(f"     ✅ Created notification #{notification.id}")
+                    force_print(f"        is_read={notification.is_read}")
+                    
+                    # Double-check it was saved correctly
+                    saved_notif = Notification.objects.get(id=notification.id)
+                    force_print(f"        Verified from DB: is_read={saved_notif.is_read}")
+                    
+                    if saved_notif.is_read:
+                        force_print(f"        ⚠️ WARNING: Saved as READ! Fixing...")
+                        saved_notif.is_read = False
+                        saved_notif.save()
+                        force_print(f"        Fixed: is_read={saved_notif.is_read}")
+                    
+                except Exception as e:
+                    force_print(f"     ❌ Failed for {admin.username}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+        
+        # ========== VERIFICATION ==========
+        force_print(f"\n📊 VERIFICATION:")
+        force_print(f"   Notifications created: {notifications_created}")
+        
+        # Check what was actually saved
+        force_print(f"\n🔍 Checking database for new notifications...")
+        recent_notifs = Notification.objects.filter(
+            notification_type='new_submission',
+            submission=submission
+        ).values('id', 'user__username', 'is_read', 'created_at')
+        
+        force_print(f"   Found {len(recent_notifs)} notifications in database:")
+        for notif in recent_notifs:
+            force_print(f"     #{notif['id']}: user={notif['user__username']}, is_read={notif['is_read']}")
+        
+        force_print(f"\n✅ SUBMISSION COMPLETE")
+        force_print(f"{'='*80}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Requirement submitted successfully',
+            'notifications_created': notifications_created,
+            'debug': {
+                'admins_found': all_admins.count(),
+                'submission_id': submission.id,
+                'submission_status': submission.status
+            }
+        })
+        
+    except RequirementSubmission.DoesNotExist:
+        force_print(f"❌ ERROR: Submission {submission_id} not found")
+        return JsonResponse({
+            'success': False,
+            'error': 'Submission not found'
+        }, status=404)
+        
+    except Exception as e:
+        force_print(f"\n{'='*80}")
+        force_print(f"❌ SUBMISSION ERROR")
+        force_print(f"{'='*80}")
+        force_print(f"Error: {str(e)}")
+        import traceback
+        force_print(traceback.format_exc())
+        force_print(f"{'='*80}\n")
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def test_endpoint(request, submission_id):
+    """
+    Simple test endpoint to verify routing works
+    """
+    force_print("\n" + "="*80)
+    force_print("🧪 TEST ENDPOINT HIT!")
+    force_print("="*80)
+    force_print(f"Method: {request.method}")
+    force_print(f"Path: {request.path}")
+    force_print(f"Submission ID: {submission_id}")
+    force_print(f"User: {request.user.username}")
+    force_print("="*80 + "\n")
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Test endpoint works!',
+        'submission_id': submission_id,
+        'user': request.user.username,
+        'method': request.method
+    })
+
+@login_required
+@require_http_methods(["POST"])
+def test_create_notification(request):
+    """
+    TEST ENDPOINT: Create a test notification for the current user
+    Call this from: /api/test-notification/
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f"🧪 TEST NOTIFICATION CREATION")
+        print(f"{'='*60}")
+        print(f"User: {request.user.username}")
+        
+        # Create notification
+        notification = Notification.objects.create(
+            user=request.user,
+            title="🧪 Test Notification",
+            message="This is a test notification created at " + timezone.now().strftime('%H:%M:%S'),
+            notification_type='info',
+            is_read=False,
+            created_at=timezone.now()
+        )
+        
+        print(f"✅ Created notification ID: {notification.id}")
+        print(f"   Title: {notification.title}")
+        print(f"   is_read: {notification.is_read}")
+        print(f"   created_at: {notification.created_at}")
+        
+        # Verify it was saved correctly
+        saved = Notification.objects.get(id=notification.id)
+        print(f"\n🔍 Verification from database:")
+        print(f"   ID: {saved.id}")
+        print(f"   User: {saved.user.username}")
+        print(f"   is_read: {saved.is_read} ← Should be False!")
+        print(f"   created_at: {saved.created_at}")
+        
+        if saved.is_read:
+            print(f"   ⚠️ WARNING: Notification was saved as READ!")
+            print(f"   This means something is auto-marking notifications as read!")
+            print(f"   Check your model's save() method or database triggers!")
+        
+        # Get current unread count
+        unread_count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
+        
+        print(f"\n📊 Current unread count for {request.user.username}: {unread_count}")
+        print(f"{'='*60}\n")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Test notification created',
+            'notification': {
+                'id': notification.id,
+                'title': notification.title,
+                'is_read': notification.is_read,
+                'created_at': notification.created_at.isoformat()
+            },
+            'verification': {
+                'saved_is_read': saved.is_read,
+                'matches': notification.is_read == saved.is_read,
+                'unread_count': unread_count
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 @login_required
 def admin_submissions_page(request):
     """
@@ -4661,112 +4937,87 @@ def admin_submissions_page(request):
 @require_http_methods(["GET"])
 def api_admin_submissions_list(request):
     """
-    API endpoint to get all submissions for DILG admin review
-    ONLY accessible by DILG Staff
+    API endpoint for admin to fetch all submissions with filters
     """
     try:
-        # STRICT ACCESS CONTROL
+        # Check if user is admin
         user_profile = request.user.userprofile
         if user_profile.role != 'dilg staff':
             return JsonResponse({
                 'success': False,
-                'error': 'Unauthorized: Only DILG Admin can view submissions'
+                'error': 'Unauthorized access'
             }, status=403)
         
         # Get filter parameters
-        barangay_id = request.GET.get('barangay_id', '')
-        status_filter = request.GET.get('status', '')
-        period_filter = request.GET.get('period', '')
-        search_query = request.GET.get('search', '').strip()
+        barangay_id = request.GET.get('barangay_id')
+        status = request.GET.get('status')
+        period = request.GET.get('period')
+        search = request.GET.get('search', '').strip()
         
-        # Base query - get ALL submissions from ALL barangays
+        # Base query - get all submissions
         submissions = RequirementSubmission.objects.select_related(
-            'requirement', 'barangay', 'submitted_by', 'reviewed_by'
-        ).prefetch_related('attachments')
+            'requirement',
+            'barangay',
+            'submitted_by'  # ✅ FIXED: was 'created_by'
+        ).all()
         
         # Apply filters
         if barangay_id:
             submissions = submissions.filter(barangay_id=barangay_id)
         
-        if status_filter:
-            submissions = submissions.filter(status=status_filter)
-        else:
-            # Default: show only submitted (accomplished) items awaiting review
-            submissions = submissions.filter(status='accomplished')
+        if status:
+            submissions = submissions.filter(status=status)
         
-        if period_filter:
-            submissions = submissions.filter(requirement__period=period_filter)
+        if period:
+            submissions = submissions.filter(requirement__period=period)
         
-        if search_query:
+        if search:
             submissions = submissions.filter(
-                Q(requirement__title__icontains=search_query) |
-                Q(requirement__description__icontains=search_query) |
-                Q(barangay__name__icontains=search_query) |
-                Q(update_text__icontains=search_query)
+                Q(requirement__title__icontains=search) |
+                Q(barangay__name__icontains=search) |
+                Q(update_text__icontains=search)
             )
         
-        # Get statistics for all submissions
-        all_submissions = RequirementSubmission.objects.all()
+        # Order by most recent first
+        submissions = submissions.order_by('-submitted_at', '-created_at')
         
-        stats = {
-            'submitted': all_submissions.filter(status='accomplished').count(),
-            'approved': all_submissions.filter(status='approved').count(),
-            'rejected': all_submissions.filter(status='rejected').count(),
-            'overdue': all_submissions.filter(
-                due_date__lt=timezone.now().date(),
-                status__in=['pending', 'in_progress', 'accomplished']
-            ).count()
-        }
-        
-        # Prepare submissions data
+        # Format submissions for JSON
         submissions_data = []
-        for sub in submissions.order_by('-submitted_at', '-updated_at'):
+        for sub in submissions:
             # Get attachments
             attachments = []
-            for att in sub.attachments.all():
-                try:
-                    attachments.append({
-                        'id': att.id,
-                        'file_name': os.path.basename(att.file.name) if att.file else 'Unknown',
-                        'file_url': att.file.url if att.file else '',
-                        'file_size': att.file_size_kb if hasattr(att, 'file_size_kb') else 
-                                   round(att.file_size / 1024, 2) if hasattr(att, 'file_size') else 0,
-                    })
-                except:
-                    continue
+            for attachment in sub.attachments.all():
+                attachments.append({
+                    'id': attachment.id,
+                    'file_name': attachment.file.name.split('/')[-1],
+                    'file_url': attachment.file.url if attachment.file else '#',
+                    'file_size': round(attachment.file.size / 1024) if attachment.file else 0,
+                    'uploaded_at': attachment.uploaded_at.strftime('%B %d, %Y')
+                })
             
             submissions_data.append({
-                'id': sub.id,
-                'title': sub.requirement.title,
-                'description': sub.requirement.description,
-                'barangay_name': sub.barangay.name,
-                'barangay_id': sub.barangay.id,
-                'status': sub.status,
-                'status_display': sub.get_status_display(),
-                'period': sub.requirement.get_period_display(),
-                'due_date': sub.due_date.strftime('%B %d, %Y'),
-                'is_overdue': sub.is_overdue,
-                'update_text': sub.update_text or '',
-                'submitted_at': sub.submitted_at.strftime('%B %d, %Y') if sub.submitted_at else None,
-                'submitted_by': sub.submitted_by.get_full_name() if sub.submitted_by else None,
-                'reviewed_at': sub.reviewed_at.strftime('%B %d, %Y') if sub.reviewed_at else None,
-                'reviewed_by': sub.reviewed_by.get_full_name() if sub.reviewed_by else None,
-                'review_notes': sub.review_notes or '',
-                'attachments': attachments,
-            })
+            'id': sub.id,
+            'title': sub.requirement.title,
+            'barangay_name': sub.barangay.name,
+            'status': sub.status,
+            'status_display': sub.get_status_display(),
+            'due_date': sub.due_date.strftime('%B %d, %Y') if sub.due_date else 'N/A',
+            'submitted_at': sub.submitted_at.strftime('%B %d, %Y') if sub.submitted_at else 'Not submitted',
+            'submitted_by': sub.submitted_by.get_full_name() if sub.submitted_by else 'Unknown',
+            'period': sub.requirement.get_period_display(),
+            'update_text': sub.update_text or '',
+            'attachments': attachments,
+            'is_overdue': sub.is_overdue if hasattr(sub, 'is_overdue') else False  # ✅ FIXED: removed ()
+        })
         
         return JsonResponse({
             'success': True,
             'submissions': submissions_data,
-            'stats': stats
+            'count': len(submissions_data)
         })
         
     except Exception as e:
-        import traceback
-        print(f"=== API ADMIN SUBMISSIONS ERROR ===")
-        print(f"Error: {str(e)}")
-        print(f"Traceback:\n{traceback.format_exc()}")
-        
+        print(f"Error in admin_submissions_list: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -4777,75 +5028,117 @@ def api_admin_submissions_list(request):
 @require_http_methods(["POST"])
 def api_admin_review_submission(request, submission_id):
     """
-    FIXED: API endpoint for DILG admin to approve/reject submissions
-    ONLY accessible by DILG Staff
+    FIXED: Admin approves/rejects submission and notifies barangay
     """
     try:
-        # STRICT ACCESS CONTROL
+        from .models import RequirementSubmission
+        
+        print(f"\n{'='*60}")
+        print(f"⚖️ ADMIN REVIEW SUBMISSION")
+        print(f"{'='*60}")
+        print(f"👤 Admin: {request.user.username}")
+        print(f"📋 Submission ID: {submission_id}")
+        
+        # Check admin permission
         user_profile = request.user.userprofile
-        if user_profile.role != 'dilg staff':
+        if user_profile.role != 'dilg staff' and not request.user.is_superuser:
+            print(f"❌ ERROR: User is not admin")
             return JsonResponse({
                 'success': False,
-                'error': 'Unauthorized: Only DILG Admin can review submissions'
+                'error': 'Permission denied'
             }, status=403)
         
-        submission = get_object_or_404(RequirementSubmission, id=submission_id)
+        # Get submission
+        submission = RequirementSubmission.objects.select_related(
+            'requirement', 'barangay'
+        ).get(id=submission_id)
         
+        print(f"📄 Requirement: {submission.requirement.title}")
+        print(f"🏘️ Barangay: {submission.barangay.name}")
+        
+        # Get action
         data = json.loads(request.body)
         action = data.get('action')  # 'approved' or 'rejected'
-        review_notes = data.get('review_notes', '').strip()
+        review_notes = data.get('review_notes', '')
         
         if action not in ['approved', 'rejected']:
             return JsonResponse({
                 'success': False,
-                'error': 'Invalid action. Must be "approved" or "rejected"'
+                'error': 'Invalid action'
             }, status=400)
         
+        print(f"🔍 Action: {action}")
+        print(f"📝 Review notes: {review_notes[:50] if review_notes else 'None'}...")
+        
         # Update submission
+        old_status = submission.status
         submission.status = action
         submission.reviewed_by = request.user
         submission.reviewed_at = timezone.now()
         submission.review_notes = review_notes
         submission.save()
         
-        # Log the review
-        try:
-            AuditLog.objects.create(
-                user=request.user,
-                action='UPDATE',
-                content_object=submission,
-                description=f"DILG Admin {action.upper()} submission: {submission.requirement.title} from {submission.barangay.name}"
-            )
-        except:
-            pass
+        print(f"✅ Submission reviewed:")
+        print(f"   Old status: {old_status}")
+        print(f"   New status: {submission.status}")
+        print(f"   Reviewed by: {request.user.username}")
+        
+        # ========== NOTIFY BARANGAY USER ==========
+        print(f"\n🔔 Creating barangay notification...")
+        
+        if action == 'approved':
+            title = f"✅ Approved: {submission.requirement.title}"
+            message = f"Your submission for '{submission.requirement.title}' has been approved!"
+            if review_notes:
+                message += f" Admin notes: {review_notes}"
+            notif_type = 'completed'
+        else:  # rejected
+            title = f"❌ Needs Revision: {submission.requirement.title}"
+            message = f"Your submission for '{submission.requirement.title}' needs revision."
+            if review_notes:
+                message += f" Admin feedback: {review_notes}"
+            notif_type = 'info'
+        
+        notifications_sent = notify_barangay_user(
+            submission=submission,
+            title=title,
+            message=message,
+            notification_type=notif_type
+        )
+        # ==========================================
+        
+        print(f"\n✅ REVIEW COMPLETE")
+        print(f"   Notifications sent: {notifications_sent}")
+        print(f"{'='*60}\n")
         
         return JsonResponse({
             'success': True,
             'message': f'Submission {action} successfully',
-            'submission': {
-                'id': submission.id,
-                'status': submission.status,
-                'status_display': submission.get_status_display(),
-                'reviewed_by': request.user.get_full_name() or request.user.username,
-                'reviewed_at': submission.reviewed_at.strftime('%B %d, %Y %I:%M %p')
-            }
+            'notifications_sent': notifications_sent
         })
         
-    except json.JSONDecodeError:
+    except RequirementSubmission.DoesNotExist:
+        print(f"❌ ERROR: Submission {submission_id} not found")
         return JsonResponse({
             'success': False,
-            'error': 'Invalid JSON data'
-        }, status=400)
+            'error': 'Submission not found'
+        }, status=404)
+        
     except Exception as e:
-        import traceback
-        print(f"=== REVIEW ERROR ===")
+        print(f"\n{'='*60}")
+        print(f"❌ REVIEW ERROR")
+        print(f"{'='*60}")
         print(f"Error: {str(e)}")
-        print(f"Traceback:\n{traceback.format_exc()}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
         
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
+
+
 
 def check_page_access(request, allowed_roles):
     """
@@ -4892,6 +5185,7 @@ def api_create_requirement(request):
         title = data.get('title', '').strip()
         description = data.get('description', '').strip()
         period = data.get('period', '').strip()
+        priority = data.get('priority', 'normal').strip()  # ✅ NEW: Get priority
         barangay_ids = data.get('barangay_ids', [])  # Empty = all barangays
         
         # Validation
@@ -4916,6 +5210,7 @@ def api_create_requirement(request):
             title=title,
             description=description,
             period=period,
+            priority=priority,  # ✅ NEW: Save priority
             created_by=request.user,
             is_active=True
         )
@@ -4928,7 +5223,7 @@ def api_create_requirement(request):
             # If no specific barangays, get all
             target_barangays = Barangay.objects.all()
         
-        # 🔥 FIX: AUTO-CREATE SUBMISSIONS FOR ALL BARANGAYS
+        # 🔥 AUTO-CREATE SUBMISSIONS FOR ALL BARANGAYS
         current_year = timezone.now().year
         submissions_created = 0
         
@@ -4958,6 +5253,40 @@ def api_create_requirement(request):
                 submissions_created += 1
         
         print(f"✅ Created {submissions_created} submissions for requirement: {title}")
+
+        # ✅ SEND NOTIFICATIONS TO ALL BARANGAY USERS
+        notifications_sent = 0
+        priority_emoji = {'normal': '📋', 'important': '⚠️', 'urgent': '🚨'}
+        priority_label = priority.upper()
+        
+        # Get all barangay officials from target barangays
+        barangay_users = User.objects.filter(
+            userprofile__role='barangay official',
+            userprofile__barangay__in=target_barangays
+        )
+        
+        # Debug prints
+        print(f"\n🔔 NOTIFICATION DEBUG:")
+        print(f"Target barangays: {[b.name for b in target_barangays]}")
+        print(f"Found {barangay_users.count()} barangay users")
+        
+        for user in barangay_users:
+            try:
+                notification = Notification.objects.create(
+                    user=user,
+                    notification_type='new_requirement',
+                    title=f"{priority_emoji.get(priority, '📋')} New {priority_label} Requirement",
+                    message=f"A new {period} requirement has been added: {title}",
+                    is_read=False
+                )
+                notifications_sent += 1
+                print(f"✅ Created notification for {user.username}")
+            except Exception as notif_error:
+                print(f"❌ Failed to create notification for user {user.username}: {notif_error}")
+                import traceback
+                traceback.print_exc()
+        
+        print(f"✅ Total notifications sent: {notifications_sent}\n")
         
         # Log the creation
         try:
@@ -4965,21 +5294,23 @@ def api_create_requirement(request):
                 user=request.user,
                 action='CREATE',
                 content_object=requirement,
-                description=f"DILG Admin created new requirement: {title} with {submissions_created} submissions"
+                description=f"DILG Admin created new {priority} requirement: {title} with {submissions_created} submissions"
             )
         except:
             pass
         
         return JsonResponse({
             'success': True,
-            'message': f'Requirement created successfully! {submissions_created} submissions created for barangays.',
+            'message': f'Requirement created successfully! {submissions_created} submissions created and {notifications_sent} barangay officials notified.',
             'requirement': {
                 'id': requirement.id,
                 'title': requirement.title,
                 'description': requirement.description,
                 'period': requirement.period,
+                'priority': requirement.priority,
                 'period_display': requirement.get_period_display(),
                 'submissions_created': submissions_created,
+                'notifications_sent': notifications_sent,
             }
         })
         
@@ -5130,6 +5461,111 @@ def api_all_requirements(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
+@login_required
+@require_http_methods(["GET"])
+def api_barangay_requirements_list(request):
+    """
+    API endpoint for BARANGAY USERS to fetch their assigned requirements
+    """
+    try:
+        # Check if user is barangay official
+        user_profile = request.user.userprofile
+        if user_profile.role != 'barangay official':
+            return JsonResponse({
+                'success': False,
+                'error': 'Unauthorized: Only barangay officials can access this'
+            }, status=403)
+        
+        # Get user's barangay
+        barangay = user_profile.barangay
+        if not barangay:
+            return JsonResponse({
+                'success': False,
+                'error': 'No barangay assigned to this user'
+            }, status=400)
+        
+        # Get filter parameters
+        period = request.GET.get('period', 'weekly')
+        week = request.GET.get('week')
+        search = request.GET.get('search', '').strip()
+        
+        # Base query - get submissions for this barangay
+        submissions = RequirementSubmission.objects.filter(
+            barangay=barangay,
+            requirement__period=period,
+            requirement__is_active=True
+        ).select_related('requirement', 'barangay')
+        
+        # Filter by week if weekly period
+        if period == 'weekly' and week:
+            submissions = submissions.filter(week_number=int(week))
+        
+        # Search filter
+        if search:
+            submissions = submissions.filter(
+                Q(requirement__title__icontains=search) |
+                Q(requirement__description__icontains=search) |
+                Q(update_text__icontains=search)
+            )
+        
+        # Order by due date
+        submissions = submissions.order_by('due_date', '-created_at')
+        
+        # Format submissions for JSON
+        submissions_data = []
+        for sub in submissions:
+            # Get attachments
+            attachments = []
+            for attachment in sub.attachments.all():
+                attachments.append({
+                    'id': attachment.id,
+                    'file_name': attachment.file.name.split('/')[-1],
+                    'file_url': attachment.file.url if attachment.file else '#',
+                    'file_size': round(attachment.file.size / 1024) if attachment.file else 0,
+                })
+            
+            # Calculate last update
+            last_update = 'Never'
+            if sub.updated_at:
+                diff = timezone.now() - sub.updated_at
+                if diff.days > 0:
+                    last_update = f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+                else:
+                    hours = diff.seconds // 3600
+                    if hours > 0:
+                        last_update = f"{hours} hour{'s' if hours > 1 else ''} ago"
+                    else:
+                        minutes = (diff.seconds % 3600) // 60
+                        last_update = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+            
+            submissions_data.append({
+                'id': sub.id,
+                'title': sub.requirement.title,
+                'description': sub.requirement.description,
+                'status': sub.status,
+                'status_display': sub.get_status_display(),
+                'due_date': sub.due_date.strftime('%B %d, %Y') if sub.due_date else 'N/A',
+                'last_update': last_update,
+                'is_overdue': sub.is_overdue if hasattr(sub, 'is_overdue') else False,
+                'update_text': sub.update_text or '',
+                'attachments': attachments
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'submissions': submissions_data,
+            'barangay_name': barangay.name,
+            'count': len(submissions_data)
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ Error in barangay_requirements_list: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 
 
@@ -5312,56 +5748,220 @@ def debug_users(request):
 #-----------------END OF ANNOUNCEMENTS AND NOTIFICATIONS--------
 
 #---------------NOTIFICATIONS----------------------
+
+def create_announcement_notification(announcement, send_to_all=True):
+    """
+    Helper function to create notifications when announcements are posted
+    This is called from create_announcement view
+    """
+    try:
+        if send_to_all:
+            # Get all barangay officials
+            barangay_users = User.objects.filter(
+                userprofile__role='barangay official',
+                is_active=True
+            ).distinct()
+            
+            # Bulk create notifications
+            notification_list = []
+            for user in barangay_users:
+                notification_list.append(
+                    Notification(
+                        user=user,
+                        title=f"📢 New Announcement: {announcement.title}",
+                        message=f"{announcement.content[:150]}{'...' if len(announcement.content) > 150 else ''}",
+                        notification_type='announcement',
+                        announcement=announcement
+                    )
+                )
+            
+            Notification.objects.bulk_create(notification_list)
+            return len(notification_list)
+        
+        return 0
+        
+    except Exception as e:
+        print(f"Error creating announcement notifications: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return 0
+
+
 @login_required
 @require_http_methods(["GET"])
 def get_notifications(request):
-    """Get all notifications for the current user"""
+    """
+    FIXED: Get all notifications with proper error handling
+    """
     try:
+        from .models import Notification
+        
+        user = request.user
+        print(f"\n📥 FETCHING NOTIFICATIONS for {user.username}")
+        
+        # Count unread BEFORE slicing
+        unread_count = Notification.objects.filter(
+            user=user,
+            is_read=False
+        ).count()
+        
+        # Get all notifications for the user (slice at the end)
         notifications = Notification.objects.filter(
-            user=request.user
-        ).select_related('submission', 'submission__requirement', 'submission__barangay').order_by('-created_at')
+            user=user
+        ).select_related(
+            'submission__requirement',
+            'submission__barangay',
+            'announcement',
+            'barangay'
+        ).order_by('-created_at')[:50]
         
-        unread_count = notifications.filter(is_read=False).count()
+        print(f"   Found {len(notifications)} notifications")
+        print(f"   Unread: {unread_count}")
         
-        notification_list = []
-        for notif in notifications[:50]:
-            notification_data = {
-                'id': notif.id,
-                'title': notif.title,
-                'message': notif.message,
-                'type': notif.notification_type,
-                'is_read': notif.is_read,
-                'created_at': notif.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'time_ago': get_time_ago(notif.created_at),
-            }
-            
-            if notif.submission:
-                notification_data['submission'] = {
-                    'id': notif.submission.id,
-                    'requirement_name': notif.submission.requirement.title,
-                    'barangay_name': notif.submission.barangay.name,
-                    'status': notif.submission.status,
-                    'due_date': notif.submission.due_date.strftime('%Y-%m-%d'),
+        # Format notifications
+        notifications_list = []
+        for notif in notifications:
+            try:
+                # Calculate time ago
+                now = timezone.now()
+                diff = now - notif.created_at
+                seconds = diff.total_seconds()
+                
+                if seconds < 60:
+                    time_ago = "Just now"
+                elif seconds < 3600:
+                    minutes = int(seconds / 60)
+                    time_ago = f"{minutes}m ago"
+                elif seconds < 86400:
+                    hours = int(seconds / 3600)
+                    time_ago = f"{hours}h ago"
+                elif seconds < 604800:
+                    days = int(seconds / 86400)
+                    time_ago = f"{days}d ago"
+                else:
+                    time_ago = notif.created_at.strftime('%b %d')
+                
+                notification_data = {
+                    'id': notif.id,
+                    'title': notif.title,
+                    'message': notif.message,
+                    'type': notif.notification_type,
+                    'is_read': notif.is_read,
+                    'created_at': notif.created_at.isoformat(),
+                    'time_ago': time_ago,
                 }
-            
-            notification_list.append(notification_data)
+                
+                # Add related IDs safely
+                if notif.submission:
+                    notification_data['submission_id'] = notif.submission.id
+                if notif.announcement:
+                    notification_data['announcement_id'] = notif.announcement.id
+                if notif.barangay:
+                    notification_data['barangay_id'] = notif.barangay.id
+                
+                notifications_list.append(notification_data)
+                
+            except Exception as inner_e:
+                print(f"   ⚠️ Error formatting notification {notif.id}: {str(inner_e)}")
+                continue
+        
+        print(f"   ✅ Successfully formatted {len(notifications_list)} notifications\n")
         
         return JsonResponse({
             'success': True,
-            'notifications': notification_list,
+            'notifications': notifications_list,
             'unread_count': unread_count,
-            'total_count': notifications.count()
+            'total_count': len(notifications_list)
         })
         
     except Exception as e:
-        print(f"Error in get_notifications: {e}")
+        print(f"\n❌ GET NOTIFICATIONS ERROR")
+        print(f"User: {request.user.username if request.user else 'Unknown'}")
+        print(f"Error: {str(e)}")
+        traceback.print_exc()
+        print()
+        
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'notifications': [],
+            'unread_count': 0
+        }, status=500)
+
+
+
+@login_required
+def debug_notifications(request):
+    """
+    Debug view to check notification setup
+    Call this endpoint to diagnose issues
+    """
+    try:
+        from .models import Notification
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        debug_info = {
+            'current_user': {
+                'username': request.user.username,
+                'id': request.user.id,
+                'is_superuser': request.user.is_superuser,
+                'has_profile': hasattr(request.user, 'userprofile'),
+            },
+            'user_role': None,
+            'notifications': {
+                'total': 0,
+                'unread': 0,
+                'recent': []
+            },
+            'admin_users': [],
+        }
+        
+        # Get user role
+        if hasattr(request.user, 'userprofile'):
+            debug_info['user_role'] = request.user.userprofile.role
+            if request.user.userprofile.barangay:
+                debug_info['barangay'] = request.user.userprofile.barangay.name
+        
+        # Get notification counts
+        notifications = Notification.objects.filter(user=request.user)
+        debug_info['notifications']['total'] = notifications.count()
+        debug_info['notifications']['unread'] = notifications.filter(is_read=False).count()
+        
+        # Get recent notifications
+        recent = notifications.order_by('-created_at')[:5]
+        for notif in recent:
+            debug_info['notifications']['recent'].append({
+                'id': notif.id,
+                'title': notif.title,
+                'type': notif.notification_type,
+                'is_read': notif.is_read,
+                'created_at': str(notif.created_at)
+            })
+        
+        # Get all admin users
+        admin_users = User.objects.filter(
+            Q(userprofile__role='dilg staff') | Q(is_superuser=True)
+        ).distinct()
+        
+        for admin in admin_users:
+            debug_info['admin_users'].append({
+                'username': admin.username,
+                'id': admin.id,
+                'is_superuser': admin.is_superuser,
+                'role': admin.userprofile.role if hasattr(admin, 'userprofile') else 'No profile'
+            })
+        
+        return JsonResponse(debug_info, json_dumps_params={'indent': 2})
+        
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+            'traceback': traceback.format_exc()
         }, status=500)
 
 @login_required
-@require_http_methods(["POST"])
+@require_POST
 def mark_notification_read(request, notification_id):
     """Mark a single notification as read"""
     try:
@@ -5369,12 +5969,20 @@ def mark_notification_read(request, notification_id):
             id=notification_id,
             user=request.user
         )
+        
         notification.is_read = True
         notification.save()
         
+        # Get updated unread count
+        unread_count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
+        
         return JsonResponse({
             'success': True,
-            'message': 'Notification marked as read'
+            'message': 'Notification marked as read',
+            'unread_count': unread_count
         })
         
     except Notification.DoesNotExist:
@@ -5382,7 +5990,13 @@ def mark_notification_read(request, notification_id):
             'success': False,
             'error': 'Notification not found'
         }, status=404)
+        
     except Exception as e:
+        import traceback
+        print(f"=== MARK NOTIFICATION READ ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -5390,25 +6004,34 @@ def mark_notification_read(request, notification_id):
 
 
 @login_required
-@require_http_methods(["POST"])
+@require_POST
 def mark_all_notifications_read(request):
-    """Mark all notifications as read for current user"""
+    """Mark all notifications as read for the current user"""
     try:
-        updated = Notification.objects.filter(
+        updated_count = Notification.objects.filter(
             user=request.user,
             is_read=False
         ).update(is_read=True)
         
         return JsonResponse({
             'success': True,
-            'message': f'{updated} notifications marked as read'
+            'message': f'{updated_count} notifications marked as read',
+            'updated_count': updated_count,
+            'unread_count': 0
         })
         
     except Exception as e:
+        import traceback
+        print(f"=== MARK ALL NOTIFICATIONS READ ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Traceback:\n{traceback.format_exc()}")
+        
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
+
+
 
 @login_required
 @require_http_methods(["GET"])
@@ -5431,123 +6054,59 @@ def get_unread_count(request):
             'error': str(e)
         }, status=500)
     
-@login_required
-@require_POST
-def create_announcement(request):
-    """Create a new announcement and send notifications to barangays"""
-    try:
-        data = json.loads(request.body)
-        
-        title = data.get('title', '').strip()
-        content = data.get('content', '').strip()
-        priority = data.get('priority', 'medium')
-        send_notification = data.get('send_notification', False)
-        
-        # Validation
-        if not title or not content:
-            return JsonResponse({
-                'success': False,
-                'error': 'Title and content are required'
-            }, status=400)
-        
-        # Create announcement
-        announcement = Announcement.objects.create(
-            title=title,
-            content=content,
-            priority=priority,
-            posted_by=request.user,
-            posted_at=timezone.now()
-        )
-        
-        notifications_sent = 0
-        
-        # Send notifications to all barangay users if enabled
-        if send_notification:
-            # FIX: Get ALL active users (or all users with 'barangay official' role)
-            # Option 1: Send to all active users
-            barangay_users = User.objects.filter(
-                is_active=True,
-                is_superuser=False  # Exclude admin from notifications
-            ).exclude(
-                id=request.user.id  # Exclude the person posting
-            ).distinct()
-            
-            # Debug: Print how many users we found
-            print(f"📊 Found {barangay_users.count()} users to notify")
-            for user in barangay_users:
-                try:
-                    role = user.userprofile.role if hasattr(user, 'userprofile') else 'No role'
-                    print(f"   - {user.username}: {role}")
-                except:
-                    print(f"   - {user.username}: No profile")
-            
-            # Create notification for each user
-            notification_list = []
-            for user in barangay_users:
-                notification_list.append(
-                    Notification(
-                        user=user,
-                        title=f"📢 New Announcement: {title}",
-                        message=f"{content[:100]}..." if len(content) > 100 else content,
-                        notification_type='info',
-                        announcement=announcement,
-                        created_at=timezone.now()
-                    )
-                )
-            
-            # Bulk create notifications for efficiency
-            if notification_list:
-                Notification.objects.bulk_create(notification_list)
-                notifications_sent = len(notification_list)
-                print(f"✅ Created {notifications_sent} notifications")
-        
-        return JsonResponse({
-            'success': True,
-            'announcement': {
-                'id': announcement.id,
-                'title': announcement.title,
-                'content': announcement.content,
-                'priority': announcement.priority,
-                'posted_at': announcement.posted_at.strftime('%B %d, %Y'),
-                'posted_by': announcement.posted_by.get_full_name() or announcement.posted_by.username
-            },
-            'notifications_sent': notifications_sent
-        })
-        
-    except Exception as e:
-        import traceback
-        print(f"=== CREATE ANNOUNCEMENT ERROR ===")
-        print(f"Error: {str(e)}")
-        print(f"Traceback:\n{traceback.format_exc()}")
-        
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
 
-    
 @login_required
 @require_http_methods(["POST"])
 def submit_requirement_with_notification(request, submission_id):
-    """Handle requirement submission and create notifications"""
+    """
+    Handle requirement submission and create notifications
+    This is the actual endpoint being called: /api/requirements/submission/<id>/submit/
+    """
     try:
-        submission = RequirementSubmission.objects.get(
+        from .models import RequirementSubmission
+        
+        print(f"\n{'='*60}")
+        print(f"🚀 SUBMIT REQUIREMENT WITH NOTIFICATION")
+        print(f"{'='*60}")
+        print(f"👤 User: {request.user.username}")
+        print(f"📋 Submission ID: {submission_id}")
+        
+        # Get submission
+        submission = RequirementSubmission.objects.select_related(
+            'requirement', 'barangay'
+        ).get(
             id=submission_id,
-            barangay__user=request.user
+            barangay=request.user.userprofile.barangay  # Fixed query
         )
+        
+        print(f"📄 Requirement: {submission.requirement.title}")
+        print(f"🏘️ Barangay: {submission.barangay.name}")
         
         # Update submission status
+        old_status = submission.status
         submission.status = 'accomplished'
         submission.submitted_at = timezone.now()
+        submission.submitted_by = request.user
         submission.save()
         
-        # Create notification for admins
-        create_admin_notification(
-            title="New Submission for Review",
-            message=f"{submission.barangay.name} submitted {submission.requirement.title}",
-            notification_type='info',
+        print(f"✅ Submission updated:")
+        print(f"   Old status: {old_status}")
+        print(f"   New status: {submission.status}")
+        print(f"   Submitted at: {submission.submitted_at}")
+        
+        # ========== CREATE NOTIFICATIONS FOR ADMINS ==========
+        print(f"\n🔔 Creating admin notifications...")
+        notifications_sent = notify_admins(
+            title=f"📋 New Submission: {submission.requirement.title}",
+            message=f"{submission.barangay.name} submitted '{submission.requirement.title}' for review.",
+            notification_type='new_submission',
             submission=submission
         )
+        # ====================================================
+        
+        print(f"\n✅ SUBMISSION COMPLETE")
+        print(f"   Notifications sent: {notifications_sent}")
+        print(f"{'='*60}\n")
         
         return JsonResponse({
             'success': True,
@@ -5557,19 +6116,31 @@ def submit_requirement_with_notification(request, submission_id):
                 'status': submission.status,
                 'status_display': submission.get_status_display(),
                 'submitted_at': submission.submitted_at.strftime('%B %d, %Y')
-            }
+            },
+            'notifications_sent': notifications_sent
         })
         
     except RequirementSubmission.DoesNotExist:
+        print(f"❌ ERROR: Submission {submission_id} not found")
         return JsonResponse({
             'success': False,
             'error': 'Submission not found'
         }, status=404)
+        
     except Exception as e:
+        print(f"\n{'='*60}")
+        print(f"❌ SUBMIT ERROR")
+        print(f"{'='*60}")
+        print(f"Error: {str(e)}")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
+    
+
 
 @login_required
 @require_http_methods(["POST"])
@@ -5720,36 +6291,6 @@ def create_notification(user, title, message, notification_type, submission=None
         print(f"Error creating notification: {e}")
         return None
 
-
-def create_admin_notification(title, message, notification_type, submission=None):
-    """Create notification for all admin users"""
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-    
-    try:
-        # Get all admin users
-        admin_users = User.objects.filter(
-            Q(is_superuser=True) | Q(groups__name='Admin')
-        ).distinct()
-        
-        # Create notification for each admin
-        notifications = []
-        for admin in admin_users:
-            notif = create_notification(
-                user=admin,
-                title=title,
-                message=message,
-                notification_type=notification_type,
-                submission=submission
-            )
-            if notif:
-                notifications.append(notif)
-        
-        return notifications
-        
-    except Exception as e:
-        print(f"Error creating admin notifications: {e}")
-        return []
 
 #----END OF NOTIFICATIONS HELPERS----
 

@@ -229,6 +229,8 @@ def get_client_ip(request):
     return ip
 
 
+# app/models.py
+
 class UserProfile(models.Model):
     ROLE_CHOICES = [
         ('barangay official', 'Barangay Official'),
@@ -236,10 +238,18 @@ class UserProfile(models.Model):
         ('dilg staff', 'DILG Staff'),
     ]
 
-
-
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=50, choices=ROLE_CHOICES)
+    
+    # 🆕 ADD THIS - Link user to their barangay
+    barangay = models.ForeignKey(
+        'Barangay', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='officials',
+        help_text='Assigned barangay (for Barangay Officials only)'
+    )
 
     # Extra profile fields
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
@@ -247,7 +257,8 @@ class UserProfile(models.Model):
     is_profile_complete = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user.username} - {self.role.title()}"
+        barangay_name = f" - {self.barangay.name}" if self.barangay else ""
+        return f"{self.user.username} - {self.role.title()}{barangay_name}"
 
     def update_login_info(self, ip_address):
         """Update login info after each login"""
@@ -258,12 +269,21 @@ class UserProfile(models.Model):
     def get_redirect_url(self):
         """Return the correct redirect path based on role"""
         mapping = {
-            'barangay official': 'civil_service_certification',
+            'barangay official': 'requirements_monitoring',
             'municipal officer': 'requirements_monitoring',
             'dilg staff': 'landing_menu',
         }
         return mapping.get(self.role.lower(), 'dashboard')
-
+    
+    # 🆕 ADD THIS - Permission checking method
+    def can_access_barangay(self, barangay):
+        """Check if user has permission to access this barangay's data"""
+        if self.role == 'dilg staff':
+            return True  # DILG staff sees all barangays
+        if self.role == 'municipal officer':
+            return True  # Municipal officers see all barangays
+        # Barangay officials only see their assigned barangay
+        return self.barangay == barangay if self.barangay else False
 
 class EligibilityRequest(models.Model):
     CERTIFIER_CHOICES = [
@@ -511,6 +531,16 @@ class Requirement(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     period = models.CharField(max_length=20, choices=PERIOD_CHOICES)
+
+    priority = models.CharField(
+        max_length=20,
+        choices=[
+            ('normal', 'Normal'),
+            ('important', 'Important'),
+            ('urgent', 'Urgent'),
+        ],
+        default='normal'
+    )
     
     # Applicable to which barangays (if None, applies to all)
     applicable_barangays = models.ManyToManyField(Barangay, blank=True)
@@ -671,6 +701,8 @@ class Notification(models.Model):
         ('completed', 'Completed'),
         ('reminder', 'Reminder'),
         ('info', 'Information'),
+        ('new_requirement', 'New Requirement'),
+        ('new_submission', 'New Submission'),
         ('announcement', 'Announcement'),
     ]
     
@@ -680,7 +712,8 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='info')
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
-    
+
+
     # Optional: Link to related objects
     submission = models.ForeignKey(
         'RequirementSubmission', 
