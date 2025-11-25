@@ -255,6 +255,12 @@ class UserProfile(models.Model):
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     login_count = models.PositiveIntegerField(default=0)
     is_profile_complete = models.BooleanField(default=False)
+    
+    # NEW: Approval fields
+    is_approved = models.BooleanField(default=False)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_profiles')
 
     def __str__(self):
         barangay_name = f" - {self.barangay.name}" if self.barangay else ""

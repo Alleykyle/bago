@@ -93,8 +93,16 @@ def login_page(request):
         user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
         if user is not None:
-            login(request, user)
+            # ✅ CHECK IF USER IS APPROVED BEFORE ALLOWING LOGIN
             profile, created = UserProfile.objects.get_or_create(user=user)
+            
+            # If user is not approved, block login
+            if not profile.is_approved:
+                messages.warning(request, '⏳ Your account is pending approval. Please wait for administrator approval.')
+                return redirect('login_page')
+            
+            # User is approved, proceed with login
+            login(request, user)
             profile.update_login_info(ip_address)
 
             AuditLog.objects.create(
@@ -118,6 +126,29 @@ def login_page(request):
 
     return render(request, 'login_page.html')
 
+<<<<<<< HEAD
+=======
+@login_required
+def logout_view(request):
+    """Handle user logout with audit log"""
+    user = request.user
+    ip_address = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+
+    # Log the logout action
+    AuditLog.objects.create(
+        user=user,
+        action='LOGOUT',
+        ip_address=ip_address,
+        user_agent=user_agent,
+        description=f"{user.username} logged out",
+    )
+
+    logout(request)
+    messages.info(request, "You have been logged out successfully.")
+    return redirect('login')  # change to your login page URL name
+
+>>>>>>> 403b4b0426bda3178b593e97111288af163998c0
 
 def landing_menu(request):
     return render(request, 'landing_menu.html')
@@ -808,16 +839,115 @@ def signup_page(request):
                 messages.error(request, error)
             return render(request, 'signup_page.html')
 
-        # Create the user
+        # Create the user (but NOT approved yet)
         user = User.objects.create_user(username=username, email=email, password=password1)
 
-        # Create or get profile with normalized role (strip spaces)
-        UserProfile.objects.get_or_create(user=user, defaults={'role': role.strip()})
+        # Create profile with is_approved=False (waiting for admin approval)
+        UserProfile.objects.get_or_create(
+            user=user, 
+            defaults={
+                'role': role.strip(),
+                'is_approved': False  # KEY: User needs approval
+            }
+        )
 
-        messages.success(request, 'Account created successfully. Please log in.')
-        return redirect('login_page')
+        # Redirect to pending approval page instead of login
+        return redirect('signup_pending')
 
     return render(request, 'signup_page.html')
+
+
+def signup_pending(request):
+    """Show 'waiting for approval' message after signup"""
+    return render(request, 'signup_pending.html')
+
+
+@login_required
+def pending_users(request):
+    """Admin dashboard to view and approve pending users"""
+    print("🔍 PENDING USERS VIEW CALLED!")  # ADD THIS
+    print(f"User: {request.user.username}")  # ADD THIS
+    print(f"Is staff: {request.user.is_staff}")  # ADD THIS
+    
+    # Check if user is admin/staff
+    if not request.user.is_staff and not request.user.is_superuser:
+        messages.error(request, 'Access denied. Admin only.')
+        return redirect('dashboard')
+    
+    # Get all pending users (not approved yet)
+    pending = UserProfile.objects.filter(
+        is_approved=False
+    ).select_related('user').order_by('-submitted_at')
+    
+    # Get recently approved users (last 10)
+    approved = UserProfile.objects.filter(
+        is_approved=True,
+        approved_at__isnull=False
+    ).select_related('user', 'approved_by').order_by('-approved_at')[:10]
+    
+    context = {
+        'pending_users': pending,
+        'approved_users': approved,
+        'pending_count': pending.count(),
+    }
+    return render(request, 'pending_users.html', context)
+
+
+@login_required
+def approve_user(request, user_id):
+    """Approve a pending user"""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+    
+    try:
+        profile = get_object_or_404(UserProfile, user_id=user_id)
+        
+        profile.is_approved = True
+        profile.approved_at = timezone.now()
+        profile.approved_by = request.user
+        profile.save()
+        
+        # Log the approval
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE',
+            description=f"Approved user: {profile.user.username} ({profile.role})"
+        )
+        
+        messages.success(request, f'✅ User {profile.user.username} has been approved!')
+        return redirect('pending_users')
+        
+    except Exception as e:
+        messages.error(request, f'Error approving user: {str(e)}')
+        return redirect('pending_users')
+
+
+@login_required
+def reject_user(request, user_id):
+    """Reject and delete a pending user"""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+    
+    try:
+        profile = get_object_or_404(UserProfile, user_id=user_id)
+        username = profile.user.username
+        
+        # Log before deletion
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            description=f"Rejected and deleted user: {username} ({profile.role})"
+        )
+        
+        # Delete the user (profile will be deleted via cascade)
+        profile.user.delete()
+        
+        messages.success(request, f'❌ User {username} has been rejected and deleted.')
+        return redirect('pending_users')
+        
+    except Exception as e:
+        messages.error(request, f'Error rejecting user: {str(e)}')
+        return redirect('pending_users')
 
 
 @login_required
@@ -959,7 +1089,8 @@ def dashboard(request):
         pending_requests = EligibilityRequest.objects.filter(
             status='pending'
         ).count()
-        
+        pending_users_count = UserProfile.objects.filter(is_approved=False).count()
+
         total_requests = EligibilityRequest.objects.count()
         processing_rate = round((approved_certificates / total_requests * 100), 1) if total_requests > 0 else 0
         
@@ -1074,6 +1205,7 @@ def dashboard(request):
             'processing_rate': processing_rate,
             'avg_processing_days': avg_processing_days,
             'this_month_certs': this_month_certs,
+            'pending_count': pending_users_count,
         }
         
         print(f"✅ Dashboard loaded: Employees={total_employees}, "
@@ -1101,6 +1233,7 @@ def dashboard(request):
             'processing_rate': 0,
             'avg_processing_days': 0,
             'this_month_certs': 0,
+            'pending_count': 0,
         }
         return render(request, 'dashboard.html', context)
 
